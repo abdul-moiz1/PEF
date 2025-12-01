@@ -371,3 +371,31 @@ export type InsertCountry = z.infer<typeof insertCountrySchema>;
 
 export type City = typeof cities.$inferSelect;
 export type InsertCity = z.infer<typeof insertCitySchema>;
+
+export const firestoreCitySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  displayName: z.string().nullable().optional(),
+  enabled: z.boolean().default(false),
+  sortOrder: z.number().default(0),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
+});
+
+export const firestoreCountrySchema = z.object({
+  id: z.string(),
+  code: z.string(),
+  name: z.string(),
+  displayName: z.string().nullable().optional(),
+  phoneCode: z.string().nullable().optional(),
+  enabled: z.boolean().default(false),
+  sortOrder: z.number().default(0),
+  cities: z.array(firestoreCitySchema).default([]),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
+});
+
+export type FirestoreCity = z.infer<typeof firestoreCitySchema>;
+export type FirestoreCountry = z.infer<typeof firestoreCountrySchema>;
+export type InsertFirestoreCity = Omit<FirestoreCity, 'id' | 'createdAt' | 'updatedAt'>;
+export type InsertFirestoreCountry = Omit<FirestoreCountry, 'id' | 'createdAt' | 'updatedAt' | 'cities'>;
