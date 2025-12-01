@@ -57,7 +57,7 @@ export default function Membership() {
     <div className="min-h-screen">
       <Header />
       <main>
-        <section className="relative py-24 md:py-32 bg-gradient-to-br from-primary to-[hsl(213,58%,35%)] text-white overflow-hidden">
+        <section className="relative py-16 md:py-24 bg-gradient-to-br from-primary to-[hsl(213,58%,35%)] text-white overflow-hidden">
           <div className="absolute inset-0 opacity-10">
             <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
               <defs>
@@ -78,32 +78,32 @@ export default function Membership() {
             </p>
             <Button
               size="lg"
-              className="bg-accent hover:bg-accent text-accent-foreground font-semibold text-lg px-10 py-7 min-h-14"
+              className="bg-accent hover:bg-accent text-accent-foreground font-semibold text-lg px-10 py-7 min-h-14 group"
               data-testid="button-join-now-hero"
               onClick={handleJoinNowClick}
             >
               Join Now
-              <ArrowRight className="ml-2 w-5 h-5" />
+              <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
             </Button>
           </div>
         </section>
 
-        <section className="py-16 md:py-24 bg-background">
+        <section className="py-12 md:py-20 bg-background">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <h2 className="text-3xl md:text-4xl font-display font-bold mb-4 text-center">
               Why Become a Member?
             </h2>
-            <p className="text-center text-muted-foreground mb-12 max-w-3xl mx-auto text-lg">
+            <p className="text-center text-muted-foreground mb-10 max-w-3xl mx-auto text-lg">
               Experience a trusted, professional environment designed for global business collaboration and career advancement
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
               {benefits.map((benefit) => {
                 const Icon = benefit.icon;
                 return (
-                  <Card key={benefit.title} className="border-2 hover:border-primary/30 transition-all hover-elevate" data-testid={`card-benefit-${benefit.title.toLowerCase().replace(/\s+/g, "-")}`}>
+                  <Card key={benefit.title} className="border-2 hover:border-primary/30 transition-colors duration-300 hover-elevate" data-testid={`card-benefit-${benefit.title.toLowerCase().replace(/\s+/g, "-")}`}>
                     <CardContent className="p-6">
-                      <div className="w-14 h-14 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+                      <div className="w-14 h-14 bg-gradient-to-br from-primary/10 to-secondary/10 rounded-lg flex items-center justify-center mb-4">
                         <Icon className="w-7 h-7 text-primary" />
                       </div>
                       <h3 className="text-lg font-bold mb-2">{benefit.title}</h3>
@@ -116,23 +116,27 @@ export default function Membership() {
           </div>
         </section>
 
-        <section className="py-16 md:py-24 bg-muted/30">
+        <section className="py-12 md:py-20 bg-muted/30">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <Card className="border-2 border-primary/20">
+            <Card className="border-2 border-primary/20 bg-gradient-to-br from-card via-card to-primary/5 shadow-xl">
               <CardContent className="p-8 md:p-12">
                 <div className="text-center mb-8">
+                  <div className="inline-flex items-center gap-2 bg-green-500/10 text-green-600 dark:text-green-400 px-4 py-2 rounded-full mb-4">
+                    <Check className="w-4 h-4" />
+                    <span className="text-sm font-semibold">No Cost to Join</span>
+                  </div>
                   <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">
                     Membership Fee
                   </h2>
                   <div className="inline-flex items-baseline gap-2">
-                    <span className="text-5xl md:text-6xl font-bold text-primary">FREE</span>
+                    <span className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">FREE</span>
                   </div>
                   <p className="text-lg text-muted-foreground mt-4">
                     PEF membership is open to all approved individuals and organizations.
                   </p>
                 </div>
 
-                <div className="bg-background rounded-lg p-6 mb-8">
+                <div className="bg-background/80 backdrop-blur-sm rounded-lg p-6 mb-8 border border-border/50">
                   <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
                     <Shield className="w-5 h-5 text-primary" />
                     Approval Process
@@ -142,21 +146,21 @@ export default function Membership() {
                   </p>
                 </div>
 
-                <div className="space-y-3 mb-8">
-                  <div className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-background/50 transition-colors hover:bg-background">
+                    <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
                     <span className="text-muted-foreground">No hidden fees or charges</span>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-background/50 transition-colors hover:bg-background">
+                    <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
                     <span className="text-muted-foreground">Review process ensures quality</span>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-background/50 transition-colors hover:bg-background">
+                    <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
                     <span className="text-muted-foreground">Email confirmation upon approval</span>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-background/50 transition-colors hover:bg-background">
+                    <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
                     <span className="text-muted-foreground">Access to all member features</span>
                   </div>
                 </div>
@@ -164,12 +168,12 @@ export default function Membership() {
                 <div className="text-center">
                   <Button
                     size="lg"
-                    className="min-h-14 px-10 font-semibold"
+                    className="min-h-14 px-10 font-semibold group"
                     data-testid="button-create-account"
                     onClick={handleCreateAccountClick}
                   >
                     Create Your Account
-                    <ArrowRight className="ml-2 w-5 h-5" />
+                    <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
                   </Button>
                 </div>
               </CardContent>
@@ -177,7 +181,7 @@ export default function Membership() {
           </div>
         </section>
 
-        <section className="py-16 md:py-24 bg-background">
+        <section className="py-12 md:py-20 bg-background">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-3xl md:text-4xl font-display font-bold mb-6">
               Ready to Get Started?

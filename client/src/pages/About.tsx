@@ -2,7 +2,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Shield, Users, Target, Globe2, TrendingUp, Building2, Briefcase, UserCircle, DollarSign, Quote, Sparkles, Brain, Database } from "lucide-react";
+import { Shield, Users, Target, Globe2, TrendingUp, Building2, Briefcase, UserCircle, DollarSign, Quote, Sparkles, Brain, Database, ArrowRight } from "lucide-react";
 import { Link } from "wouter";
 import chairmanImage from "@assets/image_1763374941295.png";
 
@@ -12,14 +12,14 @@ export default function About() {
       <Header />
       <main>
         {/* Hero Section with Stats */}
-        <section className="relative py-20 md:py-28 bg-gradient-to-br from-primary via-primary to-[hsl(213,58%,35%)] text-white overflow-hidden">
+        <section className="relative py-16 md:py-24 bg-gradient-to-br from-primary via-primary to-[hsl(213,58%,35%)] text-white overflow-hidden">
           <div className="absolute inset-0 opacity-10">
             <div className="absolute top-0 left-0 w-96 h-96 bg-secondary/30 rounded-full blur-3xl"></div>
             <div className="absolute bottom-0 right-0 w-96 h-96 bg-accent/20 rounded-full blur-3xl"></div>
           </div>
           
           <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
+            <div className="text-center mb-10">
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold mb-6">
                 Building Bridges Between<br />Talent and Opportunity
               </h1>
@@ -28,18 +28,18 @@ export default function About() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mt-16">
-              <div className="bg-white/10 backdrop-blur-sm rounded-md p-6 text-center border border-white/20" data-testid="stat-global">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mt-12">
+              <div className="bg-white/10 backdrop-blur-sm rounded-md p-6 text-center border border-white/20 transition-colors duration-300 hover:bg-white/20" data-testid="stat-global">
                 <Globe2 className="w-8 h-8 mx-auto mb-3 text-secondary" />
                 <div className="text-3xl md:text-4xl font-display font-bold mb-1">Global</div>
                 <div className="text-white/80">Cross-Border Network</div>
               </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-md p-6 text-center border border-white/20" data-testid="stat-verified">
+              <div className="bg-white/10 backdrop-blur-sm rounded-md p-6 text-center border border-white/20 transition-colors duration-300 hover:bg-white/20" data-testid="stat-verified">
                 <Shield className="w-8 h-8 mx-auto mb-3 text-secondary" />
                 <div className="text-3xl md:text-4xl font-display font-bold mb-1">Verified</div>
                 <div className="text-white/80">Professional Profiles</div>
               </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-md p-6 text-center border border-white/20" data-testid="stat-intelligent">
+              <div className="bg-white/10 backdrop-blur-sm rounded-md p-6 text-center border border-white/20 transition-colors duration-300 hover:bg-white/20" data-testid="stat-intelligent">
                 <TrendingUp className="w-8 h-8 mx-auto mb-3 text-secondary" />
                 <div className="text-3xl md:text-4xl font-display font-bold mb-1">Intelligent</div>
                 <div className="text-white/80">Opportunity Matching</div>
@@ -49,7 +49,7 @@ export default function About() {
         </section>
 
         {/* Leadership Spotlight - Chairman Vision */}
-        <section className="relative py-16 md:py-24 bg-background overflow-hidden">
+        <section className="relative py-12 md:py-20 bg-background overflow-hidden">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid lg:grid-cols-2 gap-12 items-center">
               {/* Image Side */}
@@ -88,8 +88,9 @@ export default function About() {
 
                 <div className="flex flex-wrap gap-4">
                   <Link href="/membership">
-                    <Button size="lg" data-testid="button-join-vision">
+                    <Button size="lg" className="group" data-testid="button-join-vision">
                       Join Our Vision
+                      <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
                     </Button>
                   </Link>
                   <Link href="/contact">
@@ -104,7 +105,7 @@ export default function About() {
         </section>
 
         {/* Our Story */}
-        <section className="py-16 md:py-24 bg-muted/30">
+        <section className="py-12 md:py-20 bg-muted/30">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-display font-bold mb-6">
@@ -125,7 +126,7 @@ export default function About() {
         </section>
 
         {/* Mission Pillars */}
-        <section className="py-16 md:py-24 bg-background">
+        <section className="py-12 md:py-20 bg-background">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">
@@ -213,7 +214,7 @@ export default function About() {
         </section>
 
         {/* Core Values */}
-        <section className="py-16 md:py-24 bg-muted/30">
+        <section className="py-12 md:py-20 bg-muted/30">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">
@@ -265,7 +266,7 @@ export default function About() {
         </section>
 
         {/* Future Plan - AI Matching Platform */}
-        <section className="py-16 md:py-24 bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5">
+        <section className="py-12 md:py-20 bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full mb-6">
@@ -332,7 +333,7 @@ export default function About() {
         </section>
 
         {/* Community Ecosystem */}
-        <section className="py-16 md:py-24 bg-gradient-to-br from-secondary/10 to-primary/5">
+        <section className="py-12 md:py-20 bg-gradient-to-br from-secondary/10 to-primary/5">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">
@@ -420,7 +421,7 @@ export default function About() {
         </section>
 
         {/* CTA Section */}
-        <section className="py-20 md:py-28 bg-gradient-to-br from-primary to-[hsl(213,58%,35%)] text-white">
+        <section className="py-14 md:py-20 bg-gradient-to-br from-primary to-[hsl(213,58%,35%)] text-white">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-display font-bold mb-6">
               Ready to Connect with Global Opportunities?
@@ -430,8 +431,9 @@ export default function About() {
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
               <Link href="/register">
-                <Button size="lg" variant="secondary" className="text-lg px-8" data-testid="button-cta-join">
+                <Button size="lg" variant="secondary" className="text-lg px-8 group" data-testid="button-cta-join">
                   Join Now
+                  <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
                 </Button>
               </Link>
               <Link href="/opportunities">
