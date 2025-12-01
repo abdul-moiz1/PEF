@@ -30,6 +30,7 @@ import {
   Trash2,
   Star,
   Download,
+  Globe,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { auth } from "@/lib/firebase";
@@ -527,6 +528,13 @@ export default function AdminDashboard() {
               <Users className="w-8 h-8 text-primary mb-2" />
               <h3 className="font-bold mb-1">Membership Applications</h3>
               <p className="text-sm text-muted-foreground">Review membership applications</p>
+            </CardContent>
+          </Card>
+          <Card className="hover-elevate cursor-pointer" onClick={() => setLocation("/admin/locations")} data-testid="card-manage-locations">
+            <CardContent className="p-6">
+              <Globe className="w-8 h-8 text-primary mb-2" />
+              <h3 className="font-bold mb-1">Locations</h3>
+              <p className="text-sm text-muted-foreground">Manage countries and cities</p>
             </CardContent>
           </Card>
           <Card 

@@ -2340,6 +2340,252 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Public endpoints for country/city dropdowns
+  app.get("/api/locations/countries", async (_req, res) => {
+    try {
+      const countriesList = await storage.getEnabledCountries();
+      return res.json(countriesList.map(c => ({
+        id: c.id,
+        code: c.code,
+        name: c.displayName || c.name,
+        phoneCode: c.phoneCode
+      })));
+    } catch (error) {
+      console.error("Error fetching countries:", error);
+      return res.status(500).json({ error: "Failed to fetch countries" });
+    }
+  });
+
+  app.get("/api/locations/countries/:countryId/cities", async (req, res) => {
+    try {
+      const { countryId } = req.params;
+      const citiesList = await storage.getEnabledCitiesByCountryId(countryId);
+      return res.json(citiesList.map(c => ({
+        id: c.id,
+        name: c.displayName || c.name
+      })));
+    } catch (error) {
+      console.error("Error fetching cities:", error);
+      return res.status(500).json({ error: "Failed to fetch cities" });
+    }
+  });
+
+  // Admin endpoints for country management
+  app.get("/api/admin/countries", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      const uid = await verifyAuthToken(token);
+      
+      const userWithRoles = await storage.getUserWithRoles(uid);
+      if (!userWithRoles || !userWithRoles.roles?.admin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const countriesList = await storage.getAllCountries();
+      return res.json(countriesList);
+    } catch (error) {
+      console.error("Error fetching countries:", error);
+      return res.status(500).json({ error: "Failed to fetch countries" });
+    }
+  });
+
+  app.patch("/api/admin/countries/:id", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      const uid = await verifyAuthToken(token);
+      
+      const userWithRoles = await storage.getUserWithRoles(uid);
+      if (!userWithRoles || !userWithRoles.roles?.admin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const { enabled, displayName, sortOrder } = req.body;
+      
+      const updateData: any = {};
+      if (enabled !== undefined) updateData.enabled = enabled;
+      if (displayName !== undefined) updateData.displayName = displayName;
+      if (sortOrder !== undefined) updateData.sortOrder = sortOrder;
+
+      const updated = await storage.updateCountry(id, updateData);
+      if (!updated) {
+        return res.status(404).json({ error: "Country not found" });
+      }
+      
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error updating country:", error);
+      return res.status(500).json({ error: "Failed to update country" });
+    }
+  });
+
+  // Admin endpoints for city management
+  app.get("/api/admin/countries/:countryId/cities", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      const uid = await verifyAuthToken(token);
+      
+      const userWithRoles = await storage.getUserWithRoles(uid);
+      if (!userWithRoles || !userWithRoles.roles?.admin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { countryId } = req.params;
+      const citiesList = await storage.getCitiesByCountryId(countryId);
+      return res.json(citiesList);
+    } catch (error) {
+      console.error("Error fetching cities:", error);
+      return res.status(500).json({ error: "Failed to fetch cities" });
+    }
+  });
+
+  app.post("/api/admin/countries/:countryId/cities", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      const uid = await verifyAuthToken(token);
+      
+      const userWithRoles = await storage.getUserWithRoles(uid);
+      if (!userWithRoles || !userWithRoles.roles?.admin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { countryId } = req.params;
+      const { name, enabled, sortOrder } = req.body;
+
+      if (!name) {
+        return res.status(400).json({ error: "City name is required" });
+      }
+
+      const newCity = await storage.createCity({
+        countryId,
+        name,
+        enabled: enabled ?? false,
+        sortOrder: sortOrder ?? 0
+      });
+      
+      return res.json(newCity);
+    } catch (error) {
+      console.error("Error creating city:", error);
+      return res.status(500).json({ error: "Failed to create city" });
+    }
+  });
+
+  app.patch("/api/admin/cities/:id", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      const uid = await verifyAuthToken(token);
+      
+      const userWithRoles = await storage.getUserWithRoles(uid);
+      if (!userWithRoles || !userWithRoles.roles?.admin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const { enabled, displayName, sortOrder } = req.body;
+      
+      const updateData: any = {};
+      if (enabled !== undefined) updateData.enabled = enabled;
+      if (displayName !== undefined) updateData.displayName = displayName;
+      if (sortOrder !== undefined) updateData.sortOrder = sortOrder;
+
+      const updated = await storage.updateCity(id, updateData);
+      if (!updated) {
+        return res.status(404).json({ error: "City not found" });
+      }
+      
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error updating city:", error);
+      return res.status(500).json({ error: "Failed to update city" });
+    }
+  });
+
+  app.delete("/api/admin/cities/:id", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      const uid = await verifyAuthToken(token);
+      
+      const userWithRoles = await storage.getUserWithRoles(uid);
+      if (!userWithRoles || !userWithRoles.roles?.admin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      await storage.deleteCity(id);
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting city:", error);
+      return res.status(500).json({ error: "Failed to delete city" });
+    }
+  });
+
+  // Seed countries endpoint (admin only, one-time use)
+  app.post("/api/admin/seed-countries", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      const uid = await verifyAuthToken(token);
+      
+      const userWithRoles = await storage.getUserWithRoles(uid);
+      if (!userWithRoles || !userWithRoles.roles?.admin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      // Check if countries already exist
+      const existingCountries = await storage.getAllCountries();
+      if (existingCountries.length > 0) {
+        return res.status(400).json({ error: "Countries already seeded", count: existingCountries.length });
+      }
+
+      // Import and seed countries using ES modules
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      const countriesPath = path.join(process.cwd(), 'server', 'data', 'countries.json');
+      const countriesJson = await fs.readFile(countriesPath, 'utf-8');
+      const countriesData = JSON.parse(countriesJson);
+      const createdCountries = await storage.bulkCreateCountries(countriesData);
+      
+      return res.json({ success: true, count: createdCountries.length });
+    } catch (error) {
+      console.error("Error seeding countries:", error);
+      return res.status(500).json({ error: "Failed to seed countries" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

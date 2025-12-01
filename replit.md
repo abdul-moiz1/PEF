@@ -17,6 +17,28 @@ The backend is built with Express.js on Node.js with TypeScript, featuring a RES
 ### Data
 Drizzle ORM is configured for Neon Serverless PostgreSQL, providing type-safe queries and migrations. The current schema includes a `users` table and is designed for sharing between client and server. Drizzle-Zod provides runtime validation. Future expansion will include multi-role profiles, role-specific data, opportunity listings, a member directory, and admin approval workflows.
 
+### Centralized Location Management
+The platform includes a centralized country-city management system where admins can:
+- Enable/disable countries and cities for display in dropdowns across the site
+- Edit display names to correct spellings or localize names
+- Add new cities to countries
+- Seed the initial country list from `server/data/countries.json`
+
+**Admin Endpoints:**
+- `GET /api/admin/countries` - List all countries (admin only)
+- `PATCH /api/admin/countries/:id` - Update country (enabled, displayName)
+- `GET /api/admin/countries/:countryId/cities` - List cities for a country
+- `POST /api/admin/countries/:countryId/cities` - Add a new city
+- `PATCH /api/admin/cities/:id` - Update city (enabled, displayName)
+- `DELETE /api/admin/cities/:id` - Delete a city
+- `POST /api/admin/seed-countries` - Seed countries from JSON file
+
+**Public Endpoints (for dropdowns):**
+- `GET /api/locations/countries` - Get enabled countries
+- `GET /api/locations/countries/:countryId/cities` - Get enabled cities
+
+**Admin UI:** `/admin/locations` - Two-column interface with countries list and cities list, search filtering, inline editing, and enable/disable toggles.
+
 ### Authentication & Authorization
 Firebase Authentication handles user registration, login, and password resets. Firestore is the primary data store for all application data, including user profiles, opportunities, and applications, with server-side access via the Firebase Admin SDK. Users can complete registration and import LinkedIn profile data via OAuth 2.0. An admin panel allows filtering and managing user approval statuses. Security measures include user-specific cache keys for TanStack Query, authenticated queries, and mutation cache invalidation. **Critical security concern**: Firebase Admin SDK token verification is currently disabled in deployment when the service account is not configured, which is a severe vulnerability that must be addressed before production. Image uploads are authenticated and validated for MIME type, size, and path security.
 
