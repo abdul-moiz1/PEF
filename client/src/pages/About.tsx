@@ -419,29 +419,41 @@ export default function About() {
                   {/* Connected Elements */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="group text-center p-4 bg-gradient-to-br from-blue-500/10 to-blue-600/5 rounded-xl border border-blue-500/20 transition-all duration-300 hover:scale-105 hover:border-blue-500/40 hover:shadow-lg cursor-default">
-                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg transition-transform duration-300 group-hover:rotate-12">
-                        <Briefcase className="w-6 h-6 text-white" />
+                      <div className="relative mx-auto mb-2 w-16 h-16 flex items-center justify-center">
+                        <div className="absolute inset-0 rounded-full border-2 border-blue-400/40"></div>
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg transition-transform duration-300 group-hover:rotate-12">
+                          <Briefcase className="w-6 h-6 text-white" />
+                        </div>
                       </div>
                       <h4 className="font-semibold text-sm">Job Seekers</h4>
                     </div>
 
                     <div className="group text-center p-4 bg-gradient-to-br from-purple-500/10 to-purple-600/5 rounded-xl border border-purple-500/20 transition-all duration-300 hover:scale-105 hover:border-purple-500/40 hover:shadow-lg cursor-default">
-                      <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg transition-transform duration-300 group-hover:rotate-12">
-                        <Building2 className="w-6 h-6 text-white" />
+                      <div className="relative mx-auto mb-2 w-16 h-16 flex items-center justify-center">
+                        <div className="absolute inset-0 rounded-full border-2 border-purple-400/40"></div>
+                        <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg transition-transform duration-300 group-hover:rotate-12">
+                          <Building2 className="w-6 h-6 text-white" />
+                        </div>
                       </div>
                       <h4 className="font-semibold text-sm">Businesses</h4>
                     </div>
 
                     <div className="group text-center p-4 bg-gradient-to-br from-green-500/10 to-green-600/5 rounded-xl border border-green-500/20 transition-all duration-300 hover:scale-105 hover:border-green-500/40 hover:shadow-lg cursor-default">
-                      <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg transition-transform duration-300 group-hover:rotate-12">
-                        <Users className="w-6 h-6 text-white" />
+                      <div className="relative mx-auto mb-2 w-16 h-16 flex items-center justify-center">
+                        <div className="absolute inset-0 rounded-full border-2 border-green-400/40"></div>
+                        <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center shadow-lg transition-transform duration-300 group-hover:rotate-12">
+                          <Users className="w-6 h-6 text-white" />
+                        </div>
                       </div>
                       <h4 className="font-semibold text-sm">Projects Collaboration</h4>
                     </div>
 
                     <div className="group text-center p-4 bg-gradient-to-br from-amber-500/10 to-amber-600/5 rounded-xl border border-amber-500/20 transition-all duration-300 hover:scale-105 hover:border-amber-500/40 hover:shadow-lg cursor-default">
-                      <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-600 rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg transition-transform duration-300 group-hover:rotate-12">
-                        <DollarSign className="w-6 h-6 text-white" />
+                      <div className="relative mx-auto mb-2 w-16 h-16 flex items-center justify-center">
+                        <div className="absolute inset-0 rounded-full border-2 border-amber-400/40"></div>
+                        <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-600 rounded-full flex items-center justify-center shadow-lg transition-transform duration-300 group-hover:rotate-12">
+                          <DollarSign className="w-6 h-6 text-white" />
+                        </div>
                       </div>
                       <h4 className="font-semibold text-sm">Investors</h4>
                     </div>
