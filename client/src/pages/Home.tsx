@@ -1,10 +1,9 @@
 import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";
 import ChairmanMessageSection from "@/components/ChairmanMessageSection";
-import FiveRolesSection from "@/components/FiveRolesSection";
-import PlatformBenefitsSection from "@/components/PlatformBenefitsSection";
-import HowItWorksSection from "@/components/HowItWorksSection";
 import GlobalReachSection from "@/components/GlobalReachSection";
+import OpportunitiesGapSection from "@/components/OpportunitiesGapSection";
+import WhyPEFSection from "@/components/WhyPEFSection";
 import CTASection from "@/components/CTASection";
 import Footer from "@/components/Footer";
 
@@ -14,11 +13,10 @@ export default function Home() {
       <Header />
       <main>
         <HeroSection />
-        <FiveRolesSection />
-        <PlatformBenefitsSection />
-        <HowItWorksSection />
         <ChairmanMessageSection />
         <GlobalReachSection />
+        <OpportunitiesGapSection />
+        <WhyPEFSection />
         <CTASection />
       </main>
       <Footer />
