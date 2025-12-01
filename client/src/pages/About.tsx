@@ -398,8 +398,35 @@ export default function About() {
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 rounded-2xl blur-2xl"></div>
                 <div className="relative bg-card/90 backdrop-blur-sm rounded-2xl p-6 border border-border/50 shadow-xl">
+                  {/* SVG Connection Lines */}
+                  <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: 'visible' }}>
+                    <defs>
+                      <linearGradient id="lineGradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="currentColor" className="text-blue-400/30" stopOpacity="0.3" />
+                        <stop offset="100%" stopColor="currentColor" className="text-primary/20" stopOpacity="0.2" />
+                      </linearGradient>
+                      <linearGradient id="lineGradient2" x1="100%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor="currentColor" className="text-purple-400/30" stopOpacity="0.3" />
+                        <stop offset="100%" stopColor="currentColor" className="text-primary/20" stopOpacity="0.2" />
+                      </linearGradient>
+                      <linearGradient id="lineGradient3" x1="0%" y1="100%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="currentColor" className="text-green-400/30" stopOpacity="0.3" />
+                        <stop offset="100%" stopColor="currentColor" className="text-primary/20" stopOpacity="0.2" />
+                      </linearGradient>
+                      <linearGradient id="lineGradient4" x1="100%" y1="100%" x2="0%" y2="0%">
+                        <stop offset="0%" stopColor="currentColor" className="text-amber-400/30" stopOpacity="0.3" />
+                        <stop offset="100%" stopColor="currentColor" className="text-primary/20" stopOpacity="0.2" />
+                      </linearGradient>
+                    </defs>
+                    {/* Connection lines from cards to center */}
+                    <line x1="50%" y1="30%" x2="50%" y2="45%" stroke="currentColor" className="text-blue-400/20" strokeWidth="1.5" strokeDasharray="4,4" />
+                    <line x1="70%" y1="30%" x2="50%" y2="45%" stroke="currentColor" className="text-purple-400/20" strokeWidth="1.5" strokeDasharray="4,4" />
+                    <line x1="30%" y1="70%" x2="50%" y2="55%" stroke="currentColor" className="text-green-400/20" strokeWidth="1.5" strokeDasharray="4,4" />
+                    <line x1="70%" y1="70%" x2="50%" y2="55%" stroke="currentColor" className="text-amber-400/20" strokeWidth="1.5" strokeDasharray="4,4" />
+                  </svg>
+
                   {/* Central AI Hub */}
-                  <div className="flex justify-center mb-6">
+                  <div className="relative flex justify-center mb-6 z-10">
                     <div className="relative">
                       <div className="absolute inset-0 bg-gradient-to-br from-primary to-secondary rounded-full blur-lg opacity-50 animate-pulse"></div>
                       <div className="relative w-20 h-20 bg-gradient-to-br from-primary via-secondary to-accent rounded-full flex items-center justify-center shadow-xl">
@@ -408,14 +435,14 @@ export default function About() {
                     </div>
                   </div>
                   
-                  <div className="text-center mb-6">
+                  <div className="relative text-center mb-6 z-10">
                     <h3 className="text-lg font-bold">AI Matching Hub</h3>
                     <p className="text-sm text-muted-foreground">Connecting opportunities intelligently</p>
                   </div>
 
 
                   {/* Connected Elements */}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="relative z-20 grid grid-cols-2 gap-4">
                     <div className="group text-center p-4 bg-gradient-to-br from-blue-500/10 to-blue-600/5 rounded-xl border border-blue-500/20 transition-all duration-300 hover:scale-105 hover:border-blue-500/40 hover:shadow-lg cursor-default">
                       <div className="relative mx-auto mb-2 w-16 h-16 flex items-center justify-center">
                         <div className="absolute inset-0 rounded-full border-2 border-blue-400/40"></div>
