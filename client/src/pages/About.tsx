@@ -413,8 +413,6 @@ export default function About() {
                     <p className="text-sm text-muted-foreground">Connecting opportunities intelligently</p>
                   </div>
 
-                  {/* Connection Lines */}
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 border-2 border-dashed border-primary/25 rounded-full pointer-events-none"></div>
 
                   {/* Connected Elements */}
                   <div className="grid grid-cols-2 gap-4">
