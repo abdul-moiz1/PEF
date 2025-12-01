@@ -413,25 +413,6 @@ export default function About() {
                     <p className="text-sm text-muted-foreground">Connecting opportunities intelligently</p>
                   </div>
 
-                  {/* Connection Lines Container */}
-                  <div className="absolute inset-0 pointer-events-none rounded-2xl" style={{ overflow: 'visible' }}>
-                    {/* Line to Job Seekers (top-left) - Blue */}
-                    <div className="absolute left-1/2 w-1 h-12 bg-gradient-to-b from-blue-500 via-blue-400 to-transparent connection-line-1" style={{ opacity: 1, transform: 'translateX(-50%)', top: '100px' }}></div>
-                    <div className="absolute w-12 h-1 bg-gradient-to-r from-blue-500 via-blue-400 to-transparent connection-line-1" style={{ opacity: 1, left: '80px', top: '110px' }}></div>
-                    
-                    {/* Line to Businesses (top-right) - Purple */}
-                    <div className="absolute left-1/2 w-1 h-12 bg-gradient-to-b from-purple-500 via-purple-400 to-transparent connection-line-2" style={{ opacity: 1, transform: 'translateX(-50%)', top: '100px' }}></div>
-                    <div className="absolute w-12 h-1 bg-gradient-to-l from-purple-500 via-purple-400 to-transparent connection-line-2" style={{ opacity: 1, right: '80px', top: '110px' }}></div>
-                    
-                    {/* Line to Projects (bottom-left) - Green */}
-                    <div className="absolute left-1/2 w-1 h-12 bg-gradient-to-t from-green-500 via-green-400 to-transparent connection-line-3" style={{ opacity: 1, transform: 'translateX(-50%)', bottom: '100px' }}></div>
-                    <div className="absolute w-12 h-1 bg-gradient-to-r from-green-400 via-green-500 to-transparent connection-line-3" style={{ opacity: 1, left: '80px', bottom: '110px' }}></div>
-                    
-                    {/* Line to Investors (bottom-right) - Amber */}
-                    <div className="absolute left-1/2 w-1 h-12 bg-gradient-to-t from-amber-500 via-amber-400 to-transparent connection-line-4" style={{ opacity: 1, transform: 'translateX(-50%)', bottom: '100px' }}></div>
-                    <div className="absolute w-12 h-1 bg-gradient-to-l from-amber-500 via-amber-400 to-transparent connection-line-4" style={{ opacity: 1, right: '80px', bottom: '110px' }}></div>
-                  </div>
-
                   {/* Connected Elements */}
                   <div className="relative z-20 grid grid-cols-2 gap-4">
                     <div className="group text-center p-4 bg-gradient-to-br from-blue-500/10 to-blue-600/5 rounded-xl border border-blue-500/20 transition-all duration-300 hover:scale-105 hover:border-blue-500/40 hover:shadow-lg cursor-default">
