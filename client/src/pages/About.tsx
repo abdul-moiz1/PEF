@@ -2,11 +2,76 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Shield, Users, Target, Globe2, TrendingUp, Building2, Briefcase, UserCircle, DollarSign, Quote, Sparkles, Brain, Database, ArrowRight } from "lucide-react";
+import { 
+  Shield, 
+  Users, 
+  Target, 
+  Globe2, 
+  TrendingUp, 
+  Building2, 
+  Briefcase, 
+  UserCircle, 
+  DollarSign, 
+  Quote, 
+  Sparkles, 
+  Brain, 
+  Database, 
+  ArrowRight,
+  Heart,
+  ClipboardCheck,
+  Award,
+  Handshake,
+  Lightbulb
+} from "lucide-react";
 import { Link } from "wouter";
 import chairmanImage from "@assets/image_1763374941295.png";
 
 export default function About() {
+  const coreValues = [
+    {
+      icon: Handshake,
+      title: "Collaboration",
+      description: "We believe community success comes from supporting each other through engagement, knowledge-sharing, and teamwork.",
+      color: "primary"
+    },
+    {
+      icon: Shield,
+      title: "Integrity",
+      description: "We commit to honesty, transparency, and authenticity in every interaction, opportunity, and initiative.",
+      color: "secondary"
+    },
+    {
+      icon: Users,
+      title: "Inclusiveness",
+      description: "We welcome professionals from all backgrounds, industries, and regions with equal respect and opportunity.",
+      color: "accent"
+    },
+    {
+      icon: TrendingUp,
+      title: "Growth",
+      description: "We empower every member to learn, improve, and reach their professional potential through guidance, exposure, and networking.",
+      color: "primary"
+    },
+    {
+      icon: Heart,
+      title: "Service",
+      description: "We encourage a volunteer-driven culture where helping others is at the heart of everything we do.",
+      color: "secondary"
+    },
+    {
+      icon: ClipboardCheck,
+      title: "Accountability",
+      description: "We take ownership of our commitments and maintain high standards in leadership, communication, and community processes.",
+      color: "accent"
+    },
+    {
+      icon: Award,
+      title: "Professional Excellence",
+      description: "We promote ethical conduct, respectful communication, and continuous self-development in all chapters globally.",
+      color: "primary"
+    }
+  ];
+
   return (
     <div className="min-h-screen">
       <Header />
@@ -74,7 +139,7 @@ export default function About() {
                 <div className="mb-6">
                   <Quote className="w-12 h-12 text-secondary/30 mb-4" />
                   <h2 className="text-3xl md:text-4xl lg:text-5xl font-display font-bold mb-6">
-                    Our Vision
+                    PEF Vision
                   </h2>
                 </div>
                 
@@ -104,117 +169,26 @@ export default function About() {
           </div>
         </section>
 
-        {/* Our Story */}
+        {/* Mission Section */}
         <section className="py-12 md:py-20 bg-muted/30">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-display font-bold mb-6">
-                Who We Are
+                PEF Mission
               </h2>
               <div className="w-20 h-1 bg-primary mx-auto mb-8"></div>
             </div>
             
             <div className="prose prose-lg max-w-none">
-              <p className="text-xl leading-relaxed text-muted-foreground text-center mb-8">
-                Professional Executive Forum (PEF) is an international platform committed to supporting economic collaboration by connecting key stakeholders across industries and countries.
-              </p>
-              <p className="text-lg leading-relaxed text-muted-foreground text-center">
-                We bring together professionals, entrepreneurs, employers, and investors to help them access opportunities and build meaningful partnerships that drive success and innovation worldwide.
+              <p className="text-xl leading-relaxed text-foreground text-center mb-8">
+                To empower professionals through networking, knowledge-sharing, and community-driven support, helping members access real opportunities, build meaningful connections, and grow in their careers with integrity and collaboration.
               </p>
             </div>
           </div>
         </section>
 
-        {/* Mission Pillars */}
+        {/* Core Values - All 7 Values */}
         <section className="py-12 md:py-20 bg-background">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">
-                Our Mission
-              </h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Empowering global connections through verified data and intelligent matching
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              <Card className="hover-elevate">
-                <CardContent className="p-6">
-                  <div className="w-12 h-12 bg-primary/10 rounded-md flex items-center justify-center mb-4">
-                    <Shield className="w-6 h-6 text-primary" />
-                  </div>
-                  <h3 className="text-xl font-bold mb-3">Verified Directory</h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Build a verified global directory of professionals and organizations with authentic credentials and verified information.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="hover-elevate">
-                <CardContent className="p-6">
-                  <div className="w-12 h-12 bg-secondary/10 rounded-md flex items-center justify-center mb-4">
-                    <Target className="w-6 h-6 text-secondary" />
-                  </div>
-                  <h3 className="text-xl font-bold mb-3">Smart Matching</h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Collect structured data to drive intelligent opportunity matching between the right people and projects.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="hover-elevate">
-                <CardContent className="p-6">
-                  <div className="w-12 h-12 bg-accent/10 rounded-md flex items-center justify-center mb-4">
-                    <Users className="w-6 h-6 text-accent" />
-                  </div>
-                  <h3 className="text-xl font-bold mb-3">Collaboration Hub</h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Facilitate business collaborations, investments, and talent exchange across borders and industries.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="hover-elevate">
-                <CardContent className="p-6">
-                  <div className="w-12 h-12 bg-primary/10 rounded-md flex items-center justify-center mb-4">
-                    <TrendingUp className="w-6 h-6 text-primary" />
-                  </div>
-                  <h3 className="text-xl font-bold mb-3">Growth Insights</h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Provide reliable content and insights that support career and business growth at every stage.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="hover-elevate">
-                <CardContent className="p-6">
-                  <div className="w-12 h-12 bg-secondary/10 rounded-md flex items-center justify-center mb-4">
-                    <Globe2 className="w-6 h-6 text-secondary" />
-                  </div>
-                  <h3 className="text-xl font-bold mb-3">Global Platform</h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Act as a trusted platform for cross-border professional engagement and international opportunities.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="hover-elevate">
-                <CardContent className="p-6">
-                  <div className="w-12 h-12 bg-accent/10 rounded-md flex items-center justify-center mb-4">
-                    <Shield className="w-6 h-6 text-accent" />
-                  </div>
-                  <h3 className="text-xl font-bold mb-3">Trust & Security</h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Maintain the highest standards of data security, privacy, and professional integrity in all interactions.
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </section>
-
-        {/* Core Values */}
-        <section className="py-12 md:py-20 bg-muted/30">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">
@@ -225,42 +199,28 @@ export default function About() {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-8">
-              <Card className="hover-elevate">
-                <CardContent className="p-8">
-                  <div className="w-14 h-14 bg-primary/10 rounded-md flex items-center justify-center mb-6">
-                    <Users className="w-7 h-7 text-primary" />
-                  </div>
-                  <h3 className="text-2xl font-bold mb-4">Collaboration</h3>
-                  <p className="text-muted-foreground leading-relaxed text-lg">
-                    Building a network where business owners, directors, key professionals, and job seekers connect and support each other's growth.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="hover-elevate">
-                <CardContent className="p-8">
-                  <div className="w-14 h-14 bg-secondary/10 rounded-md flex items-center justify-center mb-6">
-                    <Shield className="w-7 h-7 text-secondary" />
-                  </div>
-                  <h3 className="text-2xl font-bold mb-4">Trust & Integrity</h3>
-                  <p className="text-muted-foreground leading-relaxed text-lg">
-                    Collecting and organizing verified data to create meaningful connections built on authenticity and professional integrity.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="hover-elevate">
-                <CardContent className="p-8">
-                  <div className="w-14 h-14 bg-accent/10 rounded-md flex items-center justify-center mb-6">
-                    <TrendingUp className="w-7 h-7 text-accent" />
-                  </div>
-                  <h3 className="text-2xl font-bold mb-3">Collective Growth</h3>
-                  <p className="text-muted-foreground leading-relaxed text-lg">
-                    Facilitating collaborations, job placements, and business opportunities that drive integrated success for all members.
-                  </p>
-                </CardContent>
-              </Card>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {coreValues.map((value, index) => {
+                const IconComponent = value.icon;
+                const bgColor = value.color === 'primary' ? 'bg-primary/10' : 
+                               value.color === 'secondary' ? 'bg-secondary/10' : 'bg-accent/10';
+                const textColor = value.color === 'primary' ? 'text-primary' : 
+                                 value.color === 'secondary' ? 'text-secondary' : 'text-accent';
+                
+                return (
+                  <Card key={index} className="hover-elevate" data-testid={`card-value-${value.title.toLowerCase().replace(' ', '-')}`}>
+                    <CardContent className="p-6">
+                      <div className={`w-12 h-12 ${bgColor} rounded-md flex items-center justify-center mb-4`}>
+                        <IconComponent className={`w-6 h-6 ${textColor}`} />
+                      </div>
+                      <h3 className="text-xl font-bold mb-3">{value.title}</h3>
+                      <p className="text-muted-foreground leading-relaxed">
+                        {value.description}
+                      </p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -271,52 +231,126 @@ export default function About() {
             <div className="text-center mb-16">
               <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full mb-6">
                 <Sparkles className="w-4 h-4" />
-                <span className="text-sm font-semibold">Coming Soon</span>
+                <span className="text-sm font-semibold">The Future Plan</span>
               </div>
               <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">
-                The Future: AI-Powered Matching
+                AI-Powered Matching
               </h2>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                 Intelligent technology that connects the right people with the right opportunities
               </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-8">
-              <Card className="hover-elevate border-primary/20">
-                <CardContent className="p-8">
-                  <div className="w-14 h-14 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-md flex items-center justify-center mb-6">
-                    <Brain className="w-7 h-7 text-primary" />
-                  </div>
-                  <h3 className="text-xl font-bold mb-4">Smart Opportunity Matching</h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Our AI-based system will automatically suggest relevant opportunities to business owners, helping them discover the perfect partnerships and talent.
-                  </p>
-                </CardContent>
-              </Card>
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+              {/* Left side - Key Features */}
+              <div className="space-y-6">
+                <Card className="hover-elevate border-primary/20">
+                  <CardContent className="p-6">
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 bg-primary/10 rounded-md flex items-center justify-center flex-shrink-0">
+                        <Lightbulb className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold mb-2">Smart Opportunity Suggestions</h3>
+                        <p className="text-muted-foreground">
+                          AI-based system will automatically suggest opportunities to business owners
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-              <Card className="hover-elevate border-secondary/20">
-                <CardContent className="p-8">
-                  <div className="w-14 h-14 bg-gradient-to-br from-secondary/20 to-accent/20 rounded-md flex items-center justify-center mb-6">
-                    <Target className="w-7 h-7 text-secondary" />
-                  </div>
-                  <h3 className="text-xl font-bold mb-4">Intelligent Career Connections</h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Job seekers will be matched with relevant projects, mentors, and companies that align with their skills, experience, and career aspirations.
-                  </p>
-                </CardContent>
-              </Card>
+                <Card className="hover-elevate border-secondary/20">
+                  <CardContent className="p-6">
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 bg-secondary/10 rounded-md flex items-center justify-center flex-shrink-0">
+                        <Target className="w-5 h-5 text-secondary" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold mb-2">Intelligent Job Matching</h3>
+                        <p className="text-muted-foreground">
+                          Job seekers will be matched with relevant projects, mentors, or companies
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-              <Card className="hover-elevate border-accent/20">
-                <CardContent className="p-8">
-                  <div className="w-14 h-14 bg-gradient-to-br from-accent/20 to-primary/20 rounded-md flex items-center justify-center mb-6">
-                    <Database className="w-7 h-7 text-accent" />
+                <Card className="hover-elevate border-accent/20">
+                  <CardContent className="p-6">
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 bg-accent/10 rounded-md flex items-center justify-center flex-shrink-0">
+                        <Database className="w-5 h-5 text-accent" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold mb-2">Data-Driven Decisions</h3>
+                        <p className="text-muted-foreground">
+                          Data-driven decisions to maximize impact, efficiency and growth
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Right side - AI Hub Diagram */}
+              <div className="relative">
+                <div className="bg-card rounded-md p-8 border">
+                  {/* Central AI Hub */}
+                  <div className="flex justify-center mb-8">
+                    <div className="w-24 h-24 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center shadow-lg">
+                      <Brain className="w-12 h-12 text-white" />
+                    </div>
                   </div>
-                  <h3 className="text-xl font-bold mb-4">Data-Driven Decisions</h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Leveraging advanced analytics to maximize impact, efficiency, and growth for every member of our professional network.
-                  </p>
-                </CardContent>
-              </Card>
+                  
+                  <div className="text-center mb-8">
+                    <h3 className="text-xl font-bold">AI Matching Hub</h3>
+                  </div>
+
+                  {/* Connected Elements */}
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="text-center p-4 bg-blue-500/10 rounded-md">
+                      <div className="w-14 h-14 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <Briefcase className="w-7 h-7 text-blue-600" />
+                      </div>
+                      <h4 className="font-semibold">Job Seekers</h4>
+                    </div>
+
+                    <div className="text-center p-4 bg-purple-500/10 rounded-md">
+                      <div className="w-14 h-14 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <Building2 className="w-7 h-7 text-purple-600" />
+                      </div>
+                      <h4 className="font-semibold">Businesses</h4>
+                    </div>
+
+                    <div className="text-center p-4 bg-green-500/10 rounded-md">
+                      <div className="w-14 h-14 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <Users className="w-7 h-7 text-green-600" />
+                      </div>
+                      <h4 className="font-semibold">Projects Collaboration</h4>
+                    </div>
+
+                    <div className="text-center p-4 bg-amber-500/10 rounded-md">
+                      <div className="w-14 h-14 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <DollarSign className="w-7 h-7 text-amber-600" />
+                      </div>
+                      <h4 className="font-semibold">Investors</h4>
+                    </div>
+                  </div>
+
+                  {/* Connection Lines Visual */}
+                  <div className="absolute inset-0 pointer-events-none">
+                    <svg className="w-full h-full opacity-20" viewBox="0 0 100 100" preserveAspectRatio="none">
+                      <defs>
+                        <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="hsl(var(--primary))" />
+                          <stop offset="100%" stopColor="hsl(var(--secondary))" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="mt-12 text-center">
