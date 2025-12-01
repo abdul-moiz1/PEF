@@ -398,21 +398,21 @@ export default function About() {
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 rounded-2xl blur-2xl"></div>
                 <div className="relative bg-card/90 backdrop-blur-sm rounded-2xl p-6 border border-border/50 shadow-xl">
-                  {/* Connection Lines - Top Left (Blue - Job Seekers) */}
-                  <div className="absolute top-8 left-1/2 -translate-x-1/2 w-0.5 h-10 bg-gradient-to-b from-blue-400 to-primary connection-line-1 pointer-events-none"></div>
-                  <div className="absolute top-1/2 left-1/4 w-16 h-0.5 bg-gradient-to-r from-blue-400 to-primary connection-line-1 pointer-events-none" style={{ transform: 'translateY(-50%) translateX(-50%)' }}></div>
+                  {/* Line to Job Seekers (top-left) - Blue */}
+                  <div className="absolute top-1/3 left-1/2 w-0.5 h-20 bg-gradient-to-b from-blue-400 to-primary/0 connection-line-1 pointer-events-none" style={{ transform: 'translateX(-50%)', transformOrigin: 'center bottom' }}></div>
+                  <div className="absolute top-1/3 left-1/2 w-20 h-0.5 bg-gradient-to-r from-blue-400 to-primary/0 connection-line-1 pointer-events-none" style={{ transform: 'translateY(-50%) translateX(-100%)', transformOrigin: 'right center' }}></div>
                   
-                  {/* Connection Lines - Top Right (Purple - Businesses) */}
-                  <div className="absolute top-8 left-1/2 translate-x-1/2 w-0.5 h-10 bg-gradient-to-b from-purple-400 to-primary connection-line-2 pointer-events-none"></div>
-                  <div className="absolute top-1/2 right-1/4 w-16 h-0.5 bg-gradient-to-l from-purple-400 to-primary connection-line-2 pointer-events-none" style={{ transform: 'translateY(-50%) translateX(50%)' }}></div>
+                  {/* Line to Businesses (top-right) - Purple */}
+                  <div className="absolute top-1/3 left-1/2 w-0.5 h-20 bg-gradient-to-b from-purple-400 to-primary/0 connection-line-2 pointer-events-none" style={{ transform: 'translateX(-50%)', transformOrigin: 'center bottom' }}></div>
+                  <div className="absolute top-1/3 left-1/2 w-20 h-0.5 bg-gradient-to-l from-purple-400 to-primary/0 connection-line-2 pointer-events-none" style={{ transform: 'translateY(-50%)', transformOrigin: 'left center' }}></div>
                   
-                  {/* Connection Lines - Bottom Left (Green - Projects) */}
-                  <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-0.5 h-10 bg-gradient-to-t from-green-400 to-primary connection-line-3 pointer-events-none"></div>
-                  <div className="absolute bottom-1/2 left-1/4 w-16 h-0.5 bg-gradient-to-r from-primary to-green-400 connection-line-3 pointer-events-none" style={{ transform: 'translateY(50%) translateX(-50%)' }}></div>
+                  {/* Line to Projects (bottom-left) - Green */}
+                  <div className="absolute bottom-1/3 left-1/2 w-0.5 h-20 bg-gradient-to-t from-green-400 to-primary/0 connection-line-3 pointer-events-none" style={{ transform: 'translateX(-50%)', transformOrigin: 'center top' }}></div>
+                  <div className="absolute bottom-1/3 left-1/2 w-20 h-0.5 bg-gradient-to-r from-primary/0 to-green-400 connection-line-3 pointer-events-none" style={{ transform: 'translateY(50%) translateX(-100%)', transformOrigin: 'right center' }}></div>
                   
-                  {/* Connection Lines - Bottom Right (Amber - Investors) */}
-                  <div className="absolute bottom-8 left-1/2 translate-x-1/2 w-0.5 h-10 bg-gradient-to-t from-amber-400 to-primary connection-line-4 pointer-events-none"></div>
-                  <div className="absolute bottom-1/2 right-1/4 w-16 h-0.5 bg-gradient-to-l from-primary to-amber-400 connection-line-4 pointer-events-none" style={{ transform: 'translateY(50%) translateX(50%)' }}></div>
+                  {/* Line to Investors (bottom-right) - Amber */}
+                  <div className="absolute bottom-1/3 left-1/2 w-0.5 h-20 bg-gradient-to-t from-amber-400 to-primary/0 connection-line-4 pointer-events-none" style={{ transform: 'translateX(-50%)', transformOrigin: 'center top' }}></div>
+                  <div className="absolute bottom-1/3 left-1/2 w-20 h-0.5 bg-gradient-to-l from-primary/0 to-amber-400 connection-line-4 pointer-events-none" style={{ transform: 'translateY(50%)', transformOrigin: 'left center' }}></div>
 
                   {/* Central AI Hub */}
                   <div className="relative flex justify-center mb-6 z-10">
