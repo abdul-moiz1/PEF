@@ -9,7 +9,7 @@ const challenges = [
 
 export default function OpportunitiesGapSection() {
   return (
-    <section className="relative py-20 md:py-28 bg-gradient-to-b from-muted/40 via-background to-muted/20 overflow-hidden">
+    <section className="relative py-14 md:py-20 bg-gradient-to-b from-muted/40 via-background to-muted/20 overflow-hidden">
       <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-background to-transparent"></div>
       
       <div className="absolute inset-0 opacity-5">
@@ -41,7 +41,7 @@ export default function OpportunitiesGapSection() {
               {challenges.map((challenge, index) => (
                 <li 
                   key={index} 
-                  className="flex items-start gap-4 p-4 bg-white dark:bg-card rounded-xl border border-border/50 shadow-sm"
+                  className="flex items-start gap-4 p-4 bg-white dark:bg-card rounded-xl border border-border/50 shadow-sm transition-transform duration-200 hover:scale-[1.02] hover:shadow-md"
                   data-testid={`text-challenge-${index}`}
                 >
                   <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">

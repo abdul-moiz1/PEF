@@ -4,7 +4,7 @@ import { Link } from "wouter";
 
 export default function CTASection() {
   return (
-    <section className="relative py-24 md:py-32 bg-primary overflow-hidden">
+    <section className="relative py-16 md:py-24 bg-primary overflow-hidden">
       <div className="absolute inset-0 opacity-10">
         <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
           <defs>

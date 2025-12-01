@@ -3,7 +3,7 @@ import chairmanImage from "@assets/image_1763374941295.png";
 
 export default function ChairmanMessageSection() {
   return (
-    <section className="relative py-20 md:py-32 bg-gradient-to-b from-primary/5 via-secondary/5 to-background overflow-hidden">
+    <section className="relative py-14 md:py-20 bg-gradient-to-b from-primary/5 via-secondary/5 to-background overflow-hidden">
       <div className="absolute inset-0 opacity-5">
         <div className="absolute top-0 left-0 w-96 h-96 bg-primary/30 rounded-full blur-3xl"></div>
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-secondary/30 rounded-full blur-3xl"></div>
@@ -64,17 +64,17 @@ export default function ChairmanMessageSection() {
               </p>
 
               <div className="mt-8 flex flex-wrap gap-4">
-                <div className="flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-full">
+                <div className="flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-full transition-transform duration-200 hover:scale-105">
                   <div className="w-2 h-2 bg-primary rounded-full"></div>
                   <span className="text-sm font-medium text-primary">Global Vision</span>
                 </div>
-                <div className="flex items-center gap-2 bg-secondary/10 px-4 py-2 rounded-full">
+                <div className="flex items-center gap-2 bg-secondary/10 px-4 py-2 rounded-full transition-transform duration-200 hover:scale-105">
                   <div className="w-2 h-2 bg-secondary rounded-full"></div>
                   <span className="text-sm font-medium text-secondary">Trusted Network</span>
                 </div>
-                <div className="flex items-center gap-2 bg-accent/10 px-4 py-2 rounded-full">
+                <div className="flex items-center gap-2 bg-accent/20 px-4 py-2 rounded-full transition-transform duration-200 hover:scale-105">
                   <div className="w-2 h-2 bg-accent rounded-full"></div>
-                  <span className="text-sm font-medium text-accent-foreground">Smart Connections</span>
+                  <span className="text-sm font-medium text-accent">Smart Connections</span>
                 </div>
               </div>
             </div>

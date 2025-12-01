@@ -10,7 +10,6 @@ import PK from 'country-flag-icons/react/3x2/PK';
 import NG from 'country-flag-icons/react/3x2/NG';
 import DE from 'country-flag-icons/react/3x2/DE';
 import IT from 'country-flag-icons/react/3x2/IT';
-import FR from 'country-flag-icons/react/3x2/FR';
 
 const countries = [
   { name: "Saudi Arabia", code: "SA", isPrimary: true, comingSoon: false, Flag: SA },
@@ -22,7 +21,6 @@ const countries = [
   { name: "Nigeria", code: "NG", isPrimary: false, comingSoon: false, Flag: NG },
   { name: "Germany", code: "DE", isPrimary: false, comingSoon: true, Flag: DE },
   { name: "Italy", code: "IT", isPrimary: false, comingSoon: true, Flag: IT },
-  { name: "France", code: "FR", isPrimary: false, comingSoon: true, Flag: FR },
 ];
 
 
@@ -30,7 +28,7 @@ export default function GlobalReachSection() {
   const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
 
   return (
-    <section className="relative py-20 md:py-28 bg-gradient-to-b from-background via-muted/20 to-muted/40 overflow-hidden">
+    <section className="relative py-14 md:py-20 bg-gradient-to-b from-background via-muted/20 to-muted/40 overflow-hidden">
       <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-background to-transparent"></div>
       
       <div className="absolute inset-0 opacity-5">

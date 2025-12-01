@@ -15,7 +15,7 @@ export default function HeroSection() {
       />
       <div className="absolute inset-0 bg-primary/75" />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 text-center">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
         <h1
           className="text-4xl md:text-6xl lg:text-7xl font-display font-bold text-white mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700"
           data-testid="text-hero-title"
@@ -34,22 +34,22 @@ export default function HeroSection() {
           <Link href="/register">
             <Button
               size="lg"
-              className="bg-accent hover:bg-accent text-accent-foreground font-semibold text-lg px-8 py-6 min-h-14"
+              className="bg-accent hover:bg-accent text-accent-foreground font-semibold text-lg px-8 py-6 min-h-14 transition-transform duration-200 hover:scale-105 group"
               data-testid="button-join-forum"
             >
               Join Now
-              <ArrowRight className="ml-2 w-5 h-5" />
+              <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
             </Button>
           </Link>
           <Link href="/signup">
             <Button
               size="lg"
               variant="outline"
-              className="border-2 border-white text-white hover:bg-white/10 backdrop-blur-sm font-semibold text-lg px-8 py-6 min-h-14"
+              className="border-2 border-white text-white hover:bg-white/10 backdrop-blur-sm font-semibold text-lg px-8 py-6 min-h-14 transition-transform duration-200 hover:scale-105 group"
               data-testid="button-create-account"
             >
               Create Account
-              <ArrowRight className="ml-2 w-5 h-5" />
+              <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
             </Button>
           </Link>
         </div>

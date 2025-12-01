@@ -9,7 +9,7 @@ const benefits = [
 
 export default function WhyPEFSection() {
   return (
-    <section className="relative py-20 md:py-28 bg-gradient-to-b from-muted/30 via-primary/5 to-background overflow-hidden">
+    <section className="relative py-14 md:py-20 bg-gradient-to-b from-muted/30 via-primary/5 to-background overflow-hidden">
       <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-muted/30 to-transparent"></div>
       
       <div className="absolute inset-0 opacity-5">
@@ -43,7 +43,7 @@ export default function WhyPEFSection() {
               {benefits.map((benefit, index) => (
                 <li 
                   key={index} 
-                  className="flex items-start gap-4 p-4 bg-white dark:bg-card rounded-xl border border-border/50 shadow-sm"
+                  className="flex items-start gap-4 p-4 bg-white dark:bg-card rounded-xl border border-border/50 shadow-sm transition-transform duration-200 hover:scale-[1.02] hover:shadow-md"
                   data-testid={`text-benefit-${index}`}
                 >
                   <span className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
@@ -55,58 +55,46 @@ export default function WhyPEFSection() {
             </ul>
           </div>
 
-          <div className="relative flex items-center justify-center min-h-[450px]">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-56 h-56 md:w-64 md:h-64 rounded-full bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 flex items-center justify-center shadow-2xl border-4 border-white dark:border-muted z-10">
-                <div className="w-48 h-48 md:w-56 md:h-56 rounded-full bg-white dark:bg-card flex items-center justify-center shadow-inner">
+          <div className="relative flex items-center justify-center min-h-[420px]">
+            <div className="flex items-center justify-center">
+              <div className="w-48 h-48 md:w-56 md:h-56 rounded-full bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 flex items-center justify-center shadow-2xl border-4 border-white dark:border-muted z-10">
+                <div className="w-40 h-40 md:w-48 md:h-48 rounded-full bg-white dark:bg-card flex items-center justify-center shadow-inner">
                   <img 
                     src={pefLogo} 
                     alt="PEF Logo" 
-                    className="w-36 h-36 md:w-44 md:h-44 object-contain"
+                    className="w-32 h-32 md:w-40 md:h-40 object-contain"
                     data-testid="img-pef-logo"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="absolute top-8 left-1/2 -translate-x-3/4 flex flex-col items-center" data-testid="connection-job-seekers">
-              <div className="w-16 h-16 rounded-xl bg-white dark:bg-card shadow-lg border border-border flex items-center justify-center mb-2">
-                <FileText className="w-8 h-8 text-primary" />
+            <div className="absolute top-0 left-4 md:left-8 flex flex-col items-center transition-transform duration-200 hover:scale-105" data-testid="connection-job-seekers">
+              <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl bg-white dark:bg-card shadow-lg border border-border flex items-center justify-center mb-2">
+                <FileText className="w-6 h-6 md:w-8 md:h-8 text-primary" />
               </div>
-              <span className="text-sm font-semibold text-center bg-white dark:bg-card px-3 py-1 rounded-full shadow-sm border border-border">Job Seekers</span>
-              <svg className="absolute top-full mt-4 w-20 h-16" viewBox="0 0 80 64" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M40 0 L56 64" className="text-primary/40" />
-              </svg>
+              <span className="text-xs md:text-sm font-semibold text-center bg-white dark:bg-card px-2 md:px-3 py-1 rounded-full shadow-sm border border-border whitespace-nowrap">Job Seekers</span>
             </div>
 
-            <div className="absolute top-8 left-1/2 translate-x-1/4 flex flex-col items-center" data-testid="connection-business-owners">
-              <div className="w-16 h-16 rounded-xl bg-white dark:bg-card shadow-lg border border-border flex items-center justify-center mb-2">
-                <Briefcase className="w-8 h-8 text-secondary" />
+            <div className="absolute top-0 right-4 md:right-8 flex flex-col items-center transition-transform duration-200 hover:scale-105" data-testid="connection-business-owners">
+              <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl bg-white dark:bg-card shadow-lg border border-border flex items-center justify-center mb-2">
+                <Briefcase className="w-6 h-6 md:w-8 md:h-8 text-secondary" />
               </div>
-              <span className="text-sm font-semibold text-center bg-white dark:bg-card px-3 py-1 rounded-full shadow-sm border border-border">Business Owners</span>
-              <svg className="absolute top-full mt-4 w-20 h-16" viewBox="0 0 80 64" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M40 0 L24 64" className="text-secondary/40" />
-              </svg>
+              <span className="text-xs md:text-sm font-semibold text-center bg-white dark:bg-card px-2 md:px-3 py-1 rounded-full shadow-sm border border-border whitespace-nowrap">Business Owners</span>
             </div>
 
-            <div className="absolute bottom-8 left-1/2 -translate-x-3/4 flex flex-col items-center" data-testid="connection-collaborations">
-              <svg className="absolute bottom-full mb-4 w-20 h-16" viewBox="0 0 80 64" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M40 64 L56 0" className="text-accent/40" />
-              </svg>
-              <div className="w-16 h-16 rounded-xl bg-white dark:bg-card shadow-lg border border-border flex items-center justify-center mb-2">
-                <Handshake className="w-8 h-8 text-accent" />
+            <div className="absolute bottom-0 left-4 md:left-8 flex flex-col items-center transition-transform duration-200 hover:scale-105" data-testid="connection-collaborations">
+              <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl bg-white dark:bg-card shadow-lg border border-border flex items-center justify-center mb-2">
+                <Handshake className="w-6 h-6 md:w-8 md:h-8 text-accent" />
               </div>
-              <span className="text-sm font-semibold text-center bg-white dark:bg-card px-3 py-1 rounded-full shadow-sm border border-border">Collaborations</span>
+              <span className="text-xs md:text-sm font-semibold text-center bg-white dark:bg-card px-2 md:px-3 py-1 rounded-full shadow-sm border border-border whitespace-nowrap">Collaborations</span>
             </div>
 
-            <div className="absolute bottom-8 left-1/2 translate-x-1/4 flex flex-col items-center" data-testid="connection-opportunities">
-              <svg className="absolute bottom-full mb-4 w-20 h-16" viewBox="0 0 80 64" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M40 64 L24 0" className="text-green-500/40" />
-              </svg>
-              <div className="w-16 h-16 rounded-xl bg-white dark:bg-card shadow-lg border border-border flex items-center justify-center mb-2">
-                <Lightbulb className="w-8 h-8 text-green-500" />
+            <div className="absolute bottom-0 right-4 md:right-8 flex flex-col items-center transition-transform duration-200 hover:scale-105" data-testid="connection-opportunities">
+              <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl bg-white dark:bg-card shadow-lg border border-border flex items-center justify-center mb-2">
+                <Lightbulb className="w-6 h-6 md:w-8 md:h-8 text-green-500" />
               </div>
-              <span className="text-sm font-semibold text-center bg-white dark:bg-card px-3 py-1 rounded-full shadow-sm border border-border">Opportunities</span>
+              <span className="text-xs md:text-sm font-semibold text-center bg-white dark:bg-card px-2 md:px-3 py-1 rounded-full shadow-sm border border-border whitespace-nowrap">Opportunities</span>
             </div>
           </div>
         </div>
