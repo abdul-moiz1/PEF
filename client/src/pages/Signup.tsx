@@ -98,6 +98,15 @@ export default function Signup() {
     investor: false,
   });
 
+  const { data: countries = [] } = useQuery<Country[]>({
+    queryKey: ["/api/locations/countries"],
+  });
+
+  const { data: cities = [] } = useQuery<City[]>({
+    queryKey: ["/api/locations/countries", basicInfo.country, "cities"],
+    enabled: !!basicInfo.country,
+  });
+
   const handleRoleToggle = (roleId: keyof typeof selectedRoles) => {
     setSelectedRoles((prev) => ({ ...prev, [roleId]: !prev[roleId] }));
   };

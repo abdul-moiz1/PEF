@@ -6,6 +6,14 @@ The Professional Executive Forum (PEF) is a global digital platform designed to 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes (Dec 1, 2025)
+- **Centralized Country-City Management System** - Fully implemented with admin CRUD operations at `/admin/locations`
+- **Country-City Data in PostgreSQL** - 198 countries with phone codes seeded and synced with Drizzle ORM
+- **Public API Endpoints** - `/api/locations/countries` and `/api/locations/countries/:countryId/cities` for dropdowns
+- **All Forms Integrated** - Register, Signup, EditProfile, ProfileEdit all use centralized country/city/phone code dropdowns
+- **Fixed Signup Form** - Added missing `useQuery` calls for countries and cities data
+- **Phone Field Improvements** - All forms now auto-populate phone code from selected country
+
 ## System Architecture
 
 ### Frontend
