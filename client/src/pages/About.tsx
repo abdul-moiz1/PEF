@@ -398,24 +398,8 @@ export default function About() {
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 rounded-2xl blur-2xl"></div>
                 <div className="relative bg-card/90 backdrop-blur-sm rounded-2xl p-6 border border-border/50 shadow-xl">
-                  {/* Line to Job Seekers (top-left) - Blue */}
-                  <div className="absolute top-1/3 left-1/2 w-1 h-16 bg-gradient-to-b from-blue-400 to-blue-300 connection-line-1 pointer-events-none" style={{ transform: 'translateX(-50%)', transformOrigin: 'center bottom', opacity: 0.7 }}></div>
-                  <div className="absolute top-1/3 left-1/2 w-16 h-1 bg-gradient-to-r from-blue-400 to-blue-300 connection-line-1 pointer-events-none" style={{ transform: 'translateY(-50%) translateX(-100%)', transformOrigin: 'right center', opacity: 0.7 }}></div>
-                  
-                  {/* Line to Businesses (top-right) - Purple */}
-                  <div className="absolute top-1/3 left-1/2 w-1 h-16 bg-gradient-to-b from-purple-400 to-purple-300 connection-line-2 pointer-events-none" style={{ transform: 'translateX(-50%)', transformOrigin: 'center bottom', opacity: 0.7 }}></div>
-                  <div className="absolute top-1/3 left-1/2 w-16 h-1 bg-gradient-to-l from-purple-400 to-purple-300 connection-line-2 pointer-events-none" style={{ transform: 'translateY(-50%)', transformOrigin: 'left center', opacity: 0.7 }}></div>
-                  
-                  {/* Line to Projects (bottom-left) - Green */}
-                  <div className="absolute bottom-1/3 left-1/2 w-1 h-16 bg-gradient-to-t from-green-400 to-green-300 connection-line-3 pointer-events-none" style={{ transform: 'translateX(-50%)', transformOrigin: 'center top', opacity: 0.7 }}></div>
-                  <div className="absolute bottom-1/3 left-1/2 w-16 h-1 bg-gradient-to-r from-green-300 to-green-400 connection-line-3 pointer-events-none" style={{ transform: 'translateY(50%) translateX(-100%)', transformOrigin: 'right center', opacity: 0.7 }}></div>
-                  
-                  {/* Line to Investors (bottom-right) - Amber */}
-                  <div className="absolute bottom-1/3 left-1/2 w-1 h-16 bg-gradient-to-t from-amber-400 to-amber-300 connection-line-4 pointer-events-none" style={{ transform: 'translateX(-50%)', transformOrigin: 'center top', opacity: 0.7 }}></div>
-                  <div className="absolute bottom-1/3 left-1/2 w-16 h-1 bg-gradient-to-l from-amber-300 to-amber-400 connection-line-4 pointer-events-none" style={{ transform: 'translateY(50%)', transformOrigin: 'left center', opacity: 0.7 }}></div>
-
                   {/* Central AI Hub */}
-                  <div className="relative flex justify-center mb-6 z-10">
+                  <div className="relative flex justify-center mb-8 z-10">
                     <div className="relative">
                       <div className="absolute inset-0 bg-gradient-to-br from-primary to-secondary rounded-full blur-lg opacity-50 animate-pulse"></div>
                       <div className="relative w-20 h-20 bg-gradient-to-br from-primary via-secondary to-accent rounded-full flex items-center justify-center shadow-xl">
@@ -424,11 +408,29 @@ export default function About() {
                     </div>
                   </div>
                   
-                  <div className="relative text-center mb-6 z-10">
+                  <div className="relative text-center mb-8 z-10">
                     <h3 className="text-lg font-bold">AI Matching Hub</h3>
                     <p className="text-sm text-muted-foreground">Connecting opportunities intelligently</p>
                   </div>
 
+                  {/* Connection Lines Container */}
+                  <div className="absolute inset-0 pointer-events-none rounded-2xl" style={{ overflow: 'visible' }}>
+                    {/* Line to Job Seekers (top-left) - Blue */}
+                    <div className="absolute left-1/2 w-1 h-12 bg-gradient-to-b from-blue-500 via-blue-400 to-transparent connection-line-1" style={{ opacity: 1, transform: 'translateX(-50%)', top: '100px' }}></div>
+                    <div className="absolute w-12 h-1 bg-gradient-to-r from-blue-500 via-blue-400 to-transparent connection-line-1" style={{ opacity: 1, left: '80px', top: '110px' }}></div>
+                    
+                    {/* Line to Businesses (top-right) - Purple */}
+                    <div className="absolute left-1/2 w-1 h-12 bg-gradient-to-b from-purple-500 via-purple-400 to-transparent connection-line-2" style={{ opacity: 1, transform: 'translateX(-50%)', top: '100px' }}></div>
+                    <div className="absolute w-12 h-1 bg-gradient-to-l from-purple-500 via-purple-400 to-transparent connection-line-2" style={{ opacity: 1, right: '80px', top: '110px' }}></div>
+                    
+                    {/* Line to Projects (bottom-left) - Green */}
+                    <div className="absolute left-1/2 w-1 h-12 bg-gradient-to-t from-green-500 via-green-400 to-transparent connection-line-3" style={{ opacity: 1, transform: 'translateX(-50%)', bottom: '100px' }}></div>
+                    <div className="absolute w-12 h-1 bg-gradient-to-r from-green-400 via-green-500 to-transparent connection-line-3" style={{ opacity: 1, left: '80px', bottom: '110px' }}></div>
+                    
+                    {/* Line to Investors (bottom-right) - Amber */}
+                    <div className="absolute left-1/2 w-1 h-12 bg-gradient-to-t from-amber-500 via-amber-400 to-transparent connection-line-4" style={{ opacity: 1, transform: 'translateX(-50%)', bottom: '100px' }}></div>
+                    <div className="absolute w-12 h-1 bg-gradient-to-l from-amber-500 via-amber-400 to-transparent connection-line-4" style={{ opacity: 1, right: '80px', bottom: '110px' }}></div>
+                  </div>
 
                   {/* Connected Elements */}
                   <div className="relative z-20 grid grid-cols-2 gap-4">
