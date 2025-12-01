@@ -501,62 +501,96 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-          <Card className="hover-elevate cursor-pointer" onClick={() => setLocation("/admin/leadership")} data-testid="card-manage-leadership">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+          <Card className="hover-elevate cursor-pointer transition-all" onClick={() => setLocation("/admin/leadership")} data-testid="card-manage-leadership">
             <CardContent className="p-6">
-              <Users className="w-8 h-8 text-primary mb-2" />
-              <h3 className="font-bold mb-1">Leadership</h3>
-              <p className="text-sm text-muted-foreground">Manage leadership team members</p>
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="font-bold mb-1 text-lg">Leadership</h3>
+                  <p className="text-sm text-muted-foreground">Manage leadership team members</p>
+                </div>
+                <Users className="w-8 h-8 text-primary flex-shrink-0" />
+              </div>
             </CardContent>
           </Card>
-          <Card className="hover-elevate cursor-pointer" onClick={() => setLocation("/admin/gallery")} data-testid="card-manage-gallery">
+
+          <Card className="hover-elevate cursor-pointer transition-all" onClick={() => setLocation("/admin/gallery")} data-testid="card-manage-gallery">
             <CardContent className="p-6">
-              <Video className="w-8 h-8 text-primary mb-2" />
-              <h3 className="font-bold mb-1">Gallery</h3>
-              <p className="text-sm text-muted-foreground">Manage event gallery images</p>
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="font-bold mb-1 text-lg">Gallery</h3>
+                  <p className="text-sm text-muted-foreground">Manage event gallery images</p>
+                </div>
+                <Video className="w-8 h-8 text-primary flex-shrink-0" />
+              </div>
             </CardContent>
           </Card>
-          <Card className="hover-elevate cursor-pointer" onClick={() => setLocation("/admin/opportunities")} data-testid="card-manage-opportunities">
+
+          <Card className="hover-elevate cursor-pointer transition-all" onClick={() => setLocation("/admin/opportunities")} data-testid="card-manage-opportunities">
             <CardContent className="p-6">
-              <Briefcase className="w-8 h-8 text-primary mb-2" />
-              <h3 className="font-bold mb-1">Opportunities</h3>
-              <p className="text-sm text-muted-foreground">Manage and approve opportunities</p>
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="font-bold mb-1 text-lg">Opportunities</h3>
+                  <p className="text-sm text-muted-foreground">Manage and approve opportunities</p>
+                </div>
+                <Briefcase className="w-8 h-8 text-primary flex-shrink-0" />
+              </div>
             </CardContent>
           </Card>
-          <Card className="hover-elevate cursor-pointer" onClick={() => setLocation("/admin/membership")} data-testid="card-manage-membership">
+
+          <Card className="hover-elevate cursor-pointer transition-all" onClick={() => setLocation("/admin/membership")} data-testid="card-manage-membership">
             <CardContent className="p-6">
-              <Users className="w-8 h-8 text-primary mb-2" />
-              <h3 className="font-bold mb-1">Membership Applications</h3>
-              <p className="text-sm text-muted-foreground">Review membership applications</p>
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="font-bold mb-1 text-lg">Membership Applications</h3>
+                  <p className="text-sm text-muted-foreground">Review membership applications</p>
+                </div>
+                <Users className="w-8 h-8 text-primary flex-shrink-0" />
+              </div>
             </CardContent>
           </Card>
-          <Card className="hover-elevate cursor-pointer" onClick={() => setLocation("/admin/locations")} data-testid="card-manage-locations">
+
+          <Card className="hover-elevate cursor-pointer transition-all" onClick={() => setLocation("/admin/locations")} data-testid="card-manage-locations">
             <CardContent className="p-6">
-              <Globe className="w-8 h-8 text-primary mb-2" />
-              <h3 className="font-bold mb-1">Locations</h3>
-              <p className="text-sm text-muted-foreground">Manage countries and cities</p>
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="font-bold mb-1 text-lg">Locations</h3>
+                  <p className="text-sm text-muted-foreground">Manage countries and cities</p>
+                </div>
+                <Globe className="w-8 h-8 text-primary flex-shrink-0" />
+              </div>
             </CardContent>
           </Card>
+
           <Card 
-            className={`hover-elevate cursor-pointer ${selectedTab === 'all' ? 'ring-2 ring-primary' : ''}`}
+            className="hover-elevate cursor-pointer transition-all"
             onClick={() => setSelectedTab('all')} 
             data-testid="card-view-users"
           >
             <CardContent className="p-6">
-              <Users className="w-8 h-8 text-primary mb-2" />
-              <h3 className="font-bold mb-1">All Users ({users.length})</h3>
-              <p className="text-sm text-muted-foreground">View and manage all users</p>
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="font-bold mb-1 text-lg">All Users</h3>
+                  <p className="text-sm text-muted-foreground">{users.length} total users</p>
+                </div>
+                <Users className="w-8 h-8 text-primary flex-shrink-0" />
+              </div>
             </CardContent>
           </Card>
+
           <Card 
-            className={`hover-elevate cursor-pointer ${selectedTab === 'media' ? 'ring-2 ring-primary' : ''}`}
+            className="hover-elevate cursor-pointer transition-all"
             onClick={() => setSelectedTab('media')} 
             data-testid="card-view-media"
           >
             <CardContent className="p-6">
-              <Video className="w-8 h-8 text-primary mb-2" />
-              <h3 className="font-bold mb-1">Media ({videos.length})</h3>
-              <p className="text-sm text-muted-foreground">Manage video content</p>
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="font-bold mb-1 text-lg">Media</h3>
+                  <p className="text-sm text-muted-foreground">{videos.length} videos</p>
+                </div>
+                <Video className="w-8 h-8 text-primary flex-shrink-0" />
+              </div>
             </CardContent>
           </Card>
         </div>
