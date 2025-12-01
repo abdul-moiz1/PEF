@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,30 +51,17 @@ const roles = [
   },
 ];
 
-const countries = [
-  "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", 
-  "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", 
-  "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", 
-  "Burkina Faso", "Burundi", "Cabo Verde", "Cambodia", "Cameroon", "Canada", "Central African Republic", "Chad", 
-  "Chile", "China", "Colombia", "Comoros", "Congo", "Costa Rica", "Croatia", "Cuba", "Cyprus", "Czech Republic", 
-  "Denmark", "Djibouti", "Dominica", "Dominican Republic", "Ecuador", "Egypt", "El Salvador", "Equatorial Guinea", 
-  "Eritrea", "Estonia", "Eswatini", "Ethiopia", "Fiji", "Finland", "France", "Gabon", "Gambia", "Georgia", "Germany", 
-  "Ghana", "Greece", "Grenada", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana", "Haiti", "Honduras", "Hungary", 
-  "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Jamaica", "Japan", "Jordan", 
-  "Kazakhstan", "Kenya", "Kiribati", "Kosovo", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", "Lebanon", "Lesotho", 
-  "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg", "Madagascar", "Malawi", "Malaysia", "Maldives", 
-  "Mali", "Malta", "Marshall Islands", "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", 
-  "Mongolia", "Montenegro", "Morocco", "Mozambique", "Myanmar", "Namibia", "Nauru", "Nepal", "Netherlands", 
-  "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Korea", "North Macedonia", "Norway", "Oman", "Pakistan", 
-  "Palau", "Palestine", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal", 
-  "Qatar", "Romania", "Russia", "Rwanda", "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", 
-  "Samoa", "San Marino", "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", 
-  "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Korea", "South Sudan", 
-  "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland", "Syria", "Taiwan", "Tajikistan", "Tanzania", 
-  "Thailand", "Timor-Leste", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", "Tuvalu", 
-  "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States", "Uruguay", "Uzbekistan", "Vanuatu", 
-  "Vatican City", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe"
-];
+interface Country {
+  id: string;
+  code: string;
+  name: string;
+  phoneCode: string;
+}
+
+interface City {
+  id: string;
+  name: string;
+}
 
 const countryPhoneCodes: Record<string, string> = {
   "Afghanistan": "+93", "Albania": "+355", "Algeria": "+213", "Saudi Arabia": "+966", "Pakistan": "+92",
@@ -114,7 +102,7 @@ export default function Register() {
     email: "",
     phoneCode: "+966",
     phone: "",
-    country: "Saudi Arabia",
+    country: "",
     city: "",
     languages: "",
     headline: "",
@@ -123,6 +111,17 @@ export default function Register() {
     websiteUrl: "",
     portfolioUrl: "",
   });
+
+  const { data: countries = [] } = useQuery<Country[]>({
+    queryKey: ["/api/locations/countries"],
+  });
+
+  const { data: cities = [] } = useQuery<City[]>({
+    queryKey: ["/api/locations/countries", basicInfo.country, "cities"],
+    enabled: !!basicInfo.country,
+  });
+
+  const selectedCountry = countries.find(c => c.id === basicInfo.country);
 
   const [selectedRoles, setSelectedRoles] = useState({
     professional: false,
@@ -437,15 +436,17 @@ export default function Register() {
                         <Select
                           required
                           value={basicInfo.country}
-                          onValueChange={(value) => handleBasicInfoChange("country", value)}
+                          onValueChange={(value) => {
+                            setBasicInfo(prev => ({ ...prev, country: value, city: "" }));
+                          }}
                         >
                           <SelectTrigger id="country" data-testid="select-country">
-                            <SelectValue />
+                            <SelectValue placeholder="Select a country" />
                           </SelectTrigger>
                           <SelectContent>
                             {countries.map((country) => (
-                              <SelectItem key={country} value={country}>
-                                {country}
+                              <SelectItem key={country.id} value={country.id}>
+                                {country.name}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -454,13 +455,22 @@ export default function Register() {
 
                       <div className="space-y-2">
                         <Label htmlFor="city">City</Label>
-                        <Input
-                          id="city"
+                        <Select
                           value={basicInfo.city}
-                          onChange={(e) => handleBasicInfoChange("city", e.target.value)}
-                          placeholder="e.g., Riyadh"
-                          data-testid="input-city"
-                        />
+                          onValueChange={(value) => handleBasicInfoChange("city", value)}
+                          disabled={!basicInfo.country || cities.length === 0}
+                        >
+                          <SelectTrigger id="city" data-testid="select-city">
+                            <SelectValue placeholder={basicInfo.country ? "Select a city" : "Select a country first"} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {cities.map((city) => (
+                              <SelectItem key={city.id} value={city.id}>
+                                {city.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
 

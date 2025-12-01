@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
@@ -7,10 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { updateUserData } from "@/lib/firestoreUtils";
 import { User, Briefcase, Target, Building2, DollarSign } from "lucide-react";
+import type { Country, City } from "@shared/schema";
 
 export default function ProfileEdit() {
   const { currentUser, userData, refreshUserData } = useAuth();
@@ -21,6 +24,7 @@ export default function ProfileEdit() {
   const [formData, setFormData] = useState({
     name: userData?.name || "",
     phone: userData?.phone || "",
+    country: userData?.country || "",
     city: userData?.city || "",
     headline: userData?.headline || "",
     bio: userData?.bio || "",
@@ -57,6 +61,16 @@ export default function ProfileEdit() {
     },
   });
 
+  // Fetch countries and cities from centralized API
+  const { data: countries = [] } = useQuery<Country[]>({
+    queryKey: ["/api/locations/countries"],
+  });
+
+  const { data: cities = [] } = useQuery<City[]>({
+    queryKey: ["/api/locations/countries", formData.country, "cities"],
+    enabled: !!formData.country,
+  });
+
   const hasRole = (role: string) => {
     return userData?.roles?.[role as keyof typeof userData.roles] === true;
   };
@@ -70,6 +84,7 @@ export default function ProfileEdit() {
       const updateData: any = {
         name: formData.name,
         phone: formData.phone,
+        country: formData.country,
         city: formData.city,
         headline: formData.headline,
         bio: formData.bio,
@@ -175,27 +190,54 @@ export default function ProfileEdit() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="phone">Phone Number</Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        placeholder="+1 (555) 123-4567"
-                        data-testid="input-phone"
-                      />
+                      <Label htmlFor="country">Country</Label>
+                      <Select
+                        value={formData.country}
+                        onValueChange={(value) => setFormData({ ...formData, country: value, city: "" })}
+                      >
+                        <SelectTrigger id="country" data-testid="select-country">
+                          <SelectValue placeholder="Select a country" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {countries.map((country) => (
+                            <SelectItem key={country.id} value={country.id}>
+                              {country.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="city">City</Label>
-                      <Input
-                        id="city"
+                      <Select
                         value={formData.city}
-                        onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                        placeholder="Your city"
-                        data-testid="input-city"
-                      />
+                        onValueChange={(value) => setFormData({ ...formData, city: value })}
+                      >
+                        <SelectTrigger id="city" data-testid="select-city">
+                          <SelectValue placeholder="Select a city" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {cities.map((city) => (
+                            <SelectItem key={city.id} value={city.id}>
+                              {city.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      placeholder="+1 (555) 123-4567"
+                      data-testid="input-phone"
+                    />
                   </div>
 
                   <div className="space-y-2">

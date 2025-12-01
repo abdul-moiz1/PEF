@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
@@ -14,6 +16,7 @@ import { Briefcase, Search, Building2, Handshake, TrendingUp, Save, Loader2 } fr
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { Country, City } from "@shared/schema";
 
 const roles = [
   {
@@ -69,6 +72,16 @@ function EditProfileContent() {
       website: "",
       portfolio: "",
     },
+  });
+
+  // Fetch countries and cities from centralized API
+  const { data: countries = [] } = useQuery<Country[]>({
+    queryKey: ["/api/locations/countries"],
+  });
+
+  const { data: cities = [] } = useQuery<City[]>({
+    queryKey: ["/api/locations/countries", profileData.country, "cities"],
+    enabled: !!profileData.country,
   });
 
   // Roles
@@ -341,23 +354,41 @@ function EditProfileContent() {
 
                 <div className="space-y-2">
                   <Label htmlFor="country">Country *</Label>
-                  <Input
-                    id="country"
+                  <Select
                     required
                     value={profileData.country}
-                    onChange={(e) => setProfileData({ ...profileData, country: e.target.value })}
-                    data-testid="input-country"
-                  />
+                    onValueChange={(value) => setProfileData({ ...profileData, country: value, city: "" })}
+                  >
+                    <SelectTrigger id="country" data-testid="select-country">
+                      <SelectValue placeholder="Select a country" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {countries.map((country) => (
+                        <SelectItem key={country.id} value={country.id}>
+                          {country.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="city">City</Label>
-                  <Input
-                    id="city"
+                  <Select
                     value={profileData.city}
-                    onChange={(e) => setProfileData({ ...profileData, city: e.target.value })}
-                    data-testid="input-city"
-                  />
+                    onValueChange={(value) => setProfileData({ ...profileData, city: value })}
+                  >
+                    <SelectTrigger id="city" data-testid="select-city">
+                      <SelectValue placeholder="Select a city" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {cities.map((city) => (
+                        <SelectItem key={city.id} value={city.id}>
+                          {city.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
