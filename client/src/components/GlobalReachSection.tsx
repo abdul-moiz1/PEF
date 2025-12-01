@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Globe2 } from "lucide-react";
 import SA from 'country-flag-icons/react/3x2/SA';
 import US from 'country-flag-icons/react/3x2/US';
 import CA from 'country-flag-icons/react/3x2/CA';
@@ -29,17 +30,31 @@ export default function GlobalReachSection() {
   const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
 
   return (
-    <section className="py-16 md:py-24 bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2
-          className="text-3xl md:text-4xl lg:text-5xl font-display font-bold text-center mb-4"
-          data-testid="text-global-reach-title"
-        >
-          Global Reach
-        </h2>
-        <p className="text-center text-muted-foreground mb-12 max-w-3xl mx-auto text-lg">
-          Launching first in Saudi Arabia, now open to USA, Canada, UK, Dubai, Pakistan, Nigeria, and more coming soon
-        </p>
+    <section className="relative py-20 md:py-28 bg-gradient-to-b from-background via-muted/20 to-muted/40 overflow-hidden">
+      <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-background to-transparent"></div>
+      
+      <div className="absolute inset-0 opacity-5">
+        <div className="absolute top-1/4 right-0 w-80 h-80 bg-secondary/40 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-1/4 left-0 w-80 h-80 bg-primary/40 rounded-full blur-3xl"></div>
+      </div>
+
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 bg-secondary/10 text-secondary px-4 py-2 rounded-full mb-6">
+            <Globe2 className="w-4 h-4" />
+            <span className="text-sm font-semibold">International Platform</span>
+          </div>
+          <h2
+            className="text-3xl md:text-4xl lg:text-5xl font-display font-bold mb-4"
+            data-testid="text-global-reach-title"
+          >
+            Global Reach
+          </h2>
+          <div className="w-24 h-1 bg-gradient-to-r from-secondary via-primary to-accent mx-auto rounded-full mb-6"></div>
+          <p className="text-muted-foreground max-w-3xl mx-auto text-lg">
+            Launching first in Saudi Arabia, now open to USA, Canada, UK, Dubai, Pakistan, Nigeria, and more coming soon
+          </p>
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
           {countries.map((country) => (
@@ -75,8 +90,9 @@ export default function GlobalReachSection() {
           ))}
         </div>
 
-        <div className="relative w-full bg-muted/30 rounded-lg overflow-hidden p-12">
-          <div className="text-center max-w-3xl mx-auto">
+        <div className="relative w-full bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 rounded-2xl overflow-hidden p-12 border border-border/50">
+          <div className="absolute inset-0 bg-white/50 dark:bg-background/50"></div>
+          <div className="relative text-center max-w-3xl mx-auto">
             <h3 className="text-2xl md:text-3xl font-display font-bold text-primary mb-4">
               Accepts Registrations From All Over the World
             </h3>
@@ -86,6 +102,8 @@ export default function GlobalReachSection() {
           </div>
         </div>
       </div>
+
+      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent"></div>
     </section>
   );
 }
