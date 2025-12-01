@@ -1,0 +1,37 @@
+1.About us page:After header:PEF vision:
+Vision=To build a trusted and intelligent network where business owners, directors, and professionals connect through meaningful collaboration, creating a smart bridge between opportunities and talent. Our goal is not only to empower job seekers with access to the right people and projects, but also to help discover new business collaborations, unlock investment opportunities, and drive collective growth and integrated success for all.
+Image UI like Homepage Image UI of Chairman
+
+2.About us page:After header & After PEF Vision>PEF Mission
+Description
+Edit
+Mission statement=To empower professionals through networking, knowledge-sharing, and community-driven support, helping members access real opportunities, build meaningful connections, and grow in their careers with integrity and collaboration. Professional Elegant UI.
+
+3.About us page:After header:After PEF Vision:After PEF Mission>values
+
+Collaboration
+We believe community success comes from supporting each other through engagement, knowledge-sharing, and teamwork.
+
+Integrity
+We commit to honesty, transparency, and authenticity in every interaction, opportunity, and initiative.
+
+Inclusiveness
+We welcome professionals from all backgrounds, industries, and regions with equal respect and opportunity.
+
+Growth
+We empower every member to learn, improve, and reach their professional potential through guidance, exposure, and networking.
+
+Service
+We encourage a volunteer-driven culture where helping others is at the heart of everything we do.
+
+Accountability
+We take ownership of our commitments and maintain high standards in leadership, communication, and community processes.
+
+Professional Excellence
+We promote ethical conduct, respectful communication, and continuous self-development in all chapters globally.
+
+Enhance hovering and UI
+
+About us page:After header:After PEF Vision:After PEF Mission:values>the future plan AI matching platform
+UI and Hovering
+you design very well home decreses white spacing, difference from one section to other
