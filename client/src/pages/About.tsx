@@ -414,7 +414,7 @@ export default function About() {
                   </div>
 
                   {/* Connection Lines */}
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-dashed border-primary/20 rounded-full pointer-events-none"></div>
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 border-2 border-dashed border-primary/30 rounded-full pointer-events-none"></div>
 
                   {/* Connected Elements */}
                   <div className="grid grid-cols-2 gap-4">
