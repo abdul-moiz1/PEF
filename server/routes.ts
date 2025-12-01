@@ -947,12 +947,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Roles object is required" });
       }
 
+      const currentUser = await storage.getUserWithRoles(uid);
+      const currentAdminStatus = currentUser?.roles?.admin || false;
+
       await storage.updateUserRoles(uid, {
         professional: roles.professional || false,
         jobSeeker: roles.jobSeeker || false,
         employer: roles.employer || false,
         businessOwner: roles.businessOwner || false,
         investor: roles.investor || false,
+        admin: currentAdminStatus,
       });
 
       return res.json({ success: true, message: "Roles updated successfully" });
