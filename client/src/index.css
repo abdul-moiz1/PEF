@@ -325,4 +325,88 @@
   .wave-flag-hover {
     animation: wave 2s ease-in-out infinite;
   }
+
+  /* AI Hub Connection Pulse Animations */
+  @keyframes pulse-line-1 {
+    0% {
+      opacity: 0;
+      transform: scaleY(0);
+      transform-origin: center top;
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: scaleY(1);
+      transform-origin: center top;
+    }
+  }
+
+  @keyframes pulse-line-2 {
+    0% {
+      opacity: 0;
+      transform: scaleX(0);
+      transform-origin: center left;
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: scaleX(1);
+      transform-origin: center left;
+    }
+  }
+
+  @keyframes pulse-line-3 {
+    0% {
+      opacity: 0;
+      transform: scaleX(0);
+      transform-origin: center right;
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: scaleX(1);
+      transform-origin: center right;
+    }
+  }
+
+  @keyframes pulse-line-4 {
+    0% {
+      opacity: 0;
+      transform: scaleY(0);
+      transform-origin: center bottom;
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: scaleY(1);
+      transform-origin: center bottom;
+    }
+  }
+
+  .connection-line-1 {
+    animation: pulse-line-1 2s ease-in-out infinite;
+  }
+
+  .connection-line-2 {
+    animation: pulse-line-2 2s ease-in-out infinite;
+    animation-delay: 0.5s;
+  }
+
+  .connection-line-3 {
+    animation: pulse-line-3 2s ease-in-out infinite;
+    animation-delay: 1s;
+  }
+
+  .connection-line-4 {
+    animation: pulse-line-4 2s ease-in-out infinite;
+    animation-delay: 1.5s;
+  }
 }
