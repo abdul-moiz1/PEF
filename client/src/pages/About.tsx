@@ -399,20 +399,20 @@ export default function About() {
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 rounded-2xl blur-2xl"></div>
                 <div className="relative bg-card/90 backdrop-blur-sm rounded-2xl p-6 border border-border/50 shadow-xl">
                   {/* Line to Job Seekers (top-left) - Blue */}
-                  <div className="absolute top-1/3 left-1/2 w-0.5 h-20 bg-gradient-to-b from-blue-400 to-primary/0 connection-line-1 pointer-events-none" style={{ transform: 'translateX(-50%)', transformOrigin: 'center bottom' }}></div>
-                  <div className="absolute top-1/3 left-1/2 w-20 h-0.5 bg-gradient-to-r from-blue-400 to-primary/0 connection-line-1 pointer-events-none" style={{ transform: 'translateY(-50%) translateX(-100%)', transformOrigin: 'right center' }}></div>
+                  <div className="absolute top-1/3 left-1/2 w-1 h-16 bg-gradient-to-b from-blue-400 to-blue-300 connection-line-1 pointer-events-none" style={{ transform: 'translateX(-50%)', transformOrigin: 'center bottom', opacity: 0.7 }}></div>
+                  <div className="absolute top-1/3 left-1/2 w-16 h-1 bg-gradient-to-r from-blue-400 to-blue-300 connection-line-1 pointer-events-none" style={{ transform: 'translateY(-50%) translateX(-100%)', transformOrigin: 'right center', opacity: 0.7 }}></div>
                   
                   {/* Line to Businesses (top-right) - Purple */}
-                  <div className="absolute top-1/3 left-1/2 w-0.5 h-20 bg-gradient-to-b from-purple-400 to-primary/0 connection-line-2 pointer-events-none" style={{ transform: 'translateX(-50%)', transformOrigin: 'center bottom' }}></div>
-                  <div className="absolute top-1/3 left-1/2 w-20 h-0.5 bg-gradient-to-l from-purple-400 to-primary/0 connection-line-2 pointer-events-none" style={{ transform: 'translateY(-50%)', transformOrigin: 'left center' }}></div>
+                  <div className="absolute top-1/3 left-1/2 w-1 h-16 bg-gradient-to-b from-purple-400 to-purple-300 connection-line-2 pointer-events-none" style={{ transform: 'translateX(-50%)', transformOrigin: 'center bottom', opacity: 0.7 }}></div>
+                  <div className="absolute top-1/3 left-1/2 w-16 h-1 bg-gradient-to-l from-purple-400 to-purple-300 connection-line-2 pointer-events-none" style={{ transform: 'translateY(-50%)', transformOrigin: 'left center', opacity: 0.7 }}></div>
                   
                   {/* Line to Projects (bottom-left) - Green */}
-                  <div className="absolute bottom-1/3 left-1/2 w-0.5 h-20 bg-gradient-to-t from-green-400 to-primary/0 connection-line-3 pointer-events-none" style={{ transform: 'translateX(-50%)', transformOrigin: 'center top' }}></div>
-                  <div className="absolute bottom-1/3 left-1/2 w-20 h-0.5 bg-gradient-to-r from-primary/0 to-green-400 connection-line-3 pointer-events-none" style={{ transform: 'translateY(50%) translateX(-100%)', transformOrigin: 'right center' }}></div>
+                  <div className="absolute bottom-1/3 left-1/2 w-1 h-16 bg-gradient-to-t from-green-400 to-green-300 connection-line-3 pointer-events-none" style={{ transform: 'translateX(-50%)', transformOrigin: 'center top', opacity: 0.7 }}></div>
+                  <div className="absolute bottom-1/3 left-1/2 w-16 h-1 bg-gradient-to-r from-green-300 to-green-400 connection-line-3 pointer-events-none" style={{ transform: 'translateY(50%) translateX(-100%)', transformOrigin: 'right center', opacity: 0.7 }}></div>
                   
                   {/* Line to Investors (bottom-right) - Amber */}
-                  <div className="absolute bottom-1/3 left-1/2 w-0.5 h-20 bg-gradient-to-t from-amber-400 to-primary/0 connection-line-4 pointer-events-none" style={{ transform: 'translateX(-50%)', transformOrigin: 'center top' }}></div>
-                  <div className="absolute bottom-1/3 left-1/2 w-20 h-0.5 bg-gradient-to-l from-primary/0 to-amber-400 connection-line-4 pointer-events-none" style={{ transform: 'translateY(50%)', transformOrigin: 'left center' }}></div>
+                  <div className="absolute bottom-1/3 left-1/2 w-1 h-16 bg-gradient-to-t from-amber-400 to-amber-300 connection-line-4 pointer-events-none" style={{ transform: 'translateX(-50%)', transformOrigin: 'center top', opacity: 0.7 }}></div>
+                  <div className="absolute bottom-1/3 left-1/2 w-16 h-1 bg-gradient-to-l from-amber-300 to-amber-400 connection-line-4 pointer-events-none" style={{ transform: 'translateY(50%)', transformOrigin: 'left center', opacity: 0.7 }}></div>
 
                   {/* Central AI Hub */}
                   <div className="relative flex justify-center mb-6 z-10">
