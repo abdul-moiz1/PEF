@@ -60,31 +60,6 @@ interface City {
   name: string;
 }
 
-const countryPhoneCodes: Record<string, string> = {
-  "Afghanistan": "+93", "Albania": "+355", "Algeria": "+213", "Saudi Arabia": "+966", "Pakistan": "+92",
-  "United Arab Emirates": "+971", "United Kingdom": "+44", "United States": "+1", "Canada": "+1",
-  "Germany": "+49", "Italy": "+39", "India": "+91", "China": "+86", "Japan": "+81", "Australia": "+61"
-};
-
-const uniquePhoneCodes = [
-  { code: "+1", label: "+1 (USA, Canada)" },
-  { code: "+20", label: "+20 (Egypt)" },
-  { code: "+27", label: "+27 (South Africa)" },
-  { code: "+30", label: "+30 (Greece)" },
-  { code: "+31", label: "+31 (Netherlands)" },
-  { code: "+33", label: "+33 (France)" },
-  { code: "+39", label: "+39 (Italy)" },
-  { code: "+44", label: "+44 (UK)" },
-  { code: "+49", label: "+49 (Germany)" },
-  { code: "+61", label: "+61 (Australia)" },
-  { code: "+81", label: "+81 (Japan)" },
-  { code: "+86", label: "+86 (China)" },
-  { code: "+91", label: "+91 (India)" },
-  { code: "+92", label: "+92 (Pakistan)" },
-  { code: "+966", label: "+966 (Saudi Arabia)" },
-  { code: "+971", label: "+971 (UAE)" },
-];
-
 export default function Signup() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -133,12 +108,32 @@ export default function Signup() {
 
   const handleBasicInfoChange = (field: string, value: string) => {
     if (field === "country") {
-      const phoneCode = countryPhoneCodes[value] || "+1";
+      const selectedCountry = countries.find((c) => c.id === value);
+      const phoneCode = selectedCountry?.phoneCode || "+1";
       setBasicInfo((prev) => ({ ...prev, country: value, phoneCode }));
     } else {
       setBasicInfo((prev) => ({ ...prev, [field]: value }));
     }
   };
+
+  // Get unique phone codes from countries for the dropdown
+  const uniquePhoneCodes = countries
+    .filter((c) => c.phoneCode && c.phoneCode.trim())
+    .reduce((acc: { code: string; label: string }[], country) => {
+      const existing = acc.find((item) => item.code === country.phoneCode);
+      if (!existing) {
+        acc.push({
+          code: country.phoneCode,
+          label: `${country.phoneCode}`,
+        });
+      }
+      return acc;
+    }, [])
+    .sort((a, b) => {
+      const aNum = parseInt(a.code.slice(1));
+      const bNum = parseInt(b.code.slice(1));
+      return aNum - bNum;
+    });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

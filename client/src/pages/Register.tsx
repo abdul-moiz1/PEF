@@ -408,11 +408,25 @@ export default function Register() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {uniquePhoneCodes.map((item) => (
-                              <SelectItem key={item.code} value={item.code}>
-                                {item.label}
-                              </SelectItem>
-                            ))}
+                            {countries
+                              .filter((c) => c.phoneCode && c.phoneCode.trim())
+                              .reduce((acc: { code: string }[], country) => {
+                                const existing = acc.find((item) => item.code === country.phoneCode);
+                                if (!existing) {
+                                  acc.push({ code: country.phoneCode });
+                                }
+                                return acc;
+                              }, [])
+                              .sort((a, b) => {
+                                const aNum = parseInt(a.code.slice(1));
+                                const bNum = parseInt(b.code.slice(1));
+                                return aNum - bNum;
+                              })
+                              .map((item) => (
+                                <SelectItem key={item.code} value={item.code}>
+                                  {item.code}
+                                </SelectItem>
+                              ))}
                           </SelectContent>
                         </Select>
                       </div>
@@ -437,7 +451,9 @@ export default function Register() {
                           required
                           value={basicInfo.country}
                           onValueChange={(value) => {
-                            setBasicInfo(prev => ({ ...prev, country: value, city: "" }));
+                            const selectedCountry = countries.find(c => c.id === value);
+                            const phoneCode = selectedCountry?.phoneCode || "+1";
+                            setBasicInfo(prev => ({ ...prev, country: value, city: "", phoneCode }));
                           }}
                         >
                           <SelectTrigger id="country" data-testid="select-country">

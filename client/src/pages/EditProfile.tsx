@@ -392,6 +392,53 @@ function EditProfileContent() {
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="phoneCode">Phone Code</Label>
+                  <Select
+                    value={profileData.phoneCode}
+                    onValueChange={(value) => setProfileData({ ...profileData, phoneCode: value })}
+                  >
+                    <SelectTrigger id="phoneCode" data-testid="select-phone-code">
+                      <SelectValue placeholder="Select code" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {countries
+                        .filter((c) => c.phoneCode && c.phoneCode.trim())
+                        .reduce((acc: { code: string }[], country) => {
+                          const existing = acc.find((item) => item.code === country.phoneCode);
+                          if (!existing) {
+                            acc.push({ code: country.phoneCode });
+                          }
+                          return acc;
+                        }, [])
+                        .sort((a, b) => {
+                          const aNum = parseInt(a.code.slice(1));
+                          const bNum = parseInt(b.code.slice(1));
+                          return aNum - bNum;
+                        })
+                        .map((item) => (
+                          <SelectItem key={item.code} value={item.code}>
+                            {item.code}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="phone">Phone Number</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={profileData.phone}
+                    onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
+                    placeholder="1234567890"
+                    data-testid="input-phone"
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="languages">Languages (comma-separated)</Label>
                 <Input
