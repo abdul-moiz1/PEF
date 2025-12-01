@@ -398,33 +398,6 @@ export default function About() {
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 rounded-2xl blur-2xl"></div>
                 <div className="relative bg-card/90 backdrop-blur-sm rounded-2xl p-6 border border-border/50 shadow-xl">
-                  {/* SVG Connection Lines */}
-                  <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: 'visible' }}>
-                    <defs>
-                      <linearGradient id="lineGradient1" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="currentColor" className="text-blue-400/30" stopOpacity="0.3" />
-                        <stop offset="100%" stopColor="currentColor" className="text-primary/20" stopOpacity="0.2" />
-                      </linearGradient>
-                      <linearGradient id="lineGradient2" x1="100%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" stopColor="currentColor" className="text-purple-400/30" stopOpacity="0.3" />
-                        <stop offset="100%" stopColor="currentColor" className="text-primary/20" stopOpacity="0.2" />
-                      </linearGradient>
-                      <linearGradient id="lineGradient3" x1="0%" y1="100%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="currentColor" className="text-green-400/30" stopOpacity="0.3" />
-                        <stop offset="100%" stopColor="currentColor" className="text-primary/20" stopOpacity="0.2" />
-                      </linearGradient>
-                      <linearGradient id="lineGradient4" x1="100%" y1="100%" x2="0%" y2="0%">
-                        <stop offset="0%" stopColor="currentColor" className="text-amber-400/30" stopOpacity="0.3" />
-                        <stop offset="100%" stopColor="currentColor" className="text-primary/20" stopOpacity="0.2" />
-                      </linearGradient>
-                    </defs>
-                    {/* Connection lines from cards to center */}
-                    <line x1="50%" y1="30%" x2="50%" y2="45%" stroke="currentColor" className="text-blue-400/20" strokeWidth="1.5" strokeDasharray="4,4" />
-                    <line x1="70%" y1="30%" x2="50%" y2="45%" stroke="currentColor" className="text-purple-400/20" strokeWidth="1.5" strokeDasharray="4,4" />
-                    <line x1="30%" y1="70%" x2="50%" y2="55%" stroke="currentColor" className="text-green-400/20" strokeWidth="1.5" strokeDasharray="4,4" />
-                    <line x1="70%" y1="70%" x2="50%" y2="55%" stroke="currentColor" className="text-amber-400/20" strokeWidth="1.5" strokeDasharray="4,4" />
-                  </svg>
-
                   {/* Central AI Hub */}
                   <div className="relative flex justify-center mb-6 z-10">
                     <div className="relative">
