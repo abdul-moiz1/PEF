@@ -16,8 +16,8 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase-admin";
 import { db as pgDb } from "./db";
-import { leaders, galleryImages, membershipTiers, membershipApplications } from "@shared/schema";
-import { eq, desc } from "drizzle-orm";
+import { leaders, galleryImages, membershipTiers, membershipApplications, countries, cities } from "@shared/schema";
+import { eq, desc, and, asc } from "drizzle-orm";
 import { 
   type User,
   type UserProfile,
@@ -47,6 +47,10 @@ import {
   type MembershipApplication,
   type InsertMembershipApplication,
   insertMembershipApplicationSchema,
+  type Country,
+  type InsertCountry,
+  type City,
+  type InsertCity,
 } from "@shared/schema";
 import { toFirestoreRoles } from "@shared/roleUtils";
 
@@ -150,6 +154,23 @@ export interface IStorage {
   getMembershipApplicationById(id: string): Promise<MembershipApplication | undefined>;
   updateMembershipApplication(id: string, data: Partial<InsertMembershipApplication>): Promise<MembershipApplication | undefined>;
   deleteMembershipApplication(id: string): Promise<void>;
+  
+  // Country/City management
+  createCountry(country: InsertCountry): Promise<Country>;
+  getAllCountries(): Promise<Country[]>;
+  getEnabledCountries(): Promise<Country[]>;
+  getCountryById(id: string): Promise<Country | undefined>;
+  updateCountry(id: string, data: Partial<InsertCountry>): Promise<Country | undefined>;
+  deleteCountry(id: string): Promise<void>;
+  bulkCreateCountries(countriesData: InsertCountry[]): Promise<Country[]>;
+  
+  createCity(city: InsertCity): Promise<City>;
+  getCitiesByCountryId(countryId: string): Promise<City[]>;
+  getEnabledCitiesByCountryId(countryId: string): Promise<City[]>;
+  getCityById(id: string): Promise<City | undefined>;
+  updateCity(id: string, data: Partial<InsertCity>): Promise<City | undefined>;
+  deleteCity(id: string): Promise<void>;
+  bulkCreateCities(citiesData: InsertCity[]): Promise<City[]>;
 }
 
 export class FirestoreStorage implements IStorage {
@@ -1307,6 +1328,77 @@ export class FirestoreStorage implements IStorage {
     // Delete from Firestore 'registrations' collection
     const docRef = doc(db, "registrations", id);
     await deleteDoc(docRef);
+  }
+
+  // Country/City management methods using PostgreSQL
+  async createCountry(country: InsertCountry): Promise<Country> {
+    const [newCountry] = await pgDb.insert(countries).values(country).returning();
+    return newCountry;
+  }
+
+  async getAllCountries(): Promise<Country[]> {
+    const result = await pgDb.select().from(countries).orderBy(asc(countries.sortOrder), asc(countries.name));
+    return result;
+  }
+
+  async getEnabledCountries(): Promise<Country[]> {
+    const result = await pgDb.select().from(countries).where(eq(countries.enabled, true)).orderBy(asc(countries.sortOrder), asc(countries.name));
+    return result;
+  }
+
+  async getCountryById(id: string): Promise<Country | undefined> {
+    const [country] = await pgDb.select().from(countries).where(eq(countries.id, id));
+    return country;
+  }
+
+  async updateCountry(id: string, data: Partial<InsertCountry>): Promise<Country | undefined> {
+    const [updated] = await pgDb.update(countries).set({ ...data, updatedAt: new Date() }).where(eq(countries.id, id)).returning();
+    return updated;
+  }
+
+  async deleteCountry(id: string): Promise<void> {
+    await pgDb.delete(countries).where(eq(countries.id, id));
+  }
+
+  async bulkCreateCountries(countriesData: InsertCountry[]): Promise<Country[]> {
+    if (countriesData.length === 0) return [];
+    const result = await pgDb.insert(countries).values(countriesData).returning();
+    return result;
+  }
+
+  async createCity(city: InsertCity): Promise<City> {
+    const [newCity] = await pgDb.insert(cities).values(city).returning();
+    return newCity;
+  }
+
+  async getCitiesByCountryId(countryId: string): Promise<City[]> {
+    const result = await pgDb.select().from(cities).where(eq(cities.countryId, countryId)).orderBy(asc(cities.sortOrder), asc(cities.name));
+    return result;
+  }
+
+  async getEnabledCitiesByCountryId(countryId: string): Promise<City[]> {
+    const result = await pgDb.select().from(cities).where(and(eq(cities.countryId, countryId), eq(cities.enabled, true))).orderBy(asc(cities.sortOrder), asc(cities.name));
+    return result;
+  }
+
+  async getCityById(id: string): Promise<City | undefined> {
+    const [city] = await pgDb.select().from(cities).where(eq(cities.id, id));
+    return city;
+  }
+
+  async updateCity(id: string, data: Partial<InsertCity>): Promise<City | undefined> {
+    const [updated] = await pgDb.update(cities).set({ ...data, updatedAt: new Date() }).where(eq(cities.id, id)).returning();
+    return updated;
+  }
+
+  async deleteCity(id: string): Promise<void> {
+    await pgDb.delete(cities).where(eq(cities.id, id));
+  }
+
+  async bulkCreateCities(citiesData: InsertCity[]): Promise<City[]> {
+    if (citiesData.length === 0) return [];
+    const result = await pgDb.insert(cities).values(citiesData).returning();
+    return result;
   }
 }
 

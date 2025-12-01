@@ -233,6 +233,29 @@ export const membershipApplications = pgTable("membership_applications", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const countries = pgTable("countries", {
+  id: varchar("id", { length: 128 }).primaryKey().default(sql`gen_random_uuid()`),
+  code: varchar("code", { length: 3 }).notNull().unique(),
+  name: text("name").notNull(),
+  displayName: text("display_name"),
+  phoneCode: varchar("phone_code", { length: 10 }),
+  enabled: boolean("enabled").default(false).notNull(),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const cities = pgTable("cities", {
+  id: varchar("id", { length: 128 }).primaryKey().default(sql`gen_random_uuid()`),
+  countryId: varchar("country_id", { length: 128 }).notNull().references(() => countries.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  displayName: text("display_name"),
+  enabled: boolean("enabled").default(false).notNull(),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({ createdAt: true, lastLogin: true });
 export const selectUserSchema = createSelectSchema(users);
 
@@ -277,6 +300,12 @@ export const selectMembershipTierSchema = createSelectSchema(membershipTiers);
 
 export const insertMembershipApplicationSchema = createInsertSchema(membershipApplications).omit({ id: true, createdAt: true, updatedAt: true });
 export const selectMembershipApplicationSchema = createSelectSchema(membershipApplications);
+
+export const insertCountrySchema = createInsertSchema(countries).omit({ id: true, createdAt: true, updatedAt: true });
+export const selectCountrySchema = createSelectSchema(countries);
+
+export const insertCitySchema = createInsertSchema(cities).omit({ id: true, createdAt: true, updatedAt: true });
+export const selectCitySchema = createSelectSchema(cities);
 
 export const jobDetailsSchema = z.object({
   employmentType: z.enum(["full-time", "part-time", "remote", "contract"]).optional(),
@@ -336,3 +365,9 @@ export type InsertMembershipTier = z.infer<typeof insertMembershipTierSchema>;
 
 export type MembershipApplication = typeof membershipApplications.$inferSelect;
 export type InsertMembershipApplication = z.infer<typeof insertMembershipApplicationSchema>;
+
+export type Country = typeof countries.$inferSelect;
+export type InsertCountry = z.infer<typeof insertCountrySchema>;
+
+export type City = typeof cities.$inferSelect;
+export type InsertCity = z.infer<typeof insertCitySchema>;
