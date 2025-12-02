@@ -41,6 +41,8 @@ import {
   UserCheck,
   UserX,
   ArrowRight,
+  LayoutDashboard,
+  Database,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { auth } from "@/lib/firebase";
@@ -403,12 +405,15 @@ export default function AdminDashboard() {
     investors: { label: "Investors", color: CHART_COLORS[4] },
   };
 
-  const managementCards = [
-    { title: "Leadership", description: "Manage team members", icon: Users, path: "/admin/leadership", color: "text-blue-500" },
-    { title: "Gallery", description: "Event images", icon: Image, path: "/admin/gallery", color: "text-purple-500" },
-    { title: "Opportunities", description: "Job listings", icon: Briefcase, path: "/admin/opportunities", color: "text-green-500" },
-    { title: "Membership", description: "Applications", icon: UserCheck, path: "/admin/membership", color: "text-orange-500" },
-    { title: "Locations", description: "Countries & cities", icon: Globe, path: "/admin/locations", color: "text-cyan-500" },
+  const pagesManagementCards = [
+    { title: "Leadership", description: "Team members shown on site", icon: Users, path: "/admin/leadership", color: "text-blue-500" },
+    { title: "Gallery", description: "Event images & media", icon: Image, path: "/admin/gallery", color: "text-purple-500" },
+    { title: "Opportunities", description: "Job listings & postings", icon: Briefcase, path: "/admin/opportunities", color: "text-green-500" },
+  ];
+
+  const dataSourceCards = [
+    { title: "Applications", description: "Member registrations", icon: UserCheck, path: "/admin/membership", color: "text-orange-500" },
+    { title: "Locations", description: "Countries & cities data", icon: Globe, path: "/admin/locations", color: "text-cyan-500" },
   ];
 
   return (
@@ -533,28 +538,64 @@ export default function AdminDashboard() {
         )}
 
         <div className="mb-8">
-          <h2 className="text-lg font-semibold mb-4">Quick Access</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-            {managementCards.map((card) => (
-              <Card 
-                key={card.title}
-                className="hover-elevate cursor-pointer group"
-                onClick={() => setLocation(card.path)}
-                data-testid={`card-manage-${card.title.toLowerCase()}`}
-              >
-                <CardContent className="p-4">
-                  <div className="flex flex-col items-center text-center gap-2">
-                    <div className={`p-2.5 rounded-lg bg-muted/50 group-hover:bg-muted transition-colors ${card.color}`}>
-                      <card.icon className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-sm">{card.title}</h3>
-                      <p className="text-xs text-muted-foreground">{card.description}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
+                <LayoutDashboard className="w-4 h-4" />
+                Pages Management
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {pagesManagementCards.map((card) => (
+                  <Card 
+                    key={card.title}
+                    className="hover-elevate cursor-pointer group"
+                    onClick={() => setLocation(card.path)}
+                    data-testid={`card-pages-${card.title.toLowerCase()}`}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex flex-col items-center text-center gap-2">
+                        <div className={`p-2.5 rounded-lg bg-muted/50 group-hover:bg-muted transition-colors ${card.color}`}>
+                          <card.icon className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium text-sm">{card.title}</h3>
+                          <p className="text-xs text-muted-foreground">{card.description}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
+                <Database className="w-4 h-4" />
+                Data Sources
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {dataSourceCards.map((card) => (
+                  <Card 
+                    key={card.title}
+                    className="hover-elevate cursor-pointer group"
+                    onClick={() => setLocation(card.path)}
+                    data-testid={`card-data-${card.title.toLowerCase()}`}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex flex-col items-center text-center gap-2">
+                        <div className={`p-2.5 rounded-lg bg-muted/50 group-hover:bg-muted transition-colors ${card.color}`}>
+                          <card.icon className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium text-sm">{card.title}</h3>
+                          <p className="text-xs text-muted-foreground">{card.description}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
