@@ -6,7 +6,14 @@ The Professional Executive Forum (PEF) is a global digital platform designed to 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
-## Recent Changes (Dec 1, 2025)
+## Recent Changes (Dec 2, 2025)
+- **Global Reach Country Management** - Admins can now manage which countries appear in the home page Global Reach section
+- **Primary Market & Coming Soon Flags** - Added `isPrimary` and `comingSoon` boolean fields to country schema
+- **Admin Location Tab Enhanced** - Star icon toggles Primary Market status, clock icon toggles Coming Soon status
+- **Dynamic Global Reach Display** - Home page section now fetches countries from API and displays dynamically based on admin settings
+- **Dynamic Flag Rendering** - Uses country-flag-icons library with graceful fallback for unmapped country codes
+
+## Previous Changes (Dec 1, 2025)
 - **Centralized Country-City Management System** - Fully implemented with admin CRUD operations at `/admin/locations`
 - **Country-City Data in PostgreSQL** - 198 countries with phone codes seeded and synced with Drizzle ORM
 - **Public API Endpoints** - `/api/locations/countries` and `/api/locations/countries/:countryId/cities` for dropdowns
