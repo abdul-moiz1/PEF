@@ -17,7 +17,7 @@ import {
 import { db } from "./firebase-admin";
 import { db as pgDb } from "./db";
 import { leaders, galleryImages, membershipTiers, membershipApplications } from "@shared/schema";
-import { eq, desc, and, asc } from "drizzle-orm";
+import { eq, desc, and, asc, count } from "drizzle-orm";
 import { 
   type User,
   type UserProfile,
@@ -924,7 +924,9 @@ export class FirestoreStorage implements IStorage {
 
   async getAdminStats(): Promise<any> {
     const usersSnapshot = await getDocs(collection(db, "users"));
-    const applicationsSnapshot = await getDocs(collection(db, "applications"));
+    
+    // Count membership applications from PostgreSQL
+    const [applicationCount] = await pgDb.select({ count: count() }).from(membershipApplications);
     
     const stats = {
       totalUsers: 0,
@@ -937,7 +939,7 @@ export class FirestoreStorage implements IStorage {
       pendingApprovals: 0,
       approved: 0,
       rejected: 0,
-      totalApplications: applicationsSnapshot.size,
+      totalApplications: applicationCount?.count ?? 0,
     };
     
     for (const userDoc of usersSnapshot.docs) {
