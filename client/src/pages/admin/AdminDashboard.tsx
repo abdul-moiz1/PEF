@@ -243,9 +243,9 @@ export default function AdminDashboard() {
 
   const [isDownloadingCSV, setIsDownloadingCSV] = useState(false);
 
-  const getCountryName = (countryId: string) => {
-    const country = countries.find(c => c.id === countryId);
-    return country?.displayName || country?.name || countryId;
+  const getCountryDisplayName = (countryName: string) => {
+    const country = countries.find(c => c.name === countryName);
+    return country?.displayName || countryName;
   };
 
   const handleDownloadCSV = async () => {
@@ -273,7 +273,7 @@ export default function AdminDashboard() {
       const blobUrl = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = blobUrl;
-      const countryName = countryFilter !== "all" ? getCountryName(countryFilter) : "";
+      const countryName = countryFilter !== "all" ? getCountryDisplayName(countryFilter) : "";
       const countryLabel = countryName ? `-${countryName.replace(/\s+/g, "-")}` : "";
       a.download = `users-export${countryLabel}-${new Date().toISOString().split("T")[0]}.csv`;
       document.body.appendChild(a);
@@ -707,8 +707,8 @@ export default function AdminDashboard() {
             <Card>
               <CardHeader className="pb-4">
                 <div className="flex flex-col gap-4">
-                  <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-                    <div className="relative flex-1 max-w-md">
+                  <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center flex-wrap">
+                    <div className="relative flex-1 min-w-[200px] max-w-sm">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         placeholder="Search users..."
@@ -719,7 +719,7 @@ export default function AdminDashboard() {
                       />
                     </div>
                     <Select value={roleFilter} onValueChange={setRoleFilter}>
-                      <SelectTrigger className="h-8 w-auto gap-1 border-0 bg-muted/50 px-3 text-sm font-medium" data-testid="select-role-filter">
+                      <SelectTrigger className="w-[140px]" data-testid="select-role-filter">
                         <SelectValue placeholder="All Roles" />
                       </SelectTrigger>
                       <SelectContent>
@@ -733,13 +733,13 @@ export default function AdminDashboard() {
                       </SelectContent>
                     </Select>
                     <Select value={countryFilter} onValueChange={setCountryFilter}>
-                      <SelectTrigger className="h-8 w-auto gap-1 border-0 bg-muted/50 px-3 text-sm font-medium" data-testid="select-country-filter">
+                      <SelectTrigger className="w-[160px]" data-testid="select-country-filter">
                         <SelectValue placeholder="All Countries" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Countries</SelectItem>
                         {countries.map((country) => (
-                          <SelectItem key={country.id} value={country.id}>
+                          <SelectItem key={country.id} value={country.name}>
                             {country.displayName || country.name}
                           </SelectItem>
                         ))}
@@ -799,7 +799,7 @@ export default function AdminDashboard() {
                             <Download className="w-4 h-4" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Export to CSV{countryFilter !== "all" ? ` (${getCountryName(countryFilter)} only)` : ""}</TooltipContent>
+                        <TooltipContent>Export to CSV{countryFilter !== "all" ? ` (${getCountryDisplayName(countryFilter)} only)` : ""}</TooltipContent>
                       </Tooltip>
                     </div>
                   </div>
