@@ -623,16 +623,16 @@ export default function AdminDashboard() {
 
         {/* Management Sections */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Pages Management */}
-          <Card data-testid="section-pages-management">
+          {/* Content Management */}
+          <Card data-testid="section-content-management">
             <CardHeader className="pb-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-primary/10">
                   <LayoutDashboard className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <CardTitle className="text-base font-semibold">Page Management</CardTitle>
-                  <CardDescription>Manage public-facing content</CardDescription>
+                  <CardTitle className="text-base font-semibold">Content Management</CardTitle>
+                  <CardDescription>For controlling public-facing site content</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -657,16 +657,16 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
-          {/* Data Sources */}
-          <Card data-testid="section-data-sources">
+          {/* Data Management */}
+          <Card data-testid="section-data-management">
             <CardHeader className="pb-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-primary/10">
                   <Database className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <CardTitle className="text-base font-semibold">Data Sources</CardTitle>
-                  <CardDescription>Manage application data</CardDescription>
+                  <CardTitle className="text-base font-semibold">Data Management</CardTitle>
+                  <CardDescription>For managing application data and backend datasets</CardDescription>
                 </div>
               </div>
             </CardHeader>
