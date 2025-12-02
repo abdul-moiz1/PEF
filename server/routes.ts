@@ -1042,7 +1042,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Admin access required" });
       }
 
-      const users = await storage.getAllUsers();
+      let users = await storage.getAllUsers();
+      
+      const countryFilter = req.query.country as string | undefined;
+      if (countryFilter) {
+        users = users.filter((user: any) => {
+          const userCountry = user.profile?.country;
+          return userCountry && userCountry === countryFilter;
+        });
+      }
 
       const safeDate = (dateValue: any): string => {
         if (!dateValue) return "";
