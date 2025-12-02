@@ -126,6 +126,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "Registration completed successfully. Welcome!",
         user: result.user,
         profile: result.profile,
+        roles: result.roles,
       });
     } catch (error) {
       console.error("Registration error:", error);

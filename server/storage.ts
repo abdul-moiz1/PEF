@@ -98,7 +98,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUserLastLogin(id: string): Promise<void>;
   
-  completeRegistration(data: RegistrationData): Promise<{ user: User; profile: UserProfile }>;
+  completeRegistration(data: RegistrationData): Promise<{ user: User; profile: UserProfile; roles: { professional: boolean; jobSeeker: boolean; employer: boolean; businessOwner: boolean; investor: boolean; admin: boolean } }>;
   
   createUserProfile(profile: InsertUserProfile): Promise<UserProfile>;
   createUserRoles(roles: InsertUserRoles): Promise<UserRoles>;
@@ -263,7 +263,7 @@ export class FirestoreStorage implements IStorage {
     });
   }
 
-  async completeRegistration(data: RegistrationData): Promise<{ user: User; profile: UserProfile }> {
+  async completeRegistration(data: RegistrationData): Promise<{ user: User; profile: UserProfile; roles: { professional: boolean; jobSeeker: boolean; employer: boolean; businessOwner: boolean; investor: boolean; admin: boolean } }> {
     try {
       // Get existing user document to preserve fields like name, status, lastUpdated
       const existingUserSnap = await getDoc(doc(db, "users", data.userId));
@@ -278,6 +278,16 @@ export class FirestoreStorage implements IStorage {
       if (wasAdmin) {
         newRoles.isAdmin = true;
       }
+      
+      // Build the actual roles to return (with admin preserved)
+      const preservedRoles = {
+        professional: data.roles.professional || false,
+        jobSeeker: data.roles.jobSeeker || false,
+        employer: data.roles.employer || false,
+        businessOwner: data.roles.businessOwner || false,
+        investor: data.roles.investor || false,
+        admin: wasAdmin || data.roles.admin || false,
+      };
       
       // Consolidated structure: everything in one users document
       // Use merge to preserve existing fields set during registration
@@ -346,7 +356,7 @@ export class FirestoreStorage implements IStorage {
         updatedAt: new Date(),
       };
 
-      return { user, profile };
+      return { user, profile, roles: preservedRoles };
     } catch (error) {
       console.error("Registration error:", error);
       throw error;
