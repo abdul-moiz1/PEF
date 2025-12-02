@@ -6,9 +6,21 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { Loader2, Plus } from "lucide-react";
+
+interface Country {
+  id: string;
+  code: string;
+  name: string;
+  phoneCode: string | null;
+}
+
+interface City {
+  id: string;
+  name: string;
+}
 
 interface PublicOpportunityFormData {
   name: string;
@@ -34,6 +46,22 @@ interface PublicOpportunityFormData {
 export default function PublicOpportunityForm() {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
+  const [selectedCountryId, setSelectedCountryId] = useState<string>("");
+  const [selectedCityId, setSelectedCityId] = useState<string>("");
+
+  const { data: countries = [], isLoading: countriesLoading } = useQuery<Country[]>({
+    queryKey: ["/api/locations/countries"],
+  });
+
+  const { data: cities = [], isLoading: citiesLoading } = useQuery<City[]>({
+    queryKey: ["/api/locations/countries", selectedCountryId, "cities"],
+    enabled: !!selectedCountryId,
+    queryFn: async () => {
+      const response = await fetch(`/api/locations/countries/${selectedCountryId}/cities`);
+      if (!response.ok) throw new Error("Failed to fetch cities");
+      return response.json();
+    },
+  });
   
   const initialFormData: PublicOpportunityFormData = {
     name: "",
@@ -58,6 +86,12 @@ export default function PublicOpportunityForm() {
   
   const [formData, setFormData] = useState<PublicOpportunityFormData>(initialFormData);
 
+  const resetForm = () => {
+    setFormData(initialFormData);
+    setSelectedCountryId("");
+    setSelectedCityId("");
+  };
+
   const submitMutation = useMutation({
     mutationFn: async (data: PublicOpportunityFormData) => {
       const response = await fetch("/api/public-opportunities", {
@@ -81,7 +115,7 @@ export default function PublicOpportunityForm() {
         description: "Your opportunity is now live on the board.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/opportunities"] });
-      setFormData(initialFormData);
+      resetForm();
       setOpen(false);
     },
     onError: (error: Error) => {
@@ -156,10 +190,24 @@ export default function PublicOpportunityForm() {
   };
 
   const handleDialogChange = (newOpen: boolean) => {
-    setOpen(newOpen);
     if (!newOpen) {
-      setFormData(initialFormData);
+      resetForm();
     }
+    setOpen(newOpen);
+  };
+
+  const handleCountryChange = (countryId: string) => {
+    const country = countries.find(c => c.id === countryId);
+    setSelectedCountryId(countryId);
+    setSelectedCityId("");
+    handleChange("country", country?.name || "");
+    handleChange("city", "");
+  };
+
+  const handleCityChange = (cityId: string) => {
+    const city = cities.find(c => c.id === cityId);
+    setSelectedCityId(cityId);
+    handleChange("city", city?.name || "");
   };
 
   return (
@@ -288,25 +336,49 @@ export default function PublicOpportunityForm() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="country">Country *</Label>
-              <Input
-                id="country"
-                required
-                value={formData.country}
-                onChange={(e) => handleChange("country", e.target.value)}
-                placeholder="e.g. United States"
-                data-testid="input-country"
-              />
+              <Select
+                value={selectedCountryId}
+                onValueChange={handleCountryChange}
+              >
+                <SelectTrigger id="country" data-testid="select-country">
+                  <SelectValue placeholder={countriesLoading ? "Loading..." : "Select country"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {countries.map((country) => (
+                    <SelectItem key={country.id} value={country.id}>
+                      {country.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="city">City</Label>
-              <Input
-                id="city"
-                value={formData.city}
-                onChange={(e) => handleChange("city", e.target.value)}
-                placeholder="e.g. New York"
-                data-testid="input-city"
-              />
+              <Select
+                value={selectedCityId}
+                onValueChange={handleCityChange}
+                disabled={!selectedCountryId || citiesLoading}
+              >
+                <SelectTrigger id="city" data-testid="select-city">
+                  <SelectValue placeholder={
+                    !selectedCountryId 
+                      ? "Select country first" 
+                      : citiesLoading 
+                        ? "Loading..." 
+                        : cities.length === 0 
+                          ? "No cities available" 
+                          : "Select city"
+                  } />
+                </SelectTrigger>
+                <SelectContent>
+                  {cities.map((city) => (
+                    <SelectItem key={city.id} value={city.id}>
+                      {city.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -464,7 +536,7 @@ export default function PublicOpportunityForm() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => setOpen(false)}
+              onClick={() => handleDialogChange(false)}
               disabled={submitMutation.isPending}
               data-testid="button-cancel"
             >

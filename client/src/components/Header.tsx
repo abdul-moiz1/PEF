@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Menu, X, User, LogOut, LayoutDashboard, ChevronDown } from "lucide-react";
+import { Menu, X, User, LogOut, LayoutDashboard } from "lucide-react";
 import { Link } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import logoImage from "@assets/image_1763355890421.png";
@@ -15,7 +15,10 @@ import {
 
 const navItems = [
   { label: "Home", path: "/" },
-  { label: "Membership", path: "/membership" },
+  { label: "About Us", path: "/about" },
+  { label: "Leadership", path: "/leadership" },
+  { label: "Media", path: "/media" },
+  { label: "Gallery", path: "/gallery" },
   { label: "Opportunities", path: "/opportunities" },
   { label: "Contact", path: "/contact" },
 ];
@@ -23,8 +26,6 @@ const navItems = [
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [aboutOpen, setAboutOpen] = useState(false);
-  const [mediaOpen, setMediaOpen] = useState(false);
   const { currentUser, userData, logout } = useAuth();
 
   useEffect(() => {
@@ -57,72 +58,12 @@ export default function Header() {
                 <Button
                   variant="ghost"
                   className="text-white hover:bg-white/10"
-                  data-testid={`link-nav-${item.label.toLowerCase()}`}
+                  data-testid={`link-nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
                 >
                   {item.label}
                 </Button>
               </Link>
             ))}
-            
-            <DropdownMenu open={aboutOpen} onOpenChange={setAboutOpen} modal={false}>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  className="text-white hover:bg-white/10" 
-                  data-testid="button-nav-about"
-                  onMouseEnter={() => setAboutOpen(true)}
-                  onMouseLeave={() => setAboutOpen(false)}
-                >
-                  About <ChevronDown className="ml-1 w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent 
-                className="min-w-[180px]"
-                onMouseEnter={() => setAboutOpen(true)}
-                onMouseLeave={() => setAboutOpen(false)}
-              >
-                <Link href="/about">
-                  <DropdownMenuItem className="cursor-pointer text-base py-2.5" data-testid="link-nav-about">
-                    About Us
-                  </DropdownMenuItem>
-                </Link>
-                <Link href="/leadership">
-                  <DropdownMenuItem className="cursor-pointer text-base py-2.5" data-testid="link-nav-leadership">
-                    Leadership
-                  </DropdownMenuItem>
-                </Link>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <DropdownMenu open={mediaOpen} onOpenChange={setMediaOpen} modal={false}>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  className="text-white hover:bg-white/10" 
-                  data-testid="button-nav-media"
-                  onMouseEnter={() => setMediaOpen(true)}
-                  onMouseLeave={() => setMediaOpen(false)}
-                >
-                  Media <ChevronDown className="ml-1 w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent 
-                className="min-w-[180px]"
-                onMouseEnter={() => setMediaOpen(true)}
-                onMouseLeave={() => setMediaOpen(false)}
-              >
-                <Link href="/media">
-                  <DropdownMenuItem className="cursor-pointer text-base py-2.5" data-testid="link-nav-media">
-                    News & Updates
-                  </DropdownMenuItem>
-                </Link>
-                <Link href="/gallery">
-                  <DropdownMenuItem className="cursor-pointer text-base py-2.5" data-testid="link-nav-gallery">
-                    Gallery
-                  </DropdownMenuItem>
-                </Link>
-              </DropdownMenuContent>
-            </DropdownMenu>
 
             {currentUser && (
               <Link href="/dashboard">
@@ -205,54 +146,12 @@ export default function Header() {
                   variant="ghost"
                   className="w-full justify-start text-white hover:bg-white/10"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  data-testid={`link-mobile-${item.label.toLowerCase()}`}
+                  data-testid={`link-mobile-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
                 >
                   {item.label}
                 </Button>
               </Link>
             ))}
-            
-            <Link href="/about">
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-white hover:bg-white/10"
-                onClick={() => setIsMobileMenuOpen(false)}
-                data-testid="link-mobile-about"
-              >
-                About
-              </Button>
-            </Link>
-            <Link href="/leadership">
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-white hover:bg-white/10 pl-8"
-                onClick={() => setIsMobileMenuOpen(false)}
-                data-testid="link-mobile-leadership"
-              >
-                Leadership
-              </Button>
-            </Link>
-            
-            <Link href="/media">
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-white hover:bg-white/10"
-                onClick={() => setIsMobileMenuOpen(false)}
-                data-testid="link-mobile-media"
-              >
-                Media
-              </Button>
-            </Link>
-            <Link href="/gallery">
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-white hover:bg-white/10 pl-8"
-                onClick={() => setIsMobileMenuOpen(false)}
-                data-testid="link-mobile-gallery"
-              >
-                Gallery
-              </Button>
-            </Link>
             {currentUser ? (
               <>
                 <Link href="/dashboard">
