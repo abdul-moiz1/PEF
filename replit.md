@@ -7,6 +7,9 @@ The Professional Executive Forum (PEF) is a global digital platform designed to 
 Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (Dec 2, 2025)
+- **Admin Dashboard Stats Updated** - Replaced Videos stat card with Applications count showing total job applications
+- **Role Counting Fixed** - Admin stats now correctly count users across all three role data patterns (legacy nested, `is*` prefix nested, and top-level booleans)
+- **User Roles Chart Improved** - Legend shows role names only; counts appear on hover tooltip
 - **Admin Dashboard Filter UI Fixed** - Updated filter controls with proper bordered styling matching design reference (Search, All Roles, All Countries dropdowns)
 - **CSV Download by Country Fixed** - Country filtering now uses country names consistently between frontend and backend, enabling proper country-wise user exports
 - **Global Reach Country Management with Firestore** - Complete Firestore integration for country management with isPrimary and comingSoon fields

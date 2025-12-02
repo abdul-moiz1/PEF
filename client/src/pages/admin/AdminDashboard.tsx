@@ -43,6 +43,7 @@ import {
   ArrowRight,
   LayoutDashboard,
   Database,
+  FileText,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { auth } from "@/lib/firebase";
@@ -502,18 +503,22 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-visible" data-testid="stat-videos">
+          <Card className="relative overflow-visible" data-testid="stat-applications">
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Videos</p>
-                  <p className="text-3xl font-bold mt-1">{videos.length}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Applications</p>
+                  {loading ? (
+                    <div className="h-9 w-16 bg-muted animate-pulse rounded mt-1" />
+                  ) : (
+                    <p className="text-3xl font-bold mt-1">{stats?.totalApplications ?? 0}</p>
+                  )}
                   <p className="text-xs text-muted-foreground mt-1">
-                    {videos.filter(v => v.visible).length} visible
+                    Job applications
                   </p>
                 </div>
                 <div className="p-3 rounded-xl bg-purple-500/10 dark:bg-purple-500/20">
-                  <Video className="w-6 h-6 text-purple-500" />
+                  <FileText className="w-6 h-6 text-purple-500" />
                 </div>
               </div>
             </CardContent>
