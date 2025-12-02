@@ -92,6 +92,9 @@ function EditProfileContent() {
     businessOwner: false,
     investor: false,
   });
+  
+  // Track admin status separately - this should never be modified by user
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Role-specific data
   const [professionalData, setProfessionalData] = useState({
@@ -161,13 +164,28 @@ function EditProfileContent() {
 
           // Load roles
           if (data.roles) {
-            setSelectedRoles({
-              professional: data.roles.professional || data.roles.isProfessional || false,
-              jobSeeker: data.roles.jobSeeker || data.roles.isJobSeeker || false,
-              employer: data.roles.employer || data.roles.isEmployer || false,
-              businessOwner: data.roles.businessOwner || data.roles.isBusinessOwner || false,
-              investor: data.roles.investor || data.roles.isInvestor || false,
-            });
+            // Check if user is admin - admin gets all roles automatically
+            const userIsAdmin = data.roles.admin || data.roles.isAdmin || false;
+            setIsAdmin(userIsAdmin);
+            
+            if (userIsAdmin) {
+              // Admin users get all roles automatically
+              setSelectedRoles({
+                professional: true,
+                jobSeeker: true,
+                employer: true,
+                businessOwner: true,
+                investor: true,
+              });
+            } else {
+              setSelectedRoles({
+                professional: data.roles.professional || data.roles.isProfessional || false,
+                jobSeeker: data.roles.jobSeeker || data.roles.isJobSeeker || false,
+                employer: data.roles.employer || data.roles.isEmployer || false,
+                businessOwner: data.roles.businessOwner || data.roles.isBusinessOwner || false,
+                investor: data.roles.investor || data.roles.isInvestor || false,
+              });
+            }
           }
 
           // Load role-specific data
@@ -248,6 +266,12 @@ function EditProfileContent() {
       setSaving(true);
       const userRef = doc(db, "users", currentUser.uid);
 
+      // Build roles object - ALWAYS preserve admin status
+      const rolesToSave = {
+        ...selectedRoles,
+        admin: isAdmin, // Preserve admin flag
+      };
+
       await updateDoc(userRef, {
         name: profileData.name,
         country: profileData.country,
@@ -256,7 +280,7 @@ function EditProfileContent() {
         headline: profileData.headline,
         bio: profileData.bio,
         links: profileData.links,
-        roles: selectedRoles,
+        roles: rolesToSave,
         professionalData,
         jobSeekerData,
         employerData,
@@ -293,6 +317,8 @@ function EditProfileContent() {
   };
 
   const handleRoleToggle = (roleId: keyof typeof selectedRoles) => {
+    // Admin users have all roles locked - they cannot toggle them
+    if (isAdmin) return;
     setSelectedRoles((prev) => ({ ...prev, [roleId]: !prev[roleId] }));
   };
 
@@ -538,9 +564,20 @@ function EditProfileContent() {
           <Card>
             <CardHeader>
               <CardTitle>Your Roles</CardTitle>
-              <CardDescription>Select the roles that apply to you</CardDescription>
+              <CardDescription>
+                {isAdmin 
+                  ? "As an admin, you have access to all roles automatically" 
+                  : "Select the roles that apply to you"}
+              </CardDescription>
             </CardHeader>
             <CardContent>
+              {isAdmin && (
+                <div className="mb-4 p-4 bg-primary/10 rounded-md border border-primary/20">
+                  <p className="text-sm text-foreground">
+                    <strong>Admin Access:</strong> You have full access to all roles and their features. Role selections are locked.
+                  </p>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {roles.map((role) => {
                   const Icon = role.icon;
@@ -549,8 +586,10 @@ function EditProfileContent() {
                   return (
                     <Card
                       key={role.id}
-                      className={`cursor-pointer transition-all border-2 hover-elevate ${
-                        isSelected ? "border-primary bg-primary/5" : "border-border"
+                      className={`transition-all border-2 ${
+                        isAdmin 
+                          ? "cursor-default border-primary bg-primary/5 opacity-90" 
+                          : `cursor-pointer hover-elevate ${isSelected ? "border-primary bg-primary/5" : "border-border"}`
                       }`}
                       onClick={() => handleRoleToggle(role.id as keyof typeof selectedRoles)}
                       data-testid={`card-role-${role.id}`}
@@ -562,6 +601,7 @@ function EditProfileContent() {
                           </div>
                           <Checkbox
                             checked={isSelected}
+                            disabled={isAdmin}
                             data-testid={`checkbox-${role.id}`}
                             className="pointer-events-none"
                           />
@@ -574,7 +614,7 @@ function EditProfileContent() {
                 })}
               </div>
 
-              {!Object.values(selectedRoles).some((v) => v) && (
+              {!Object.values(selectedRoles).some((v) => v) && !isAdmin && (
                 <p className="text-center text-destructive text-sm mt-4">
                   Please select at least one role
                 </p>
