@@ -70,28 +70,28 @@ export default function WhyPEFSection() {
             </div>
 
             <div className="absolute top-0 left-4 md:left-8 flex flex-col items-center transition-transform duration-200 hover:scale-105" data-testid="connection-job-seekers">
-              <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl bg-white dark:bg-card shadow-lg border border-border flex items-center justify-center mb-2">
+              <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-white dark:bg-card shadow-lg border border-border flex items-center justify-center mb-2">
                 <FileText className="w-6 h-6 md:w-8 md:h-8 text-primary" />
               </div>
               <span className="text-xs md:text-sm font-semibold text-center bg-white dark:bg-card px-2 md:px-3 py-1 rounded-full shadow-sm border border-border whitespace-nowrap">Job Seekers</span>
             </div>
 
             <div className="absolute top-0 right-4 md:right-8 flex flex-col items-center transition-transform duration-200 hover:scale-105" data-testid="connection-business-owners">
-              <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl bg-white dark:bg-card shadow-lg border border-border flex items-center justify-center mb-2">
+              <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-white dark:bg-card shadow-lg border border-border flex items-center justify-center mb-2">
                 <Briefcase className="w-6 h-6 md:w-8 md:h-8 text-secondary" />
               </div>
               <span className="text-xs md:text-sm font-semibold text-center bg-white dark:bg-card px-2 md:px-3 py-1 rounded-full shadow-sm border border-border whitespace-nowrap">Business Owners</span>
             </div>
 
             <div className="absolute bottom-0 left-4 md:left-8 flex flex-col items-center transition-transform duration-200 hover:scale-105" data-testid="connection-collaborations">
-              <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl bg-white dark:bg-card shadow-lg border border-border flex items-center justify-center mb-2">
+              <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-white dark:bg-card shadow-lg border border-border flex items-center justify-center mb-2">
                 <Handshake className="w-6 h-6 md:w-8 md:h-8 text-accent" />
               </div>
               <span className="text-xs md:text-sm font-semibold text-center bg-white dark:bg-card px-2 md:px-3 py-1 rounded-full shadow-sm border border-border whitespace-nowrap">Collaborations</span>
             </div>
 
             <div className="absolute bottom-0 right-4 md:right-8 flex flex-col items-center transition-transform duration-200 hover:scale-105" data-testid="connection-opportunities">
-              <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl bg-white dark:bg-card shadow-lg border border-border flex items-center justify-center mb-2">
+              <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-white dark:bg-card shadow-lg border border-border flex items-center justify-center mb-2">
                 <Lightbulb className="w-6 h-6 md:w-8 md:h-8 text-green-500" />
               </div>
               <span className="text-xs md:text-sm font-semibold text-center bg-white dark:bg-card px-2 md:px-3 py-1 rounded-full shadow-sm border border-border whitespace-nowrap">Opportunities</span>
