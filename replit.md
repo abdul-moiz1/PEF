@@ -7,6 +7,8 @@ The Professional Executive Forum (PEF) is a global digital platform designed to 
 Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (Dec 2, 2025)
+- **Admin Dashboard Filter UI Fixed** - Updated filter controls with proper bordered styling matching design reference (Search, All Roles, All Countries dropdowns)
+- **CSV Download by Country Fixed** - Country filtering now uses country names consistently between frontend and backend, enabling proper country-wise user exports
 - **Global Reach Country Management with Firestore** - Complete Firestore integration for country management with isPrimary and comingSoon fields
 - **Selected Countries Section** - New admin panel section showing all enabled countries in a visual grid with flags
 - **Primary Market & Coming Soon Flags** - Toggle buttons persist to Firestore and immediately reflect on home page
