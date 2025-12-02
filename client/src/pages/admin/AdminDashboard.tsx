@@ -707,8 +707,8 @@ export default function AdminDashboard() {
             <Card>
               <CardHeader className="pb-4">
                 <div className="flex flex-col gap-4">
-                  <div className="flex gap-3 items-center">
-                    <div className="relative flex-1">
+                  <div className="flex gap-3 items-center flex-wrap">
+                    <div className="relative w-[180px]">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         placeholder="Search users..."
@@ -719,7 +719,7 @@ export default function AdminDashboard() {
                       />
                     </div>
                     <Select value={roleFilter} onValueChange={setRoleFilter}>
-                      <SelectTrigger className="w-[140px]" data-testid="select-role-filter">
+                      <SelectTrigger className="w-[130px]" data-testid="select-role-filter">
                         <SelectValue placeholder="All Roles" />
                       </SelectTrigger>
                       <SelectContent>
@@ -745,7 +745,7 @@ export default function AdminDashboard() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center ml-auto">
                       {selectedUsers.size > 0 && (
                         <>
                           <span className="text-sm text-muted-foreground flex items-center">
