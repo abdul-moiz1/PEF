@@ -707,8 +707,8 @@ export default function AdminDashboard() {
             <Card>
               <CardHeader className="pb-4">
                 <div className="flex flex-col gap-4">
-                  <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center flex-wrap">
-                    <div className="relative flex-1 min-w-[200px] max-w-sm">
+                  <div className="flex gap-3 items-center">
+                    <div className="relative flex-1">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         placeholder="Search users..."
@@ -733,7 +733,7 @@ export default function AdminDashboard() {
                       </SelectContent>
                     </Select>
                     <Select value={countryFilter} onValueChange={setCountryFilter}>
-                      <SelectTrigger className="w-[160px]" data-testid="select-country-filter">
+                      <SelectTrigger className="w-[140px]" data-testid="select-country-filter">
                         <SelectValue placeholder="All Countries" />
                       </SelectTrigger>
                       <SelectContent>
@@ -745,7 +745,7 @@ export default function AdminDashboard() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <div className="flex gap-2 ml-auto">
+                    <div className="flex gap-2">
                       {selectedUsers.size > 0 && (
                         <>
                           <span className="text-sm text-muted-foreground flex items-center">
