@@ -513,9 +513,7 @@ export default function AdminDashboard() {
                   ) : (
                     <p className="text-3xl font-bold mt-1">{stats?.totalApplications ?? 0}</p>
                   )}
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Job applications
-                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">Member Regitrations</p>
                 </div>
                 <div className="p-3 rounded-xl bg-purple-500/10 dark:bg-purple-500/20">
                   <FileText className="w-6 h-6 text-purple-500" />
@@ -1059,7 +1057,6 @@ export default function AdminDashboard() {
         </Tabs>
       </main>
       <Footer />
-
       {selectedUser && (
         <UserManagementDialog
           user={selectedUser}
@@ -1067,7 +1064,6 @@ export default function AdminDashboard() {
           onUpdateRoles={(roles) => handleUpdateRoles(selectedUser.uid, roles)}
         />
       )}
-
       <VideoFormDialog
         open={videoDialogOpen}
         onClose={handleCloseVideoDialog}
@@ -1077,7 +1073,6 @@ export default function AdminDashboard() {
           handleCloseVideoDialog();
         }}
       />
-
       <DeleteVideoDialog
         videoId={deleteVideoId}
         onClose={() => setDeleteVideoId(null)}
@@ -1086,7 +1081,6 @@ export default function AdminDashboard() {
           setDeleteVideoId(null);
         }}
       />
-
       <Dialog open={downloadDialogOpen} onOpenChange={(open) => {
         setDownloadDialogOpen(open);
         if (!open) setDownloadCountry("all");
