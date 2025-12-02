@@ -13,17 +13,20 @@ import { Users, ArrowLeft, Search, ExternalLink, Mail, Phone, MapPin, Briefcase,
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import type { MembershipApplication } from "@shared/schema";
+import type { MembershipApplication, Country } from "@shared/schema";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 
 function ApplicationsTable({
   applications,
   searchQuery,
+  countryFilter,
   onSelectApplication,
   getStatusBadge,
 }: {
   applications: MembershipApplication[];
   searchQuery: string;
+  countryFilter: string;
   onSelectApplication: (app: MembershipApplication) => void;
   getStatusBadge: (status: string) => JSX.Element;
 }) {
@@ -33,7 +36,7 @@ function ApplicationsTable({
         <CardContent className="py-12 text-center">
           <Users className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
           <p className="text-muted-foreground mb-2">
-            {searchQuery ? "No applications found" : "No applications in this category"}
+            {searchQuery || countryFilter !== "all" ? "No applications found" : "No applications in this category"}
           </p>
         </CardContent>
       </Card>
@@ -101,10 +104,15 @@ export default function AdminMembership() {
   const { toast } = useToast();
   const [selectedApplication, setSelectedApplication] = useState<MembershipApplication | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [countryFilter, setCountryFilter] = useState<string>("all");
   const [activeTab, setActiveTab] = useState("pending");
 
   const { data: applications = [], isLoading } = useQuery<MembershipApplication[]>({
     queryKey: ["/api/membership-applications"],
+  });
+
+  const { data: countries = [] } = useQuery<Country[]>({
+    queryKey: ["/api/locations/countries"],
   });
 
   if (!currentUser || !userData?.roles?.admin) {
@@ -124,14 +132,23 @@ export default function AdminMembership() {
   }
 
   const filterApplications = (apps: MembershipApplication[]) => {
-    if (!searchQuery.trim()) return apps;
-    const query = searchQuery.toLowerCase();
-    return apps.filter(
-      (app) =>
-        (app.fullName || "").toLowerCase().includes(query) ||
-        (app.email || "").toLowerCase().includes(query) ||
-        (app.country || "").toLowerCase().includes(query)
-    );
+    let filtered = apps;
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (app) =>
+          (app.fullName || "").toLowerCase().includes(query) ||
+          (app.email || "").toLowerCase().includes(query) ||
+          (app.country || "").toLowerCase().includes(query)
+      );
+    }
+    if (countryFilter !== "all") {
+      filtered = filtered.filter((app) => {
+        const appCountry = app.country;
+        return appCountry && appCountry === countryFilter;
+      });
+    }
+    return filtered;
   };
 
   const getStatusBadge = (status: string) => {
@@ -195,15 +212,30 @@ export default function AdminMembership() {
         </div>
 
         <div className="mb-6">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by name, email, or country..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-              data-testid="input-search-applications"
-            />
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name or email..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+                data-testid="input-search-applications"
+              />
+            </div>
+            <Select value={countryFilter} onValueChange={setCountryFilter}>
+              <SelectTrigger className="w-full sm:w-[160px]" data-testid="select-country-filter">
+                <SelectValue placeholder="Filter by country" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Countries</SelectItem>
+                {countries.map((country) => (
+                  <SelectItem key={country.id} value={country.name}>
+                    {country.displayName || country.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -224,6 +256,7 @@ export default function AdminMembership() {
             <ApplicationsTable
               applications={filterApplications(pendingApplications)}
               searchQuery={searchQuery}
+              countryFilter={countryFilter}
               onSelectApplication={setSelectedApplication}
               getStatusBadge={getStatusBadge}
             />
@@ -233,6 +266,7 @@ export default function AdminMembership() {
             <ApplicationsTable
               applications={filterApplications(approvedApplications)}
               searchQuery={searchQuery}
+              countryFilter={countryFilter}
               onSelectApplication={setSelectedApplication}
               getStatusBadge={getStatusBadge}
             />
@@ -242,6 +276,7 @@ export default function AdminMembership() {
             <ApplicationsTable
               applications={filterApplications(rejectedApplications)}
               searchQuery={searchQuery}
+              countryFilter={countryFilter}
               onSelectApplication={setSelectedApplication}
               getStatusBadge={getStatusBadge}
             />

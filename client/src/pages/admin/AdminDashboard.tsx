@@ -52,7 +52,7 @@ import YouTubeEmbed from "@/components/YouTubeEmbed";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from "recharts";
-import type { Video as VideoType, Opportunity } from "@shared/schema";
+import type { Video as VideoType, Opportunity, Country } from "@shared/schema";
 
 interface UserData {
   uid: string;
@@ -114,6 +114,7 @@ export default function AdminDashboard() {
   const [deleteVideoId, setDeleteVideoId] = useState<string | null>(null);
   const [selectedTab, setSelectedTab] = useState<'all' | 'media'>('all');
   const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [countryFilter, setCountryFilter] = useState<string>("all");
   const [statusTab, setStatusTab] = useState<string>("all");
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
   const [selectedVideos, setSelectedVideos] = useState<Set<string>>(new Set());
@@ -135,6 +136,10 @@ export default function AdminDashboard() {
   const { data: stats = null, isLoading: statsLoading } = useQuery<Stats>({
     queryKey: ["/api/admin/stats"],
     enabled: !!currentUser && !!userData?.roles?.admin,
+  });
+
+  const { data: countries = [] } = useQuery<Country[]>({
+    queryKey: ["/api/locations/countries"],
   });
 
   const loading = usersLoading || statsLoading;
@@ -310,6 +315,12 @@ export default function AdminDashboard() {
           default:
             return true;
         }
+      });
+    }
+    if (countryFilter !== "all") {
+      filtered = filtered.filter((u) => {
+        const userCountry = u.profile?.country;
+        return userCountry && userCountry === countryFilter;
       });
     }
     return filtered;
@@ -709,6 +720,19 @@ export default function AdminDashboard() {
                         <SelectItem value="admin">Admin</SelectItem>
                       </SelectContent>
                     </Select>
+                    <Select value={countryFilter} onValueChange={setCountryFilter}>
+                      <SelectTrigger className="w-full sm:w-[160px]" data-testid="select-country-filter">
+                        <SelectValue placeholder="Filter by country" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Countries</SelectItem>
+                        {countries.map((country) => (
+                          <SelectItem key={country.id} value={country.name}>
+                            {country.displayName || country.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="flex gap-2">
                     {selectedUsers.size > 0 && (
@@ -778,7 +802,7 @@ export default function AdminDashboard() {
                   <TabsContent value="all">
                     {filterUsers(users).length === 0 ? (
                       <div className="py-12 text-center text-muted-foreground">
-                        {searchQuery || roleFilter !== "all" ? "No users found" : "No users yet"}
+                        {searchQuery || roleFilter !== "all" || countryFilter !== "all" ? "No users found" : "No users yet"}
                       </div>
                     ) : (
                       <UsersTable
@@ -796,7 +820,7 @@ export default function AdminDashboard() {
                       <div className="py-12 text-center">
                         <Clock className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" />
                         <p className="text-muted-foreground">
-                          {searchQuery || roleFilter !== "all" ? "No users found" : "No pending users"}
+                          {searchQuery || roleFilter !== "all" || countryFilter !== "all" ? "No users found" : "No pending users"}
                         </p>
                       </div>
                     ) : (
@@ -815,7 +839,7 @@ export default function AdminDashboard() {
                       <div className="py-12 text-center">
                         <CheckCircle2 className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" />
                         <p className="text-muted-foreground">
-                          {searchQuery || roleFilter !== "all" ? "No users found" : "No approved users"}
+                          {searchQuery || roleFilter !== "all" || countryFilter !== "all" ? "No users found" : "No approved users"}
                         </p>
                       </div>
                     ) : (
@@ -834,7 +858,7 @@ export default function AdminDashboard() {
                       <div className="py-12 text-center">
                         <XCircle className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" />
                         <p className="text-muted-foreground">
-                          {searchQuery || roleFilter !== "all" ? "No users found" : "No rejected users"}
+                          {searchQuery || roleFilter !== "all" || countryFilter !== "all" ? "No users found" : "No rejected users"}
                         </p>
                       </div>
                     ) : (
