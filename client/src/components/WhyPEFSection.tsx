@@ -58,11 +58,11 @@ export default function WhyPEFSection() {
           <div className="relative flex items-center justify-center min-h-[420px]">
             <div className="flex items-center justify-center">
               <div className="w-48 h-48 md:w-56 md:h-56 rounded-full bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 flex items-center justify-center shadow-2xl border-4 border-white dark:border-muted z-10">
-                <div className="w-40 h-40 md:w-48 md:h-48 rounded-full bg-white dark:bg-card flex items-center justify-center shadow-inner">
+                <div className="w-40 h-40 md:w-48 md:h-48 rounded-full bg-white dark:bg-card flex items-center justify-center shadow-inner overflow-hidden">
                   <img 
                     src={pefLogo} 
                     alt="PEF Logo" 
-                    className="w-32 h-32 md:w-40 md:h-40 object-contain"
+                    className="w-40 h-40 md:w-48 md:h-48 rounded-full object-cover"
                     data-testid="img-pef-logo"
                   />
                 </div>
