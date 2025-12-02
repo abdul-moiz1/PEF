@@ -2416,12 +2416,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { id } = req.params;
-      const { enabled, displayName, sortOrder } = req.body;
+      const { enabled, displayName, sortOrder, isPrimary, comingSoon } = req.body;
       
       const updateData: any = {};
       if (enabled !== undefined) updateData.enabled = enabled;
       if (displayName !== undefined) updateData.displayName = displayName;
       if (sortOrder !== undefined) updateData.sortOrder = sortOrder;
+      if (isPrimary !== undefined) updateData.isPrimary = isPrimary;
+      if (comingSoon !== undefined) updateData.comingSoon = comingSoon;
 
       const updated = await storage.updateCountry(id, updateData);
       if (!updated) {

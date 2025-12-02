@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -15,7 +14,6 @@ import {
   MapPin,
   Search,
   ChevronRight,
-  ChevronLeft,
   Pencil,
   Plus,
   Trash2,
@@ -25,11 +23,28 @@ import {
   Database,
   Star,
   Clock,
+  Eye,
 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Country, City } from "@shared/schema";
+import * as Flags from 'country-flag-icons/react/3x2';
+
+const FlagComponent = ({ code, className }: { code: string; className?: string }) => {
+  const upperCode = code.toUpperCase();
+  const FlagIcon = (Flags as Record<string, React.ComponentType<{ className?: string }>>)[upperCode];
+  
+  if (FlagIcon) {
+    return <FlagIcon className={className} />;
+  }
+  
+  return (
+    <div className={`bg-muted flex items-center justify-center rounded ${className}`}>
+      <span className="text-muted-foreground text-xs font-medium">{upperCode}</span>
+    </div>
+  );
+};
 
 export default function AdminLocations() {
   const { currentUser, userData } = useAuth();
@@ -76,6 +91,7 @@ export default function AdminLocations() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/countries"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/locations/countries"] });
       setEditingCountry(null);
       toast({
         title: "Success",
@@ -241,8 +257,19 @@ export default function AdminLocations() {
     return name.includes(query);
   });
 
-  const enabledCountriesCount = countries.filter((c) => c.enabled).length;
+  const enabledCountries = countries.filter((c) => c.enabled);
+  const primaryCountries = enabledCountries.filter((c) => c.isPrimary);
+  const comingSoonCountries = enabledCountries.filter((c) => c.comingSoon);
+  const activeCountries = enabledCountries.filter((c) => !c.comingSoon);
   const enabledCitiesCount = cities.filter((c) => c.enabled).length;
+
+  const sortedEnabledCountries = [...enabledCountries].sort((a, b) => {
+    if (a.isPrimary && !b.isPrimary) return -1;
+    if (!a.isPrimary && b.isPrimary) return 1;
+    if (!a.comingSoon && b.comingSoon) return -1;
+    if (a.comingSoon && !b.comingSoon) return 1;
+    return (a.displayName || a.name).localeCompare(b.displayName || b.name);
+  });
 
   if (countriesLoading) {
     return (
@@ -310,324 +337,387 @@ export default function AdminLocations() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
+          <>
+            <Card className="mb-6">
               <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
                 <div>
                   <CardTitle className="flex items-center gap-2">
-                    <Globe className="w-5 h-5" />
-                    Countries
+                    <Eye className="w-5 h-5" />
+                    Selected Countries for Global Reach
                   </CardTitle>
                   <CardDescription>
-                    {enabledCountriesCount} of {countries.length} enabled
+                    {enabledCountries.length} countries selected ({primaryCountries.length} primary, {activeCountries.length - primaryCountries.length} active, {comingSoonCountries.length} coming soon)
                   </CardDescription>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="relative mb-4">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search countries..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9"
-                    data-testid="input-search-countries"
-                  />
-                </div>
-
-                <div className="space-y-2 max-h-[500px] overflow-y-auto">
-                  {filteredCountries.map((country) => (
-                    <div
-                      key={country.id}
-                      className={`flex items-center gap-3 p-3 rounded-md border cursor-pointer transition-colors ${
-                        selectedCountry?.id === country.id
-                          ? "bg-accent border-accent-border"
-                          : "hover:bg-muted/50"
-                      }`}
-                      onClick={() => setSelectedCountry(country)}
-                      data-testid={`country-row-${country.code}`}
-                    >
-                      <Switch
-                        checked={country.enabled}
-                        onCheckedChange={() => handleToggleCountryEnabled(country)}
-                        onClick={(e) => e.stopPropagation()}
-                        data-testid={`switch-country-${country.code}`}
-                      />
-
-                      {editingCountry?.id === country.id ? (
-                        <div className="flex-1 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                          <Input
-                            defaultValue={country.displayName || country.name}
-                            className="flex-1"
-                            autoFocus
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                handleSaveCountryName(country, (e.target as HTMLInputElement).value);
-                              } else if (e.key === "Escape") {
-                                setEditingCountry(null);
-                              }
-                            }}
-                            data-testid={`input-country-name-${country.code}`}
-                          />
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const input = document.querySelector(`[data-testid="input-country-name-${country.code}"]`) as HTMLInputElement;
-                              if (input) {
-                                handleSaveCountryName(country, input.value);
-                              }
-                            }}
-                          >
-                            <Check className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditingCountry(null);
-                            }}
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
+                {enabledCountries.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Globe className="w-12 h-12 mx-auto mb-4 opacity-30" />
+                    <p>No countries selected yet. Enable countries from the list below to add them to Global Reach.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                    {sortedEnabledCountries.map((country) => (
+                      <div
+                        key={country.id}
+                        className={`relative flex flex-col items-center p-3 rounded-md border transition-colors ${
+                          country.isPrimary
+                            ? "border-primary bg-primary/5"
+                            : country.comingSoon
+                            ? "border-muted-foreground/30 opacity-60"
+                            : "border-border"
+                        }`}
+                        data-testid={`selected-country-${country.code}`}
+                      >
+                        <div className="w-12 h-8 rounded overflow-hidden shadow-sm border mb-2">
+                          <FlagComponent code={country.code} className="w-full h-full object-cover" />
                         </div>
-                      ) : (
-                        <>
-                          <div className="flex-1">
-                            <div className="font-medium flex items-center gap-2 flex-wrap">
-                              {country.displayName || country.name}
-                              {country.displayName && country.displayName !== country.name && (
-                                <span className="text-xs text-muted-foreground">
-                                  (Original: {country.name})
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-sm text-muted-foreground flex items-center gap-2 flex-wrap mt-1">
-                              {country.code} {country.phoneCode && `| ${country.phoneCode}`}
-                              {country.isPrimary && (
-                                <Badge variant="default" className="text-xs">
-                                  <Star className="w-3 h-3 mr-1" />
-                                  Primary
-                                </Badge>
-                              )}
-                              {country.comingSoon && (
-                                <Badge variant="outline" className="text-xs">
-                                  <Clock className="w-3 h-3 mr-1" />
-                                  Coming Soon
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                        <span className="text-sm font-medium text-center truncate w-full">
+                          {country.displayName || country.name}
+                        </span>
+                        <div className="flex items-center gap-1 mt-1">
+                          {country.isPrimary && (
+                            <Star className="w-3 h-3 text-primary fill-primary" />
+                          )}
+                          {country.comingSoon && (
+                            <Clock className="w-3 h-3 text-muted-foreground" />
+                          )}
+                        </div>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                          onClick={() => handleToggleCountryEnabled(country)}
+                          data-testid={`button-remove-selected-${country.code}`}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Globe className="w-5 h-5" />
+                      All Countries
+                    </CardTitle>
+                    <CardDescription>
+                      {enabledCountries.length} of {countries.length} enabled
+                    </CardDescription>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="relative mb-4">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search countries..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9"
+                      data-testid="input-search-countries"
+                    />
+                  </div>
+
+                  <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                    {filteredCountries.map((country) => (
+                      <div
+                        key={country.id}
+                        className={`flex items-center gap-3 p-3 rounded-md border cursor-pointer transition-colors ${
+                          selectedCountry?.id === country.id
+                            ? "bg-accent border-accent-border"
+                            : "hover:bg-muted/50"
+                        }`}
+                        onClick={() => setSelectedCountry(country)}
+                        data-testid={`country-row-${country.code}`}
+                      >
+                        <Switch
+                          checked={country.enabled}
+                          onCheckedChange={() => handleToggleCountryEnabled(country)}
+                          onClick={(e) => e.stopPropagation()}
+                          data-testid={`switch-country-${country.code}`}
+                        />
+
+                        {editingCountry?.id === country.id ? (
+                          <div className="flex-1 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                            <Input
+                              defaultValue={country.displayName || country.name}
+                              className="flex-1"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  handleSaveCountryName(country, (e.target as HTMLInputElement).value);
+                                } else if (e.key === "Escape") {
+                                  setEditingCountry(null);
+                                }
+                              }}
+                              data-testid={`input-country-name-${country.code}`}
+                            />
                             <Button
                               size="icon"
-                              variant={country.isPrimary ? "default" : "ghost"}
+                              variant="ghost"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleToggleCountryPrimary(country);
+                                const input = document.querySelector(`[data-testid="input-country-name-${country.code}"]`) as HTMLInputElement;
+                                if (input) {
+                                  handleSaveCountryName(country, input.value);
+                                }
                               }}
-                              title="Toggle Primary Market"
-                              data-testid={`button-primary-country-${country.code}`}
                             >
-                              <Star className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant={country.comingSoon ? "secondary" : "ghost"}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleToggleCountryComingSoon(country);
-                              }}
-                              title="Toggle Coming Soon"
-                              data-testid={`button-coming-soon-country-${country.code}`}
-                            >
-                              <Clock className="w-4 h-4" />
+                              <Check className="w-4 h-4" />
                             </Button>
                             <Button
                               size="icon"
                               variant="ghost"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setEditingCountry(country);
+                                setEditingCountry(null);
                               }}
-                              data-testid={`button-edit-country-${country.code}`}
                             >
-                              <Pencil className="w-4 h-4" />
+                              <X className="w-4 h-4" />
                             </Button>
                           </div>
-                          {country.enabled && (
-                            <Badge variant="secondary">Active</Badge>
-                          )}
-                          <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                        </>
-                      )}
-                    </div>
-                  ))}
-
-                  {filteredCountries.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      No countries found matching your search
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <MapPin className="w-5 h-5" />
-                    Cities
-                    {selectedCountry && (
-                      <Badge variant="outline" className="ml-2">
-                        {selectedCountry.displayName || selectedCountry.name}
-                      </Badge>
-                    )}
-                  </CardTitle>
-                  <CardDescription>
-                    {selectedCountry
-                      ? `${enabledCitiesCount} of ${cities.length} enabled`
-                      : "Select a country to manage cities"}
-                  </CardDescription>
-                </div>
-                {selectedCountry && (
-                  <Button
-                    size="sm"
-                    onClick={() => setAddCityDialogOpen(true)}
-                    data-testid="button-add-city"
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    Add City
-                  </Button>
-                )}
-              </CardHeader>
-              <CardContent>
-                {!selectedCountry ? (
-                  <div className="text-center py-16 text-muted-foreground">
-                    <MapPin className="w-12 h-12 mx-auto mb-4 opacity-30" />
-                    <p>Select a country from the list to view and manage its cities</p>
-                  </div>
-                ) : citiesLoading ? (
-                  <div className="flex items-center justify-center py-16">
-                    <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-                  </div>
-                ) : (
-                  <>
-                    <div className="relative mb-4">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Search cities..."
-                        value={citySearchQuery}
-                        onChange={(e) => setCitySearchQuery(e.target.value)}
-                        className="pl-9"
-                        data-testid="input-search-cities"
-                      />
-                    </div>
-
-                    <div className="space-y-2 max-h-[500px] overflow-y-auto">
-                      {filteredCities.length === 0 ? (
-                        <div className="text-center py-8 text-muted-foreground">
-                          {cities.length === 0
-                            ? "No cities added yet. Click 'Add City' to create one."
-                            : "No cities found matching your search"}
-                        </div>
-                      ) : (
-                        filteredCities.map((city) => (
-                          <div
-                            key={city.id}
-                            className="flex items-center gap-3 p-3 rounded-md border"
-                            data-testid={`city-row-${city.id}`}
-                          >
-                            <Switch
-                              checked={city.enabled}
-                              onCheckedChange={() => handleToggleCityEnabled(city)}
-                              data-testid={`switch-city-${city.id}`}
-                            />
-
-                            {editingCity?.id === city.id ? (
-                              <div className="flex-1 flex items-center gap-2">
-                                <Input
-                                  defaultValue={city.displayName || city.name}
-                                  className="flex-1"
-                                  autoFocus
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter") {
-                                      handleSaveCityName(city, (e.target as HTMLInputElement).value);
-                                    } else if (e.key === "Escape") {
-                                      setEditingCity(null);
-                                    }
-                                  }}
-                                  data-testid={`input-city-name-${city.id}`}
-                                />
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={() => {
-                                    const input = document.querySelector(`[data-testid="input-city-name-${city.id}"]`) as HTMLInputElement;
-                                    if (input) {
-                                      handleSaveCityName(city, input.value);
-                                    }
-                                  }}
-                                >
-                                  <Check className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={() => setEditingCity(null)}
-                                >
-                                  <X className="w-4 h-4" />
-                                </Button>
+                        ) : (
+                          <>
+                            <div className="w-8 h-5 rounded overflow-hidden shadow-sm border shrink-0">
+                              <FlagComponent code={country.code} className="w-full h-full object-cover" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium flex items-center gap-2 flex-wrap">
+                                <span className="truncate">{country.displayName || country.name}</span>
+                                {country.displayName && country.displayName !== country.name && (
+                                  <span className="text-xs text-muted-foreground">
+                                    (Original: {country.name})
+                                  </span>
+                                )}
                               </div>
-                            ) : (
-                              <>
-                                <div className="flex-1">
-                                  <div className="font-medium">
-                                    {city.displayName || city.name}
+                              <div className="text-sm text-muted-foreground flex items-center gap-2 flex-wrap mt-1">
+                                {country.code} {country.phoneCode && `| ${country.phoneCode}`}
+                                {country.isPrimary && (
+                                  <Badge variant="default" className="text-xs">
+                                    <Star className="w-3 h-3 mr-1" />
+                                    Primary
+                                  </Badge>
+                                )}
+                                {country.comingSoon && (
+                                  <Badge variant="outline" className="text-xs">
+                                    <Clock className="w-3 h-3 mr-1" />
+                                    Coming Soon
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                              <Button
+                                size="icon"
+                                variant={country.isPrimary ? "default" : "ghost"}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleCountryPrimary(country);
+                                }}
+                                title="Toggle Primary Market"
+                                data-testid={`button-primary-country-${country.code}`}
+                              >
+                                <Star className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant={country.comingSoon ? "secondary" : "ghost"}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleCountryComingSoon(country);
+                                }}
+                                title="Toggle Coming Soon"
+                                data-testid={`button-coming-soon-country-${country.code}`}
+                              >
+                                <Clock className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingCountry(country);
+                                }}
+                                data-testid={`button-edit-country-${country.code}`}
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                            </div>
+                            {country.enabled && (
+                              <Badge variant="secondary">Active</Badge>
+                            )}
+                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                          </>
+                        )}
+                      </div>
+                    ))}
+
+                    {filteredCountries.length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No countries found matching your search
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <MapPin className="w-5 h-5" />
+                      Cities
+                      {selectedCountry && (
+                        <Badge variant="outline" className="ml-2">
+                          {selectedCountry.displayName || selectedCountry.name}
+                        </Badge>
+                      )}
+                    </CardTitle>
+                    <CardDescription>
+                      {selectedCountry
+                        ? `${enabledCitiesCount} of ${cities.length} enabled`
+                        : "Select a country to manage cities"}
+                    </CardDescription>
+                  </div>
+                  {selectedCountry && (
+                    <Button
+                      size="sm"
+                      onClick={() => setAddCityDialogOpen(true)}
+                      data-testid="button-add-city"
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Add City
+                    </Button>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  {!selectedCountry ? (
+                    <div className="text-center py-16 text-muted-foreground">
+                      <MapPin className="w-12 h-12 mx-auto mb-4 opacity-30" />
+                      <p>Select a country from the list to view and manage its cities</p>
+                    </div>
+                  ) : citiesLoading ? (
+                    <div className="flex items-center justify-center py-16">
+                      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  ) : (
+                    <>
+                      <div className="relative mb-4">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Search cities..."
+                          value={citySearchQuery}
+                          onChange={(e) => setCitySearchQuery(e.target.value)}
+                          className="pl-9"
+                          data-testid="input-search-cities"
+                        />
+                      </div>
+
+                      <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                        {filteredCities.length === 0 ? (
+                          <div className="text-center py-8 text-muted-foreground">
+                            {cities.length === 0
+                              ? "No cities added yet. Click 'Add City' to create one."
+                              : "No cities found matching your search"}
+                          </div>
+                        ) : (
+                          filteredCities.map((city) => (
+                            <div
+                              key={city.id}
+                              className="flex items-center gap-3 p-3 rounded-md border"
+                              data-testid={`city-row-${city.id}`}
+                            >
+                              <Switch
+                                checked={city.enabled}
+                                onCheckedChange={() => handleToggleCityEnabled(city)}
+                                data-testid={`switch-city-${city.id}`}
+                              />
+
+                              {editingCity?.id === city.id ? (
+                                <div className="flex-1 flex items-center gap-2">
+                                  <Input
+                                    defaultValue={city.displayName || city.name}
+                                    className="flex-1"
+                                    autoFocus
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") {
+                                        handleSaveCityName(city, (e.target as HTMLInputElement).value);
+                                      } else if (e.key === "Escape") {
+                                        setEditingCity(null);
+                                      }
+                                    }}
+                                    data-testid={`input-city-name-${city.id}`}
+                                  />
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    onClick={() => {
+                                      const input = document.querySelector(`[data-testid="input-city-name-${city.id}"]`) as HTMLInputElement;
+                                      if (input) {
+                                        handleSaveCityName(city, input.value);
+                                      }
+                                    }}
+                                  >
+                                    <Check className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    onClick={() => setEditingCity(null)}
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <>
+                                  <div className="flex-1">
+                                    <div className="font-medium">
+                                      {city.displayName || city.name}
+                                    </div>
                                     {city.displayName && city.displayName !== city.name && (
-                                      <span className="text-xs text-muted-foreground ml-2">
-                                        (Original: {city.name})
-                                      </span>
+                                      <div className="text-xs text-muted-foreground">
+                                        Original: {city.name}
+                                      </div>
                                     )}
                                   </div>
-                                </div>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={() => setEditingCity(city)}
-                                  data-testid={`button-edit-city-${city.id}`}
-                                >
-                                  <Pencil className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={() => {
-                                    if (confirm("Are you sure you want to delete this city?")) {
-                                      deleteCityMutation.mutate(city.id);
-                                    }
-                                  }}
-                                  data-testid={`button-delete-city-${city.id}`}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                                {city.enabled && (
-                                  <Badge variant="secondary">Active</Badge>
-                                )}
-                              </>
-                            )}
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    onClick={() => setEditingCity(city)}
+                                    data-testid={`button-edit-city-${city.id}`}
+                                  >
+                                    <Pencil className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    onClick={() => deleteCityMutation.mutate(city.id)}
+                                    data-testid={`button-delete-city-${city.id}`}
+                                  >
+                                    <Trash2 className="w-4 h-4 text-destructive" />
+                                  </Button>
+                                  {city.enabled && (
+                                    <Badge variant="secondary">Active</Badge>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </>
         )}
 
         <Dialog open={addCityDialogOpen} onOpenChange={setAddCityDialogOpen}>
@@ -638,25 +728,35 @@ export default function AdminLocations() {
                 Add a new city to {selectedCountry?.displayName || selectedCountry?.name}
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="city-name">City Name</Label>
-                <Input
-                  id="city-name"
-                  placeholder="Enter city name"
-                  value={newCityName}
-                  onChange={(e) => setNewCityName(e.target.value)}
-                  data-testid="input-new-city-name"
-                />
-              </div>
+            <div className="py-4">
+              <Input
+                placeholder="City name"
+                value={newCityName}
+                onChange={(e) => setNewCityName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newCityName.trim() && selectedCountry) {
+                    createCityMutation.mutate({
+                      countryId: selectedCountry.id,
+                      name: newCityName.trim(),
+                    });
+                  }
+                }}
+                data-testid="input-new-city-name"
+              />
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setAddCityDialogOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setAddCityDialogOpen(false);
+                  setNewCityName("");
+                }}
+              >
                 Cancel
               </Button>
               <Button
                 onClick={() => {
-                  if (selectedCountry && newCityName.trim()) {
+                  if (newCityName.trim() && selectedCountry) {
                     createCityMutation.mutate({
                       countryId: selectedCountry.id,
                       name: newCityName.trim(),
