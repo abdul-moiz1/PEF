@@ -2352,7 +2352,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: c.id,
         code: c.code,
         name: c.displayName || c.name,
-        phoneCode: c.phoneCode
+        phoneCode: c.phoneCode,
+        isPrimary: c.isPrimary ?? false,
+        comingSoon: c.comingSoon ?? false
       })));
     } catch (error) {
       console.error("Error fetching countries:", error);

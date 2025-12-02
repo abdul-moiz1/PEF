@@ -23,6 +23,8 @@ import {
   X,
   ArrowLeft,
   Database,
+  Star,
+  Clock,
 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -188,6 +190,20 @@ export default function AdminLocations() {
     updateCountryMutation.mutate({
       id: country.id,
       data: { enabled: !country.enabled },
+    });
+  };
+
+  const handleToggleCountryPrimary = (country: Country) => {
+    updateCountryMutation.mutate({
+      id: country.id,
+      data: { isPrimary: !country.isPrimary },
+    });
+  };
+
+  const handleToggleCountryComingSoon = (country: Country) => {
+    updateCountryMutation.mutate({
+      id: country.id,
+      data: { comingSoon: !country.comingSoon },
     });
   };
 
@@ -380,29 +396,67 @@ export default function AdminLocations() {
                       ) : (
                         <>
                           <div className="flex-1">
-                            <div className="font-medium">
+                            <div className="font-medium flex items-center gap-2 flex-wrap">
                               {country.displayName || country.name}
                               {country.displayName && country.displayName !== country.name && (
-                                <span className="text-xs text-muted-foreground ml-2">
+                                <span className="text-xs text-muted-foreground">
                                   (Original: {country.name})
                                 </span>
                               )}
                             </div>
-                            <div className="text-sm text-muted-foreground">
+                            <div className="text-sm text-muted-foreground flex items-center gap-2 flex-wrap mt-1">
                               {country.code} {country.phoneCode && `| ${country.phoneCode}`}
+                              {country.isPrimary && (
+                                <Badge variant="default" className="text-xs">
+                                  <Star className="w-3 h-3 mr-1" />
+                                  Primary
+                                </Badge>
+                              )}
+                              {country.comingSoon && (
+                                <Badge variant="outline" className="text-xs">
+                                  <Clock className="w-3 h-3 mr-1" />
+                                  Coming Soon
+                                </Badge>
+                              )}
                             </div>
                           </div>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditingCountry(country);
-                            }}
-                            data-testid={`button-edit-country-${country.code}`}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
+                          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              size="icon"
+                              variant={country.isPrimary ? "default" : "ghost"}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleCountryPrimary(country);
+                              }}
+                              title="Toggle Primary Market"
+                              data-testid={`button-primary-country-${country.code}`}
+                            >
+                              <Star className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant={country.comingSoon ? "secondary" : "ghost"}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleCountryComingSoon(country);
+                              }}
+                              title="Toggle Coming Soon"
+                              data-testid={`button-coming-soon-country-${country.code}`}
+                            >
+                              <Clock className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingCountry(country);
+                              }}
+                              data-testid={`button-edit-country-${country.code}`}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                          </div>
                           {country.enabled && (
                             <Badge variant="secondary">Active</Badge>
                           )}
