@@ -1263,14 +1263,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const token = authHeader.substring(7);
-      let uid: string;
-
-      if (!process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT) {
-        const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-        uid = decodedToken.user_id;
-      } else {
-        return res.status(500).json({ error: "Firebase Admin SDK not configured yet" });
-      }
+      const uid = await verifyAuthToken(token);
 
       const userWithRoles = await storage.getUserWithRoles(uid);
       if (!userWithRoles || !userWithRoles.roles?.admin) {

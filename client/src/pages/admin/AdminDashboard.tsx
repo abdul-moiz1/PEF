@@ -432,171 +432,238 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {stats && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            <Card className="lg:col-span-1">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base font-medium">Overview</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                  <div className="flex items-center gap-3">
-                    <Users className="w-5 h-5 text-muted-foreground" />
-                    <span className="text-sm font-medium">Total Users</span>
-                  </div>
-                  <span className="text-2xl font-bold">{stats.totalUsers}</span>
+        {/* Hero Stats Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          <Card className="relative overflow-visible" data-testid="stat-total-users">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Total Users</p>
+                  {loading ? (
+                    <div className="h-9 w-16 bg-muted animate-pulse rounded mt-1" />
+                  ) : (
+                    <p className="text-3xl font-bold mt-1">{stats?.totalUsers ?? 0}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {loading ? "..." : `${approvedUsers.length} approved`}
+                  </p>
                 </div>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                  <div className="flex items-center gap-3">
-                    <Briefcase className="w-5 h-5 text-muted-foreground" />
-                    <span className="text-sm font-medium">Opportunities</span>
-                  </div>
-                  <span className="text-2xl font-bold">{opportunities.length}</span>
+                <div className="p-3 rounded-xl bg-blue-500/10 dark:bg-blue-500/20">
+                  <Users className="w-6 h-6 text-blue-500" />
                 </div>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                  <div className="flex items-center gap-3">
-                    <Video className="w-5 h-5 text-muted-foreground" />
-                    <span className="text-sm font-medium">Videos</span>
-                  </div>
-                  <span className="text-2xl font-bold">{videos.length}</span>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base font-medium">User Status</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[160px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={statusChartData} layout="vertical" margin={{ left: 0, right: 20 }}>
-                      <XAxis type="number" hide />
-                      <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 12 }} />
-                      <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                        {statusChartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.fill} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="flex justify-center gap-4 mt-2">
-                  {statusChartData.map((item) => (
-                    <div key={item.name} className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.fill }} />
-                      <span className="text-xs text-muted-foreground">{item.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base font-medium">User Roles</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {roleChartData.length > 0 ? (
-                  <>
-                    <div className="h-[140px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={roleChartData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={35}
-                            outerRadius={55}
-                            paddingAngle={2}
-                            dataKey="value"
-                          >
-                            {roleChartData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.fill} />
-                            ))}
-                          </Pie>
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-                    <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2">
-                      {roleChartData.map((item) => (
-                        <div key={item.name} className="flex items-center gap-1.5">
-                          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.fill }} />
-                          <span className="text-xs text-muted-foreground">{item.name}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                ) : (
-                  <div className="h-[160px] flex items-center justify-center text-muted-foreground text-sm">
-                    No role data available
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        <div className="mb-8">
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
-                <LayoutDashboard className="w-4 h-4" />
-                Pages Management
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {pagesManagementCards.map((card) => (
-                  <Card 
-                    key={card.title}
-                    className="hover-elevate cursor-pointer group"
-                    onClick={() => setLocation(card.path)}
-                    data-testid={`card-pages-${card.title.toLowerCase()}`}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex flex-col items-center text-center gap-2">
-                        <div className={`p-2.5 rounded-lg bg-muted/50 group-hover:bg-muted transition-colors ${card.color}`}>
-                          <card.icon className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <h3 className="font-medium text-sm">{card.title}</h3>
-                          <p className="text-xs text-muted-foreground">{card.description}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
               </div>
-            </div>
+            </CardContent>
+          </Card>
 
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
-                <Database className="w-4 h-4" />
-                Data Sources
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {dataSourceCards.map((card) => (
-                  <Card 
-                    key={card.title}
-                    className="hover-elevate cursor-pointer group"
-                    onClick={() => setLocation(card.path)}
-                    data-testid={`card-data-${card.title.toLowerCase()}`}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex flex-col items-center text-center gap-2">
-                        <div className={`p-2.5 rounded-lg bg-muted/50 group-hover:bg-muted transition-colors ${card.color}`}>
-                          <card.icon className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <h3 className="font-medium text-sm">{card.title}</h3>
-                          <p className="text-xs text-muted-foreground">{card.description}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+          <Card className="relative overflow-visible" data-testid="stat-opportunities">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Opportunities</p>
+                  {opportunitiesLoading ? (
+                    <div className="h-9 w-16 bg-muted animate-pulse rounded mt-1" />
+                  ) : (
+                    <p className="text-3xl font-bold mt-1">{opportunities.length}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Active listings
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-green-500/10 dark:bg-green-500/20">
+                  <Briefcase className="w-6 h-6 text-green-500" />
+                </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
+
+          <Card className="relative overflow-visible" data-testid="stat-videos">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Videos</p>
+                  <p className="text-3xl font-bold mt-1">{videos.length}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {videos.filter(v => v.visible).length} visible
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-purple-500/10 dark:bg-purple-500/20">
+                  <Video className="w-6 h-6 text-purple-500" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Charts Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <Card data-testid="chart-user-status">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
+              <div>
+                <CardTitle className="text-base font-semibold">User Status</CardTitle>
+                <CardDescription>Approval breakdown</CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="h-[220px] flex items-center justify-center">
+                  <div className="w-full space-y-3">
+                    <div className="h-6 w-full bg-muted animate-pulse rounded" />
+                    <div className="h-6 w-3/4 bg-muted animate-pulse rounded" />
+                    <div className="h-6 w-1/2 bg-muted animate-pulse rounded" />
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="h-[180px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={statusChartData} layout="vertical" margin={{ left: 10, right: 30, top: 10, bottom: 10 }}>
+                        <XAxis type="number" hide />
+                        <YAxis type="category" dataKey="name" width={75} tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+                        <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={24}>
+                          {statusChartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="flex justify-center gap-6 mt-4 pt-4 border-t">
+                    {statusChartData.map((item) => (
+                      <div key={item.name} className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.fill }} />
+                        <span className="text-sm font-medium">{item.value}</span>
+                        <span className="text-sm text-muted-foreground">{item.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card data-testid="chart-user-roles">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
+              <div>
+                <CardTitle className="text-base font-semibold">User Roles</CardTitle>
+                <CardDescription>Distribution by role type</CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="h-[220px] flex items-center justify-center">
+                  <div className="w-32 h-32 rounded-full bg-muted animate-pulse" />
+                </div>
+              ) : roleChartData.length > 0 ? (
+                <>
+                  <div className="h-[180px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={roleChartData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={50}
+                          outerRadius={75}
+                          paddingAngle={3}
+                          dataKey="value"
+                          strokeWidth={2}
+                          stroke="hsl(var(--background))"
+                        >
+                          {roleChartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                          ))}
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-4 pt-4 border-t">
+                    {roleChartData.map((item) => (
+                      <div key={item.name} className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.fill }} />
+                        <span className="text-sm text-muted-foreground">{item.name}</span>
+                        <span className="text-sm font-medium">({item.value})</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">
+                  No role data available
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Management Sections */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Pages Management */}
+          <Card data-testid="section-pages-management">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <LayoutDashboard className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-base font-semibold">Page Management</CardTitle>
+                  <CardDescription>Manage public-facing content</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {pagesManagementCards.map((card) => (
+                <div
+                  key={card.title}
+                  className="flex items-center gap-4 p-3 rounded-lg hover-elevate cursor-pointer group"
+                  onClick={() => setLocation(card.path)}
+                  data-testid={`card-pages-${card.title.toLowerCase()}`}
+                >
+                  <div className={`p-2.5 rounded-lg bg-muted/50 group-hover:bg-muted transition-colors ${card.color}`}>
+                    <card.icon className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-sm">{card.title}</h4>
+                    <p className="text-xs text-muted-foreground truncate">{card.description}</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Data Sources */}
+          <Card data-testid="section-data-sources">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Database className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-base font-semibold">Data Sources</CardTitle>
+                  <CardDescription>Manage application data</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {dataSourceCards.map((card) => (
+                <div
+                  key={card.title}
+                  className="flex items-center gap-4 p-3 rounded-lg hover-elevate cursor-pointer group"
+                  onClick={() => setLocation(card.path)}
+                  data-testid={`card-data-${card.title.toLowerCase()}`}
+                >
+                  <div className={`p-2.5 rounded-lg bg-muted/50 group-hover:bg-muted transition-colors ${card.color}`}>
+                    <card.icon className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-sm">{card.title}</h4>
+                    <p className="text-xs text-muted-foreground truncate">{card.description}</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
         </div>
 
         <Tabs value={selectedTab} onValueChange={(value) => setSelectedTab(value as 'all' | 'media')} className="space-y-6">

@@ -269,6 +269,16 @@ export class FirestoreStorage implements IStorage {
       const existingUserSnap = await getDoc(doc(db, "users", data.userId));
       const existingUserData = existingUserSnap.exists() ? existingUserSnap.data() : {};
       
+      // IMPORTANT: Preserve existing admin status - never remove admin role during registration
+      const existingRoles = existingUserData.roles || {};
+      const wasAdmin = existingRoles.isAdmin === true || existingRoles.admin === true;
+      
+      // Build roles object, preserving admin status if user was already an admin
+      const newRoles = toFirestoreRoles(data.roles);
+      if (wasAdmin) {
+        newRoles.isAdmin = true;
+      }
+      
       // Consolidated structure: everything in one users document
       // Use merge to preserve existing fields set during registration
       const consolidatedUserData = {
@@ -295,7 +305,7 @@ export class FirestoreStorage implements IStorage {
           websiteUrl: data.profile.websiteUrl || null,
           portfolioUrl: data.profile.portfolioUrl || null,
         },
-        roles: toFirestoreRoles(data.roles),
+        roles: newRoles,
         professionalData: existingUserData.professionalData || {},
         jobSeekerData: existingUserData.jobSeekerData || {},
         employerData: existingUserData.employerData || {},
