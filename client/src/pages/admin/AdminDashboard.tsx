@@ -408,12 +408,12 @@ export default function AdminDashboard() {
   const pagesManagementCards = [
     { title: "Leadership", description: "Team members shown on site", icon: Users, path: "/admin/leadership", color: "text-blue-500" },
     { title: "Gallery", description: "Event images & media", icon: Image, path: "/admin/gallery", color: "text-purple-500" },
-    { title: "Opportunities", description: "Job listings & postings", icon: Briefcase, path: "/admin/opportunities", color: "text-green-500" },
+    { title: "Locations", description: "Countries & cities data", icon: Globe, path: "/admin/locations", color: "text-cyan-500" },
   ];
 
   const dataSourceCards = [
     { title: "Applications", description: "Member registrations", icon: UserCheck, path: "/admin/membership", color: "text-orange-500" },
-    { title: "Locations", description: "Countries & cities data", icon: Globe, path: "/admin/locations", color: "text-cyan-500" },
+    { title: "Opportunities", description: "Job listings & postings", icon: Briefcase, path: "/admin/opportunities", color: "text-green-500" },
   ];
 
   return (
