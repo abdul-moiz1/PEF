@@ -925,8 +925,8 @@ export class FirestoreStorage implements IStorage {
   async getAdminStats(): Promise<any> {
     const usersSnapshot = await getDocs(collection(db, "users"));
     
-    // Count membership applications from PostgreSQL
-    const [applicationCount] = await pgDb.select({ count: count() }).from(membershipApplications);
+    // Count membership applications from Firestore 'registrations' collection
+    const registrationsSnapshot = await getDocs(collection(db, "registrations"));
     
     const stats = {
       totalUsers: 0,
@@ -939,7 +939,7 @@ export class FirestoreStorage implements IStorage {
       pendingApprovals: 0,
       approved: 0,
       rejected: 0,
-      totalApplications: applicationCount?.count ?? 0,
+      totalApplications: registrationsSnapshot.size,
     };
     
     for (const userDoc of usersSnapshot.docs) {
