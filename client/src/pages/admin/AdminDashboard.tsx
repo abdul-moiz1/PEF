@@ -12,6 +12,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import {
   Users,
@@ -31,6 +33,14 @@ import {
   Star,
   Download,
   Globe,
+  MoreHorizontal,
+  ChevronRight,
+  Image,
+  Eye,
+  EyeOff,
+  UserCheck,
+  UserX,
+  ArrowRight,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { auth } from "@/lib/firebase";
@@ -38,6 +48,8 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import YouTubeEmbed from "@/components/YouTubeEmbed";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from "recharts";
 import type { Video as VideoType, Opportunity } from "@shared/schema";
 
 interface UserData {
@@ -81,6 +93,14 @@ interface VideoFormData {
   visible: boolean;
 }
 
+const CHART_COLORS = [
+  "hsl(var(--chart-1))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))",
+  "hsl(var(--chart-5))",
+];
+
 export default function AdminDashboard() {
   const { currentUser, userData } = useAuth();
   const [, setLocation] = useLocation();
@@ -117,7 +137,6 @@ export default function AdminDashboard() {
 
   const loading = usersLoading || statsLoading;
 
-  // Bulk operations for users
   const bulkApproveUsersMutation = useMutation({
     mutationFn: async (userIds: string[]) => {
       await Promise.all(
@@ -170,7 +189,6 @@ export default function AdminDashboard() {
     },
   });
 
-  // Bulk operations for videos
   const bulkUpdateVideosMutation = useMutation({
     mutationFn: async ({ videoIds, visible }: { videoIds: string[]; visible: boolean }) => {
       await Promise.all(
@@ -223,35 +241,26 @@ export default function AdminDashboard() {
       setIsDownloadingCSV(true);
       const token = await auth.currentUser?.getIdToken();
       if (!token) {
-        toast({
-          title: "Error",
-          description: "Authentication required",
-          variant: "destructive",
-        });
-        return;
+        throw new Error("No auth token");
       }
-
       const response = await fetch("/api/admin/users/download-csv", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-
       if (!response.ok) {
-        throw new Error("Failed to download CSV");
+        throw new Error("Failed to download");
       }
-
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `users-export-${new Date().toISOString().split('T')[0]}.csv`;
+      a.download = `users-export-${new Date().toISOString().split("T")[0]}.csv`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-
       toast({
         title: "Success",
         description: "User data exported successfully",
@@ -267,46 +276,62 @@ export default function AdminDashboard() {
     }
   };
 
-  useEffect(() => {
-    if (!currentUser) {
-      setLocation("/login");
-      return;
-    }
+  const pendingUsers = users.filter((u) => u.status === "pending");
+  const approvedUsers = users.filter((u) => u.status === "approved");
+  const rejectedUsers = users.filter((u) => u.status === "rejected");
 
-    if (!userData?.roles?.admin) {
-      toast({
-        title: "Access Denied",
-        description: "You don't have permission to access this page",
-        variant: "destructive",
+  const filterUsers = (userList: UserData[]) => {
+    let filtered = userList;
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (u) =>
+          u.name?.toLowerCase().includes(query) ||
+          u.email?.toLowerCase().includes(query)
+      );
+    }
+    if (roleFilter !== "all") {
+      filtered = filtered.filter((u) => {
+        switch (roleFilter) {
+          case "professional":
+            return u.roles?.isProfessional;
+          case "jobSeeker":
+            return u.roles?.isJobSeeker;
+          case "employer":
+            return u.roles?.isEmployer;
+          case "businessOwner":
+            return u.roles?.isBusinessOwner;
+          case "investor":
+            return u.roles?.isInvestor;
+          case "admin":
+            return u.roles?.isAdmin;
+          default:
+            return true;
+        }
       });
-      setLocation("/");
-      return;
     }
-  }, [currentUser, userData]);
+    return filtered;
+  };
 
-  async function handleUpdateRoles(userId: string, roles: any) {
+  const handleOpenVideoDialog = (video?: VideoType) => {
+    setEditingVideo(video || null);
+    setVideoDialogOpen(true);
+  };
+
+  const handleCloseVideoDialog = () => {
+    setEditingVideo(null);
+    setVideoDialogOpen(false);
+  };
+
+  const handleUpdateRoles = async (userId: string, roles: any) => {
     try {
-      const token = await auth.currentUser?.getIdToken();
-      if (!token) return;
-
-      const response = await fetch(`/api/admin/users/${userId}/roles`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ roles }),
+      await apiRequest("POST", `/api/admin/users/${userId}/roles`, roles);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({
+        title: "Success",
+        description: "User roles updated successfully",
       });
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "User roles updated successfully",
-        });
-        queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
-        setSelectedUser(null);
-      }
+      setSelectedUser(null);
     } catch (error) {
       toast({
         title: "Error",
@@ -314,76 +339,8 @@ export default function AdminDashboard() {
         variant: "destructive",
       });
     }
-  }
-
-  const handleOpenVideoDialog = (video?: VideoType) => {
-    if (video) {
-      setEditingVideo(video);
-    } else {
-      setEditingVideo(null);
-    }
-    setVideoDialogOpen(true);
   };
 
-  const handleCloseVideoDialog = () => {
-    setVideoDialogOpen(false);
-    setEditingVideo(null);
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading admin dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
-  const filterUsers = (userList: UserData[]) => {
-    let filtered = userList;
-    
-    // Filter by role
-    if (roleFilter !== "all") {
-      filtered = filtered.filter((user) => {
-        switch (roleFilter) {
-          case "professional":
-            return user.roles?.isProfessional;
-          case "jobSeeker":
-            return user.roles?.isJobSeeker;
-          case "employer":
-            return user.roles?.isEmployer;
-          case "businessOwner":
-            return user.roles?.isBusinessOwner;
-          case "investor":
-            return user.roles?.isInvestor;
-          case "admin":
-            return user.roles?.isAdmin;
-          default:
-            return true;
-        }
-      });
-    }
-    
-    // Filter by search query
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (user) =>
-          (user.name || "").toLowerCase().includes(query) ||
-          (user.email || "").toLowerCase().includes(query)
-      );
-    }
-    
-    return filtered;
-  };
-  
-  const pendingUsers = users.filter((u) => u.status === "pending");
-  const approvedUsers = users.filter((u) => u.status === "approved");
-  const rejectedUsers = users.filter((u) => u.status === "rejected");
-
-  // User selection handlers
   const handleSelectUser = (userId: string) => {
     setSelectedUsers((prev) => {
       const newSet = new Set(prev);
@@ -397,20 +354,13 @@ export default function AdminDashboard() {
   };
 
   const handleSelectAllUsers = (userList: UserData[], selectAll: boolean) => {
-    setSelectedUsers((prev) => {
-      const newSet = new Set(prev);
-      userList.forEach((user) => {
-        if (selectAll) {
-          newSet.add(user.uid);
-        } else {
-          newSet.delete(user.uid);
-        }
-      });
-      return newSet;
-    });
+    if (selectAll) {
+      setSelectedUsers(new Set(userList.map((u) => u.uid)));
+    } else {
+      setSelectedUsers(new Set());
+    }
   };
 
-  // Video selection handlers
   const handleSelectVideo = (videoId: string) => {
     setSelectedVideos((prev) => {
       const newSet = new Set(prev);
@@ -431,480 +381,501 @@ export default function AdminDashboard() {
     }
   };
 
+  const roleChartData = stats ? [
+    { name: "Professionals", value: stats.professionals, fill: CHART_COLORS[0] },
+    { name: "Job Seekers", value: stats.jobSeekers, fill: CHART_COLORS[1] },
+    { name: "Employers", value: stats.employers, fill: CHART_COLORS[2] },
+    { name: "Business Owners", value: stats.businessOwners, fill: CHART_COLORS[3] },
+    { name: "Investors", value: stats.investors, fill: CHART_COLORS[4] },
+  ].filter(d => d.value > 0) : [];
+
+  const statusChartData = [
+    { name: "Approved", value: approvedUsers.length, fill: "hsl(142 76% 36%)" },
+    { name: "Pending", value: pendingUsers.length, fill: "hsl(48 96% 53%)" },
+    { name: "Rejected", value: rejectedUsers.length, fill: "hsl(0 84% 60%)" },
+  ];
+
+  const chartConfig = {
+    professionals: { label: "Professionals", color: CHART_COLORS[0] },
+    jobSeekers: { label: "Job Seekers", color: CHART_COLORS[1] },
+    employers: { label: "Employers", color: CHART_COLORS[2] },
+    businessOwners: { label: "Business Owners", color: CHART_COLORS[3] },
+    investors: { label: "Investors", color: CHART_COLORS[4] },
+  };
+
+  const managementCards = [
+    { title: "Leadership", description: "Manage team members", icon: Users, path: "/admin/leadership", color: "text-blue-500" },
+    { title: "Gallery", description: "Event images", icon: Image, path: "/admin/gallery", color: "text-purple-500" },
+    { title: "Opportunities", description: "Job listings", icon: Briefcase, path: "/admin/opportunities", color: "text-green-500" },
+    { title: "Membership", description: "Applications", icon: UserCheck, path: "/admin/membership", color: "text-orange-500" },
+    { title: "Locations", description: "Countries & cities", icon: Globe, path: "/admin/locations", color: "text-cyan-500" },
+  ];
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-background">
       <Header />
       <main className="pt-24 md:pt-28 pb-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="mb-8">
-          <div className="flex items-center gap-2 mb-2">
-            <Shield className="w-8 h-8 text-primary" />
-            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Shield className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+              <p className="text-sm text-muted-foreground">Manage users, content, and platform settings</p>
+            </div>
           </div>
-          <p className="text-muted-foreground">Manage users, content, and platform settings</p>
         </div>
 
         {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                <Users className="w-4 h-4 text-muted-foreground" />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <Card className="lg:col-span-1">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-medium">Overview</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.totalUsers}</div>
-                <p className="text-xs text-muted-foreground">All registered users</p>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-3">
+                    <Users className="w-5 h-5 text-muted-foreground" />
+                    <span className="text-sm font-medium">Total Users</span>
+                  </div>
+                  <span className="text-2xl font-bold">{stats.totalUsers}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-3">
+                    <Briefcase className="w-5 h-5 text-muted-foreground" />
+                    <span className="text-sm font-medium">Opportunities</span>
+                  </div>
+                  <span className="text-2xl font-bold">{opportunities.length}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-3">
+                    <Video className="w-5 h-5 text-muted-foreground" />
+                    <span className="text-sm font-medium">Videos</span>
+                  </div>
+                  <span className="text-2xl font-bold">{videos.length}</span>
+                </div>
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Opportunities</CardTitle>
-                <Briefcase className="w-4 h-4 text-muted-foreground" />
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-medium">User Status</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{opportunities.length}</div>
-                <p className="text-xs text-muted-foreground">Available opportunities</p>
+                <div className="h-[160px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={statusChartData} layout="vertical" margin={{ left: 0, right: 20 }}>
+                      <XAxis type="number" hide />
+                      <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 12 }} />
+                      <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                        {statusChartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex justify-center gap-4 mt-2">
+                  {statusChartData.map((item) => (
+                    <div key={item.name} className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.fill }} />
+                      <span className="text-xs text-muted-foreground">{item.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-medium">User Roles</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {roleChartData.length > 0 ? (
+                  <>
+                    <div className="h-[140px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={roleChartData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={35}
+                            outerRadius={55}
+                            paddingAngle={2}
+                            dataKey="value"
+                          >
+                            {roleChartData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.fill} />
+                            ))}
+                          </Pie>
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2">
+                      {roleChartData.map((item) => (
+                        <div key={item.name} className="flex items-center gap-1.5">
+                          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.fill }} />
+                          <span className="text-xs text-muted-foreground">{item.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="h-[160px] flex items-center justify-center text-muted-foreground text-sm">
+                    No role data available
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
         )}
-        
-        {selectedTab === 'all' && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <Clock className="w-4 h-4 text-muted-foreground" />
-                  <div className="text-2xl font-bold">{pendingUsers.length}</div>
-                </div>
-                <p className="text-sm text-muted-foreground">Pending Approval</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <CheckCircle2 className="w-4 h-4 text-muted-foreground" />
-                  <div className="text-2xl font-bold">{approvedUsers.length}</div>
-                </div>
-                <p className="text-sm text-muted-foreground">Approved Users</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <XCircle className="w-4 h-4 text-muted-foreground" />
-                  <div className="text-2xl font-bold">{rejectedUsers.length}</div>
-                </div>
-                <p className="text-sm text-muted-foreground">Rejected Users</p>
-              </CardContent>
-            </Card>
+
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold mb-4">Quick Access</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+            {managementCards.map((card) => (
+              <Card 
+                key={card.title}
+                className="hover-elevate cursor-pointer group"
+                onClick={() => setLocation(card.path)}
+                data-testid={`card-manage-${card.title.toLowerCase()}`}
+              >
+                <CardContent className="p-4">
+                  <div className="flex flex-col items-center text-center gap-2">
+                    <div className={`p-2.5 rounded-lg bg-muted/50 group-hover:bg-muted transition-colors ${card.color}`}>
+                      <card.icon className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-sm">{card.title}</h3>
+                      <p className="text-xs text-muted-foreground">{card.description}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
-          <Card className="hover-elevate cursor-pointer transition-all" onClick={() => setLocation("/admin/leadership")} data-testid="card-manage-leadership">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="font-bold mb-1 text-lg">Leadership</h3>
-                  <p className="text-sm text-muted-foreground">Manage leadership team members</p>
-                </div>
-                <Users className="w-8 h-8 text-primary flex-shrink-0" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="hover-elevate cursor-pointer transition-all" onClick={() => setLocation("/admin/gallery")} data-testid="card-manage-gallery">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="font-bold mb-1 text-lg">Gallery</h3>
-                  <p className="text-sm text-muted-foreground">Manage event gallery images</p>
-                </div>
-                <Video className="w-8 h-8 text-primary flex-shrink-0" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="hover-elevate cursor-pointer transition-all" onClick={() => setLocation("/admin/opportunities")} data-testid="card-manage-opportunities">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="font-bold mb-1 text-lg">Opportunities</h3>
-                  <p className="text-sm text-muted-foreground">Manage and approve opportunities</p>
-                </div>
-                <Briefcase className="w-8 h-8 text-primary flex-shrink-0" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="hover-elevate cursor-pointer transition-all" onClick={() => setLocation("/admin/membership")} data-testid="card-manage-membership">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="font-bold mb-1 text-lg">Membership Applications</h3>
-                  <p className="text-sm text-muted-foreground">Review membership applications</p>
-                </div>
-                <Users className="w-8 h-8 text-primary flex-shrink-0" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="hover-elevate cursor-pointer transition-all" onClick={() => setLocation("/admin/locations")} data-testid="card-manage-locations">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="font-bold mb-1 text-lg">Locations</h3>
-                  <p className="text-sm text-muted-foreground">Manage countries and cities</p>
-                </div>
-                <Globe className="w-8 h-8 text-primary flex-shrink-0" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card 
-            className="hover-elevate cursor-pointer transition-all"
-            onClick={() => setSelectedTab('all')} 
-            data-testid="card-view-users"
-          >
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="font-bold mb-1 text-lg">All Users</h3>
-                  <p className="text-sm text-muted-foreground">{users.length} total users</p>
-                </div>
-                <Users className="w-8 h-8 text-primary flex-shrink-0" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card 
-            className="hover-elevate cursor-pointer transition-all"
-            onClick={() => setSelectedTab('media')} 
-            data-testid="card-view-media"
-          >
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="font-bold mb-1 text-lg">Media</h3>
-                  <p className="text-sm text-muted-foreground">{videos.length} videos</p>
-                </div>
-                <Video className="w-8 h-8 text-primary flex-shrink-0" />
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         <Tabs value={selectedTab} onValueChange={(value) => setSelectedTab(value as 'all' | 'media')} className="space-y-6">
-
-          <TabsList className="hidden">
-            <TabsTrigger value="all" data-testid="tab-all">
-              <Users className="w-4 h-4 mr-2" />
-              All Users ({users.length})
-            </TabsTrigger>
-            <TabsTrigger value="media" data-testid="tab-media">
-              <Video className="w-4 h-4 mr-2" />
-              Media ({videos.length})
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <TabsList>
+              <TabsTrigger value="all" data-testid="tab-all" className="gap-2">
+                <Users className="w-4 h-4" />
+                Users
+              </TabsTrigger>
+              <TabsTrigger value="media" data-testid="tab-media" className="gap-2">
+                <Video className="w-4 h-4" />
+                Media
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="all" className="space-y-4">
-            <div className="flex flex-col sm:flex-row gap-4 mb-4">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by name or email..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                  data-testid="input-search-users"
-                />
-              </div>
-              <Select value={roleFilter} onValueChange={setRoleFilter}>
-                <SelectTrigger className="w-full sm:w-[200px]" data-testid="select-role-filter">
-                  <SelectValue placeholder="Filter by role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Roles</SelectItem>
-                  <SelectItem value="professional">Professional</SelectItem>
-                  <SelectItem value="jobSeeker">Job Seeker</SelectItem>
-                  <SelectItem value="employer">Employer</SelectItem>
-                  <SelectItem value="businessOwner">Business Owner</SelectItem>
-                  <SelectItem value="investor">Investor</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button
-                onClick={handleDownloadCSV}
-                disabled={isDownloadingCSV}
-                variant="outline"
-                className="flex items-center gap-2"
-                data-testid="button-download-csv"
-              >
-                <Download className="w-4 h-4" />
-                {isDownloadingCSV ? "Exporting..." : "Export User Data"}
-              </Button>
-            </div>
-            
-            <Tabs value={statusTab} onValueChange={setStatusTab} className="space-y-4">
-              <div className="flex items-center justify-between gap-4">
-                <TabsList data-testid="tabs-user-status">
-                  <TabsTrigger value="all" data-testid="tab-all-users">
-                    All ({users.length})
-                  </TabsTrigger>
-                  <TabsTrigger value="pending" data-testid="tab-pending-users">
-                    Pending ({pendingUsers.length})
-                  </TabsTrigger>
-                  <TabsTrigger value="approved" data-testid="tab-approved-users">
-                    Approved ({approvedUsers.length})
-                  </TabsTrigger>
-                  <TabsTrigger value="rejected" data-testid="tab-rejected-users">
-                    Rejected ({rejectedUsers.length})
-                  </TabsTrigger>
-                </TabsList>
-                
-                {selectedUsers.size > 0 && (() => {
-                  const selectedUsersData = users.filter(u => selectedUsers.has(u.uid));
-                  const allApproved = selectedUsersData.every(u => u.status === 'approved');
-                  const allRejected = selectedUsersData.every(u => u.status === 'rejected');
-                  
-                  return (
-                    <div className="flex gap-2">
-                      <span className="text-sm text-muted-foreground self-center">
-                        {selectedUsers.size} selected
-                      </span>
-                      <Button
-                        size="sm"
-                        variant="default"
-                        onClick={handleBulkApprove}
-                        disabled={bulkApproveUsersMutation.isPending || allApproved}
-                        data-testid="button-bulk-approve"
-                      >
-                        <CheckCircle2 className="w-4 h-4 mr-1" />
-                        {bulkApproveUsersMutation.isPending ? "Approving..." : "Approve Selected"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={handleBulkReject}
-                        disabled={bulkRejectUsersMutation.isPending || allRejected}
-                        data-testid="button-bulk-reject"
-                      >
-                        <XCircle className="w-4 h-4 mr-1" />
-                        {bulkRejectUsersMutation.isPending ? "Rejecting..." : "Reject Selected"}
-                      </Button>
+            <Card>
+              <CardHeader className="pb-4">
+                <div className="flex flex-col sm:flex-row gap-4 justify-between">
+                  <div className="flex flex-col sm:flex-row gap-3 flex-1">
+                    <div className="relative flex-1 max-w-md">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search users..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-9"
+                        data-testid="input-search-users"
+                      />
                     </div>
-                  );
-                })()}
-              </div>
+                    <Select value={roleFilter} onValueChange={setRoleFilter}>
+                      <SelectTrigger className="w-full sm:w-[160px]" data-testid="select-role-filter">
+                        <SelectValue placeholder="Filter by role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Roles</SelectItem>
+                        <SelectItem value="professional">Professional</SelectItem>
+                        <SelectItem value="jobSeeker">Job Seeker</SelectItem>
+                        <SelectItem value="employer">Employer</SelectItem>
+                        <SelectItem value="businessOwner">Business Owner</SelectItem>
+                        <SelectItem value="investor">Investor</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex gap-2">
+                    {selectedUsers.size > 0 && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm" data-testid="button-bulk-actions">
+                            {selectedUsers.size} selected
+                            <ChevronRight className="w-4 h-4 ml-1" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem 
+                            onClick={handleBulkApprove}
+                            disabled={bulkApproveUsersMutation.isPending}
+                          >
+                            <CheckCircle2 className="w-4 h-4 mr-2 text-green-600" />
+                            Approve Selected
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={handleBulkReject}
+                            disabled={bulkRejectUsersMutation.isPending}
+                            className="text-destructive"
+                          >
+                            <XCircle className="w-4 h-4 mr-2" />
+                            Reject Selected
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          onClick={handleDownloadCSV}
+                          disabled={isDownloadingCSV}
+                          variant="outline"
+                          size="icon"
+                          data-testid="button-download-csv"
+                        >
+                          <Download className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Export to CSV</TooltipContent>
+                    </Tooltip>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <Tabs value={statusTab} onValueChange={setStatusTab}>
+                  <TabsList className="mb-4" data-testid="tabs-user-status">
+                    <TabsTrigger value="all" data-testid="tab-all-users">
+                      All ({users.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="pending" data-testid="tab-pending-users">
+                      <Clock className="w-3.5 h-3.5 mr-1" />
+                      Pending ({pendingUsers.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="approved" data-testid="tab-approved-users">
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                      Approved ({approvedUsers.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="rejected" data-testid="tab-rejected-users">
+                      <XCircle className="w-3.5 h-3.5 mr-1" />
+                      Rejected ({rejectedUsers.length})
+                    </TabsTrigger>
+                  </TabsList>
 
-              <TabsContent value="all">
-                {filterUsers(users).length === 0 ? (
-                  <Card>
-                    <CardContent className="py-12 text-center">
-                      <p className="text-muted-foreground">
+                  <TabsContent value="all">
+                    {filterUsers(users).length === 0 ? (
+                      <div className="py-12 text-center text-muted-foreground">
                         {searchQuery || roleFilter !== "all" ? "No users found" : "No users yet"}
-                      </p>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <UsersTable
-                    users={filterUsers(users)}
-                    onUserClick={setSelectedUser}
-                    selectedUsers={selectedUsers}
-                    onSelectUser={handleSelectUser}
-                    onSelectAll={(selectAll) => handleSelectAllUsers(filterUsers(users), selectAll)}
-                  />
-                )}
-              </TabsContent>
-              
-              <TabsContent value="pending">
-                {filterUsers(pendingUsers).length === 0 ? (
-                  <Card>
-                    <CardContent className="py-12 text-center">
-                      <Clock className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                      <p className="text-muted-foreground">
-                        {searchQuery || roleFilter !== "all" ? "No users found" : "No pending users"}
-                      </p>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <UsersTable
-                    users={filterUsers(pendingUsers)}
-                    onUserClick={setSelectedUser}
-                    selectedUsers={selectedUsers}
-                    onSelectUser={handleSelectUser}
-                    onSelectAll={(selectAll) => handleSelectAllUsers(filterUsers(pendingUsers), selectAll)}
-                  />
-                )}
-              </TabsContent>
-              
-              <TabsContent value="approved">
-                {filterUsers(approvedUsers).length === 0 ? (
-                  <Card>
-                    <CardContent className="py-12 text-center">
-                      <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                      <p className="text-muted-foreground">
-                        {searchQuery || roleFilter !== "all" ? "No users found" : "No approved users"}
-                      </p>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <UsersTable
-                    users={filterUsers(approvedUsers)}
-                    onUserClick={setSelectedUser}
-                    selectedUsers={selectedUsers}
-                    onSelectUser={handleSelectUser}
-                    onSelectAll={(selectAll) => handleSelectAllUsers(filterUsers(approvedUsers), selectAll)}
-                  />
-                )}
-              </TabsContent>
-              
-              <TabsContent value="rejected">
-                {filterUsers(rejectedUsers).length === 0 ? (
-                  <Card>
-                    <CardContent className="py-12 text-center">
-                      <XCircle className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                      <p className="text-muted-foreground">
-                        {searchQuery || roleFilter !== "all" ? "No users found" : "No rejected users"}
-                      </p>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <UsersTable
-                    users={filterUsers(rejectedUsers)}
-                    onUserClick={setSelectedUser}
-                    selectedUsers={selectedUsers}
-                    onSelectUser={handleSelectUser}
-                    onSelectAll={(selectAll) => handleSelectAllUsers(filterUsers(rejectedUsers), selectAll)}
-                  />
-                )}
-              </TabsContent>
-            </Tabs>
+                      </div>
+                    ) : (
+                      <UsersTable
+                        users={filterUsers(users)}
+                        onUserClick={setSelectedUser}
+                        selectedUsers={selectedUsers}
+                        onSelectUser={handleSelectUser}
+                        onSelectAll={(selectAll) => handleSelectAllUsers(filterUsers(users), selectAll)}
+                      />
+                    )}
+                  </TabsContent>
+                  
+                  <TabsContent value="pending">
+                    {filterUsers(pendingUsers).length === 0 ? (
+                      <div className="py-12 text-center">
+                        <Clock className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" />
+                        <p className="text-muted-foreground">
+                          {searchQuery || roleFilter !== "all" ? "No users found" : "No pending users"}
+                        </p>
+                      </div>
+                    ) : (
+                      <UsersTable
+                        users={filterUsers(pendingUsers)}
+                        onUserClick={setSelectedUser}
+                        selectedUsers={selectedUsers}
+                        onSelectUser={handleSelectUser}
+                        onSelectAll={(selectAll) => handleSelectAllUsers(filterUsers(pendingUsers), selectAll)}
+                      />
+                    )}
+                  </TabsContent>
+                  
+                  <TabsContent value="approved">
+                    {filterUsers(approvedUsers).length === 0 ? (
+                      <div className="py-12 text-center">
+                        <CheckCircle2 className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" />
+                        <p className="text-muted-foreground">
+                          {searchQuery || roleFilter !== "all" ? "No users found" : "No approved users"}
+                        </p>
+                      </div>
+                    ) : (
+                      <UsersTable
+                        users={filterUsers(approvedUsers)}
+                        onUserClick={setSelectedUser}
+                        selectedUsers={selectedUsers}
+                        onSelectUser={handleSelectUser}
+                        onSelectAll={(selectAll) => handleSelectAllUsers(filterUsers(approvedUsers), selectAll)}
+                      />
+                    )}
+                  </TabsContent>
+                  
+                  <TabsContent value="rejected">
+                    {filterUsers(rejectedUsers).length === 0 ? (
+                      <div className="py-12 text-center">
+                        <XCircle className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" />
+                        <p className="text-muted-foreground">
+                          {searchQuery || roleFilter !== "all" ? "No users found" : "No rejected users"}
+                        </p>
+                      </div>
+                    ) : (
+                      <UsersTable
+                        users={filterUsers(rejectedUsers)}
+                        onUserClick={setSelectedUser}
+                        selectedUsers={selectedUsers}
+                        onSelectUser={handleSelectUser}
+                        onSelectAll={(selectAll) => handleSelectAllUsers(filterUsers(rejectedUsers), selectAll)}
+                      />
+                    )}
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="media" className="space-y-4">
-            <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
-              <div className="flex items-center gap-4">
-                <h2 className="text-2xl font-bold">Video Management</h2>
-                {videos.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      checked={selectedVideos.size === videos.length && videos.length > 0}
-                      onCheckedChange={handleSelectAllVideos}
-                      data-testid="checkbox-select-all-videos"
-                      aria-label="Select all videos"
-                    />
-                    <span className="text-sm text-muted-foreground">Select All</span>
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center flex-wrap gap-4">
+                  <div className="flex items-center gap-3">
+                    <CardTitle className="text-lg">Video Library</CardTitle>
+                    {videos.length > 0 && (
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          checked={selectedVideos.size === videos.length && videos.length > 0}
+                          onCheckedChange={handleSelectAllVideos}
+                          data-testid="checkbox-select-all-videos"
+                          aria-label="Select all videos"
+                        />
+                        <span className="text-sm text-muted-foreground">Select All</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    {selectedVideos.size > 0 && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            {selectedVideos.size} selected
+                            <ChevronRight className="w-4 h-4 ml-1" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={handleBulkShow} data-testid="button-bulk-show">
+                            <Eye className="w-4 h-4 mr-2" />
+                            Show Selected
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={handleBulkHide} data-testid="button-bulk-hide">
+                            <EyeOff className="w-4 h-4 mr-2" />
+                            Hide Selected
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                    <Button onClick={() => handleOpenVideoDialog()} size="sm" data-testid="button-add-video">
+                      <Plus className="w-4 h-4 mr-1" />
+                      Add Video
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {videos.length === 0 ? (
+                  <div className="py-12 text-center">
+                    <Video className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" />
+                    <p className="text-muted-foreground mb-1">No videos yet</p>
+                    <p className="text-sm text-muted-foreground">Add your first video to get started</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {videos.map((video) => (
+                      <div 
+                        key={video.id} 
+                        className="group relative rounded-lg border overflow-hidden bg-card"
+                        data-testid={`card-admin-video-${video.id}`}
+                      >
+                        <div className="relative aspect-video">
+                          <YouTubeEmbed videoId={video.youtubeId} title={video.title} />
+                          <div className="absolute top-2 left-2 z-10">
+                            <Checkbox
+                              checked={selectedVideos.has(video.id)}
+                              onCheckedChange={() => handleSelectVideo(video.id)}
+                              data-testid={`checkbox-video-${video.id}`}
+                              aria-label={`Select ${video.title}`}
+                              className="bg-white/90 backdrop-blur-sm"
+                            />
+                          </div>
+                          <div className="absolute top-2 right-2 z-10 flex gap-1">
+                            {video.featured && (
+                              <Badge 
+                                className="bg-amber-500/90 backdrop-blur-sm text-white"
+                                data-testid={`badge-featured-${video.id}`}
+                              >
+                                <Star className="w-3 h-3 mr-1" />
+                                Featured
+                              </Badge>
+                            )}
+                            {!video.visible && (
+                              <Badge variant="secondary" className="backdrop-blur-sm">
+                                <EyeOff className="w-3 h-3 mr-1" />
+                                Hidden
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        <div className="p-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-medium text-sm truncate" data-testid={`text-admin-video-title-${video.id}`}>
+                                {video.title}
+                              </h3>
+                              {video.description && (
+                                <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5" data-testid={`text-admin-video-description-${video.id}`}>
+                                  {video.description}
+                                </p>
+                              )}
+                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                                  <MoreHorizontal className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleOpenVideoDialog(video)} data-testid={`button-edit-video-${video.id}`}>
+                                  <Pencil className="w-4 h-4 mr-2" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  onClick={() => setDeleteVideoId(video.id)} 
+                                  className="text-destructive"
+                                  data-testid={`button-delete-video-${video.id}`}
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
-              </div>
-              <div className="flex gap-2 flex-wrap">
-                {selectedVideos.size > 0 && (
-                  <>
-                    <span className="text-sm text-muted-foreground self-center">
-                      {selectedVideos.size} selected
-                    </span>
-                    <Button
-                      size="sm"
-                      variant="default"
-                      onClick={handleBulkShow}
-                      disabled={bulkUpdateVideosMutation.isPending}
-                      data-testid="button-bulk-show"
-                    >
-                      <CheckCircle2 className="w-4 h-4 mr-1" />
-                      {bulkUpdateVideosMutation.isPending ? "Updating..." : "Show Selected"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={handleBulkHide}
-                      disabled={bulkUpdateVideosMutation.isPending}
-                      data-testid="button-bulk-hide"
-                    >
-                      <XCircle className="w-4 h-4 mr-1" />
-                      {bulkUpdateVideosMutation.isPending ? "Updating..." : "Hide Selected"}
-                    </Button>
-                  </>
-                )}
-                <Button onClick={() => handleOpenVideoDialog()} data-testid="button-add-video">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Video
-                </Button>
-              </div>
-            </div>
-
-            {videos.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <Video className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-muted-foreground mb-2">No videos yet</p>
-                  <p className="text-sm text-muted-foreground">Start by adding your first video</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {videos.map((video) => (
-                  <Card key={video.id} data-testid={`card-admin-video-${video.id}`}>
-                    <CardContent className="p-0">
-                      <div className="relative">
-                        <YouTubeEmbed videoId={video.youtubeId} title={video.title} />
-                        <div className="absolute top-2 left-2">
-                          <Checkbox
-                            checked={selectedVideos.has(video.id)}
-                            onCheckedChange={() => handleSelectVideo(video.id)}
-                            data-testid={`checkbox-video-${video.id}`}
-                            aria-label={`Select ${video.title}`}
-                            className="bg-white/90 backdrop-blur-sm"
-                          />
-                        </div>
-                        {video.featured && (
-                          <Badge 
-                            className="absolute top-2 right-2 bg-orange-500"
-                            data-testid={`badge-featured-${video.id}`}
-                          >
-                            <Star className="w-3 h-3 mr-1" />
-                            Featured
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="p-4 space-y-3">
-                        <div>
-                          <h3 className="font-bold text-lg mb-1" data-testid={`text-admin-video-title-${video.id}`}>
-                            {video.title}
-                          </h3>
-                          {video.description && (
-                            <p className="text-sm text-muted-foreground line-clamp-2" data-testid={`text-admin-video-description-${video.id}`}>
-                              {video.description}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleOpenVideoDialog(video)}
-                            data-testid={`button-edit-video-${video.id}`}
-                          >
-                            <Pencil className="w-3 h-3 mr-1" />
-                            Edit
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => setDeleteVideoId(video.id)}
-                            data-testid={`button-delete-video-${video.id}`}
-                          >
-                            <Trash2 className="w-3 h-3 mr-1" />
-                            Delete
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </main>
@@ -954,12 +925,11 @@ function UsersTable({
   onSelectAll: (selectAll: boolean) => void;
 }) {
   const allSelected = users.length > 0 && users.every((u) => selectedUsers.has(u.uid));
-  const someSelected = users.some((u) => selectedUsers.has(u.uid)) && !allSelected;
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "approved":
-        return <Badge variant="default">Approved</Badge>;
+        return <Badge variant="default" className="bg-green-600">Approved</Badge>;
       case "rejected":
         return <Badge variant="destructive">Rejected</Badge>;
       case "pending":
@@ -970,104 +940,89 @@ function UsersTable({
   };
 
   return (
-    <Card>
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b">
-              <th className="p-4 w-12">
+    <div className="overflow-x-auto">
+      <table className="w-full">
+        <thead>
+          <tr className="border-b">
+            <th className="p-3 w-10">
+              <Checkbox
+                checked={allSelected}
+                onCheckedChange={(checked) => onSelectAll(checked === true)}
+                data-testid="checkbox-select-all-users"
+                aria-label="Select all users"
+              />
+            </th>
+            <th className="text-left p-3 font-medium text-xs text-muted-foreground uppercase tracking-wider">User</th>
+            <th className="text-left p-3 font-medium text-xs text-muted-foreground uppercase tracking-wider">Status</th>
+            <th className="text-left p-3 font-medium text-xs text-muted-foreground uppercase tracking-wider">Roles</th>
+          </tr>
+        </thead>
+        <tbody>
+          {users.map((user) => (
+            <tr
+              key={user.uid}
+              onClick={() => onUserClick(user)}
+              className="border-b last:border-0 hover:bg-muted/50 cursor-pointer transition-colors"
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onUserClick(user);
+                }
+              }}
+              data-testid={`row-user-${user.uid}`}
+            >
+              <td className="p-3" onClick={(e) => e.stopPropagation()}>
                 <Checkbox
-                  checked={allSelected}
-                  onCheckedChange={(checked) => onSelectAll(checked === true)}
-                  data-testid="checkbox-select-all-users"
-                  aria-label="Select all users"
+                  checked={selectedUsers.has(user.uid)}
+                  onCheckedChange={() => onSelectUser(user.uid)}
+                  data-testid={`checkbox-user-${user.uid}`}
+                  aria-label={`Select ${user.name}`}
                 />
-              </th>
-              <th className="text-left p-4 font-medium text-sm text-muted-foreground">Name</th>
-              <th className="text-left p-4 font-medium text-sm text-muted-foreground">Email</th>
-              <th className="text-left p-4 font-medium text-sm text-muted-foreground">Status</th>
-              <th className="text-left p-4 font-medium text-sm text-muted-foreground">Roles</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user) => (
-              <tr
-                key={user.uid}
-                onClick={() => onUserClick(user)}
-                className="border-b last:border-0 hover-elevate cursor-pointer"
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    onUserClick(user);
-                  }
-                }}
-                data-testid={`row-user-${user.uid}`}
-              >
-                <td className="p-4" onClick={(e) => e.stopPropagation()}>
-                  <Checkbox
-                    checked={selectedUsers.has(user.uid)}
-                    onCheckedChange={() => onSelectUser(user.uid)}
-                    data-testid={`checkbox-user-${user.uid}`}
-                    aria-label={`Select ${user.name}`}
-                  />
-                </td>
-                <td className="p-4">
-                  <div className="font-medium" data-testid={`text-user-name-${user.uid}`}>
+              </td>
+              <td className="p-3">
+                <div>
+                  <div className="font-medium text-sm" data-testid={`text-user-name-${user.uid}`}>
                     {user.name}
                   </div>
-                </td>
-                <td className="p-4">
-                  <div className="text-sm text-muted-foreground" data-testid={`text-user-email-${user.uid}`}>
+                  <div className="text-xs text-muted-foreground" data-testid={`text-user-email-${user.uid}`}>
                     {user.email}
                   </div>
-                </td>
-                <td className="p-4">
-                  <div data-testid={`badge-user-status-${user.uid}`}>
-                    {getStatusBadge(user.status)}
-                  </div>
-                </td>
-                <td className="p-4">
-                  <div className="flex flex-wrap gap-1">
-                    {user.roles?.isProfessional && (
-                      <Badge variant="outline" className="text-xs">
-                        Professional
-                      </Badge>
-                    )}
-                    {user.roles?.isJobSeeker && (
-                      <Badge variant="outline" className="text-xs">
-                        Job Seeker
-                      </Badge>
-                    )}
-                    {user.roles?.isEmployer && (
-                      <Badge variant="outline" className="text-xs">
-                        Employer
-                      </Badge>
-                    )}
-                    {user.roles?.isBusinessOwner && (
-                      <Badge variant="outline" className="text-xs">
-                        Business
-                      </Badge>
-                    )}
-                    {user.roles?.isInvestor && (
-                      <Badge variant="outline" className="text-xs">
-                        Investor
-                      </Badge>
-                    )}
-                    {user.roles?.isAdmin && (
-                      <Badge variant="default" className="text-xs">
-                        Admin
-                      </Badge>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </Card>
+                </div>
+              </td>
+              <td className="p-3">
+                <div data-testid={`badge-user-status-${user.uid}`}>
+                  {getStatusBadge(user.status)}
+                </div>
+              </td>
+              <td className="p-3">
+                <div className="flex flex-wrap gap-1">
+                  {user.roles?.isProfessional && (
+                    <Badge variant="outline" className="text-xs">Pro</Badge>
+                  )}
+                  {user.roles?.isJobSeeker && (
+                    <Badge variant="outline" className="text-xs">Seeker</Badge>
+                  )}
+                  {user.roles?.isEmployer && (
+                    <Badge variant="outline" className="text-xs">Employer</Badge>
+                  )}
+                  {user.roles?.isBusinessOwner && (
+                    <Badge variant="outline" className="text-xs">Business</Badge>
+                  )}
+                  {user.roles?.isInvestor && (
+                    <Badge variant="outline" className="text-xs">Investor</Badge>
+                  )}
+                  {user.roles?.isAdmin && (
+                    <Badge className="text-xs bg-primary">Admin</Badge>
+                  )}
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -1120,10 +1075,10 @@ function UserManagementDialog({
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="dialog-user-management">
+      <DialogContent className="max-w-lg" data-testid="dialog-user-management">
         <DialogHeader>
           <DialogTitle>Manage User</DialogTitle>
-          <DialogDescription>
+          <DialogDescription asChild>
             <div className="space-y-1 mt-2">
               <div className="font-medium text-foreground">{user.name}</div>
               <div className="text-sm">{user.email}</div>
@@ -1133,140 +1088,76 @@ function UserManagementDialog({
 
         <div className="space-y-6">
           <div>
-            <h3 className="font-medium mb-3">Profile Information</h3>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-muted-foreground mb-1">Country</p>
-                <p className="font-medium">{user.profile?.country || "Not provided"}</p>
+            <h3 className="text-sm font-medium mb-3">Profile</h3>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="p-2.5 rounded-md bg-muted/50">
+                <p className="text-xs text-muted-foreground mb-0.5">Country</p>
+                <p className="font-medium">{user.profile?.country || "—"}</p>
               </div>
-              <div>
-                <p className="text-muted-foreground mb-1">City</p>
-                <p className="font-medium">{user.profile?.city || "Not provided"}</p>
+              <div className="p-2.5 rounded-md bg-muted/50">
+                <p className="text-xs text-muted-foreground mb-0.5">City</p>
+                <p className="font-medium">{user.profile?.city || "—"}</p>
               </div>
-              <div className="col-span-2">
-                <p className="text-muted-foreground mb-1">Headline</p>
-                <p className="font-medium">{user.profile?.headline || "Not provided"}</p>
+              <div className="col-span-2 p-2.5 rounded-md bg-muted/50">
+                <p className="text-xs text-muted-foreground mb-0.5">Headline</p>
+                <p className="font-medium">{user.profile?.headline || "—"}</p>
               </div>
             </div>
           </div>
 
           <div>
-            <h3 className="font-medium mb-3">User Roles</h3>
-            <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="professional"
-                  checked={roles.professional}
-                  onCheckedChange={(checked) =>
-                    setRoles({ ...roles, professional: checked as boolean })
-                  }
-                  data-testid="checkbox-role-professional"
-                />
-                <Label htmlFor="professional" className="flex items-center gap-2 cursor-pointer">
-                  <Briefcase className="w-4 h-4" />
-                  Professional
-                </Label>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="jobSeeker"
-                  checked={roles.jobSeeker}
-                  onCheckedChange={(checked) =>
-                    setRoles({ ...roles, jobSeeker: checked as boolean })
-                  }
-                  data-testid="checkbox-role-jobseeker"
-                />
-                <Label htmlFor="jobSeeker" className="flex items-center gap-2 cursor-pointer">
-                  <Search className="w-4 h-4" />
-                  Job Seeker
-                </Label>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="employer"
-                  checked={roles.employer}
-                  onCheckedChange={(checked) =>
-                    setRoles({ ...roles, employer: checked as boolean })
-                  }
-                  data-testid="checkbox-role-employer"
-                />
-                <Label htmlFor="employer" className="flex items-center gap-2 cursor-pointer">
-                  <Building2 className="w-4 h-4" />
-                  Employer
-                </Label>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="businessOwner"
-                  checked={roles.businessOwner}
-                  onCheckedChange={(checked) =>
-                    setRoles({ ...roles, businessOwner: checked as boolean })
-                  }
-                  data-testid="checkbox-role-businessowner"
-                />
-                <Label htmlFor="businessOwner" className="flex items-center gap-2 cursor-pointer">
-                  <Handshake className="w-4 h-4" />
-                  Business Owner
-                </Label>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="investor"
-                  checked={roles.investor}
-                  onCheckedChange={(checked) =>
-                    setRoles({ ...roles, investor: checked as boolean })
-                  }
-                  data-testid="checkbox-role-investor"
-                />
-                <Label htmlFor="investor" className="flex items-center gap-2 cursor-pointer">
-                  <TrendingUp className="w-4 h-4" />
-                  Investor
-                </Label>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="admin"
-                  checked={roles.admin}
-                  onCheckedChange={(checked) =>
-                    setRoles({ ...roles, admin: checked as boolean })
-                  }
-                  data-testid="checkbox-role-admin"
-                />
-                <Label htmlFor="admin" className="flex items-center gap-2 cursor-pointer">
-                  <Shield className="w-4 h-4" />
-                  Admin
-                </Label>
-              </div>
+            <h3 className="text-sm font-medium mb-3">Roles</h3>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { id: "professional", label: "Professional", icon: Briefcase },
+                { id: "jobSeeker", label: "Job Seeker", icon: Search },
+                { id: "employer", label: "Employer", icon: Building2 },
+                { id: "businessOwner", label: "Business Owner", icon: Handshake },
+                { id: "investor", label: "Investor", icon: TrendingUp },
+                { id: "admin", label: "Admin", icon: Shield },
+              ].map(({ id, label, icon: Icon }) => (
+                <div key={id} className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted/50">
+                  <Checkbox
+                    id={id}
+                    checked={roles[id as keyof typeof roles]}
+                    onCheckedChange={(checked) =>
+                      setRoles({ ...roles, [id]: checked as boolean })
+                    }
+                    data-testid={`checkbox-role-${id.toLowerCase()}`}
+                  />
+                  <Label htmlFor={id} className="flex items-center gap-2 cursor-pointer text-sm">
+                    <Icon className="w-4 h-4 text-muted-foreground" />
+                    {label}
+                  </Label>
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
-        <DialogFooter className="flex flex-wrap gap-2">
-          <div className="flex-1 flex gap-2">
+        <DialogFooter className="flex-col sm:flex-row gap-2">
+          <div className="flex gap-2 flex-1">
             {user.status === "pending" && (
               <>
                 <Button
                   onClick={() => updateStatusMutation.mutate("approved")}
                   disabled={updateStatusMutation.isPending}
                   className="bg-green-600 hover:bg-green-700"
+                  size="sm"
                   data-testid="button-approve-user"
                 >
-                  <CheckCircle2 className="w-4 h-4 mr-2" />
-                  {updateStatusMutation.isPending ? "Approving..." : "Approve"}
+                  <CheckCircle2 className="w-4 h-4 mr-1" />
+                  Approve
                 </Button>
                 <Button
                   onClick={() => updateStatusMutation.mutate("rejected")}
                   disabled={updateStatusMutation.isPending}
                   variant="destructive"
+                  size="sm"
                   data-testid="button-reject-user"
                 >
-                  <XCircle className="w-4 h-4 mr-2" />
-                  {updateStatusMutation.isPending ? "Rejecting..." : "Reject"}
+                  <XCircle className="w-4 h-4 mr-1" />
+                  Reject
                 </Button>
               </>
             )}
@@ -1275,10 +1166,11 @@ function UserManagementDialog({
                 onClick={() => updateStatusMutation.mutate("approved")}
                 disabled={updateStatusMutation.isPending}
                 className="bg-green-600 hover:bg-green-700"
+                size="sm"
                 data-testid="button-approve-user"
               >
-                <CheckCircle2 className="w-4 h-4 mr-2" />
-                {updateStatusMutation.isPending ? "Approving..." : "Approve"}
+                <CheckCircle2 className="w-4 h-4 mr-1" />
+                Approve
               </Button>
             )}
             {user.status === "approved" && (
@@ -1286,18 +1178,19 @@ function UserManagementDialog({
                 onClick={() => updateStatusMutation.mutate("rejected")}
                 disabled={updateStatusMutation.isPending}
                 variant="destructive"
+                size="sm"
                 data-testid="button-reject-user"
               >
-                <XCircle className="w-4 h-4 mr-2" />
-                {updateStatusMutation.isPending ? "Rejecting..." : "Reject"}
+                <XCircle className="w-4 h-4 mr-1" />
+                Reject
               </Button>
             )}
           </div>
           <div className="flex gap-2">
-            <Button onClick={onClose} variant="outline" data-testid="button-cancel-user">
+            <Button onClick={onClose} variant="outline" size="sm" data-testid="button-cancel-user">
               Cancel
             </Button>
-            <Button onClick={() => onUpdateRoles(roles)} data-testid="button-save-roles">
+            <Button onClick={() => onUpdateRoles(roles)} size="sm" data-testid="button-save-roles">
               Save Roles
             </Button>
           </div>
@@ -1307,16 +1200,13 @@ function UserManagementDialog({
   );
 }
 
-// Helper function to extract YouTube video ID from various URL formats
 function extractYouTubeId(input: string): string {
   const trimmed = input.trim();
   
-  // If it's already just an ID (11 characters, alphanumeric with dashes and underscores)
   if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) {
     return trimmed;
   }
   
-  // Match various YouTube URL formats
   const patterns = [
     /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
     /youtube\.com\/watch\?.*v=([a-zA-Z0-9_-]{11})/,
@@ -1329,11 +1219,9 @@ function extractYouTubeId(input: string): string {
     }
   }
   
-  // Return the original input if no pattern matches
   return trimmed;
 }
 
-// Helper function to generate YouTube thumbnail URL
 function generateYouTubeThumbnail(videoId: string): string {
   if (!videoId || videoId.length !== 11) return "";
   return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
@@ -1363,7 +1251,6 @@ function VideoFormDialog({
     visible: video?.visible ?? true,
   });
 
-  // Reset form data when video changes or dialog opens
   useEffect(() => {
     if (open) {
       setFormData({
@@ -1382,7 +1269,6 @@ function VideoFormDialog({
 
   const createVideoMutation = useMutation({
     mutationFn: async (data: VideoFormData) => {
-      // Convert publishedAt string to Date object
       const payload = {
         ...data,
         publishedAt: data.publishedAt ? new Date(data.publishedAt) : undefined,
@@ -1407,7 +1293,6 @@ function VideoFormDialog({
 
   const updateVideoMutation = useMutation({
     mutationFn: async (data: VideoFormData) => {
-      // Convert publishedAt string to Date object
       const payload = {
         ...data,
         publishedAt: data.publishedAt ? new Date(data.publishedAt) : undefined,
@@ -1441,11 +1326,11 @@ function VideoFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl" data-testid="dialog-video-form">
+      <DialogContent className="max-w-lg" data-testid="dialog-video-form">
         <DialogHeader>
-          <DialogTitle>{video ? "Edit Video" : "Add New Video"}</DialogTitle>
+          <DialogTitle>{video ? "Edit Video" : "Add Video"}</DialogTitle>
           <DialogDescription>
-            {video ? "Update video information" : "Add a new video to the media gallery"}
+            {video ? "Update video details" : "Add a new video to the library"}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -1466,12 +1351,13 @@ function VideoFormDialog({
               id="description"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              rows={3}
               data-testid="input-video-description"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="youtubeId">YouTube Video ID</Label>
+            <Label htmlFor="youtubeId">YouTube URL or ID</Label>
             <Input
               id="youtubeId"
               value={formData.youtubeId}
@@ -1484,13 +1370,10 @@ function VideoFormDialog({
                   thumbnailUrl: autoThumbnail || formData.thumbnailUrl
                 });
               }}
-              placeholder="Paste YouTube URL or video ID (e.g., dQw4w9WgXcQ)"
+              placeholder="Paste URL or video ID"
               required
               data-testid="input-video-youtubeid"
             />
-            <p className="text-sm text-muted-foreground">
-              You can paste a full YouTube URL or just the video ID
-            </p>
           </div>
 
           <div className="space-y-2">
@@ -1499,15 +1382,15 @@ function VideoFormDialog({
               id="thumbnailUrl"
               value={formData.thumbnailUrl}
               onChange={(e) => setFormData({ ...formData, thumbnailUrl: e.target.value })}
-              placeholder="Auto-generated from YouTube ID"
+              placeholder="Auto-generated from YouTube"
               data-testid="input-video-thumbnail"
             />
             {formData.thumbnailUrl && (
-              <div className="mt-2 border rounded-md overflow-hidden">
+              <div className="mt-2 border rounded-md overflow-hidden aspect-video">
                 <img 
                   src={formData.thumbnailUrl} 
-                  alt="Video thumbnail preview" 
-                  className="w-full h-auto"
+                  alt="Thumbnail preview" 
+                  className="w-full h-full object-cover"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
                   }}
@@ -1517,7 +1400,7 @@ function VideoFormDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="publishedAt">Published Date</Label>
+            <Label htmlFor="publishedAt">Publish Date</Label>
             <Input
               id="publishedAt"
               type="date"
@@ -1527,28 +1410,26 @@ function VideoFormDialog({
             />
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="visible"
-              checked={formData.visible}
-              onCheckedChange={(checked) => setFormData({ ...formData, visible: checked })}
-              data-testid="switch-video-visible"
-            />
-            <Label htmlFor="visible" className="cursor-pointer">
-              Visible on Media page
-            </Label>
-          </div>
+          <div className="flex gap-6">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="visible"
+                checked={formData.visible}
+                onCheckedChange={(checked) => setFormData({ ...formData, visible: checked })}
+                data-testid="switch-video-visible"
+              />
+              <Label htmlFor="visible" className="cursor-pointer text-sm">Visible</Label>
+            </div>
 
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="featured"
-              checked={formData.featured}
-              onCheckedChange={(checked) => setFormData({ ...formData, featured: checked })}
-              data-testid="switch-video-featured"
-            />
-            <Label htmlFor="featured" className="cursor-pointer">
-              Mark as featured
-            </Label>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="featured"
+                checked={formData.featured}
+                onCheckedChange={(checked) => setFormData({ ...formData, featured: checked })}
+                data-testid="switch-video-featured"
+              />
+              <Label htmlFor="featured" className="cursor-pointer text-sm">Featured</Label>
+            </div>
           </div>
 
           <DialogFooter>
@@ -1560,7 +1441,7 @@ function VideoFormDialog({
               disabled={createVideoMutation.isPending || updateVideoMutation.isPending}
               data-testid="button-save-video"
             >
-              {createVideoMutation.isPending || updateVideoMutation.isPending ? "Saving..." : video ? "Update Video" : "Add Video"}
+              {createVideoMutation.isPending || updateVideoMutation.isPending ? "Saving..." : video ? "Update" : "Add Video"}
             </Button>
           </DialogFooter>
         </form>
@@ -1609,11 +1490,11 @@ function DeleteVideoDialog({
 
   return (
     <Dialog open={!!videoId} onOpenChange={onClose}>
-      <DialogContent data-testid="dialog-delete-video">
+      <DialogContent className="max-w-sm" data-testid="dialog-delete-video">
         <DialogHeader>
           <DialogTitle>Delete Video</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete this video? This action cannot be undone.
+            This action cannot be undone. Are you sure?
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
