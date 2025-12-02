@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Menu, X, User, LogOut, LayoutDashboard } from "lucide-react";
 import { Link } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
-import logoImage from "@assets/image_1763355890421.png";
+import logoImage from "@assets/ChatGPT_Image_Dec_2,_2025,_08_29_23_PM_1764689382224.png";
 import {
   DropdownMenu,
   DropdownMenuContent,
