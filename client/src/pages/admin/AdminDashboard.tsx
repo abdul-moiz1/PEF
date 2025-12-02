@@ -327,7 +327,7 @@ export default function AdminDashboard() {
 
   const handleUpdateRoles = async (userId: string, roles: any) => {
     try {
-      await apiRequest("POST", `/api/admin/users/${userId}/roles`, roles);
+      await apiRequest("POST", `/api/admin/users/${userId}/roles`, { roles });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
       toast({
         title: "Success",
