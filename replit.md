@@ -7,11 +7,12 @@ The Professional Executive Forum (PEF) is a global digital platform designed to 
 Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (Dec 2, 2025)
-- **Global Reach Country Management** - Admins can now manage which countries appear in the home page Global Reach section
-- **Primary Market & Coming Soon Flags** - Added `isPrimary` and `comingSoon` boolean fields to country schema
-- **Admin Location Tab Enhanced** - Star icon toggles Primary Market status, clock icon toggles Coming Soon status
-- **Dynamic Global Reach Display** - Home page section now fetches countries from API and displays dynamically based on admin settings
-- **Dynamic Flag Rendering** - Uses country-flag-icons library with graceful fallback for unmapped country codes
+- **Global Reach Country Management with Firestore** - Complete Firestore integration for country management with isPrimary and comingSoon fields
+- **Selected Countries Section** - New admin panel section showing all enabled countries in a visual grid with flags
+- **Primary Market & Coming Soon Flags** - Toggle buttons persist to Firestore and immediately reflect on home page
+- **Admin Location Tab Enhanced** - Star icon (Primary), Clock icon (Coming Soon), and quick remove (X) buttons
+- **Dynamic Global Reach Display** - Home page section fetches countries from API and displays dynamically with proper sorting
+- **Flag Rendering** - Uses country-flag-icons library with graceful fallback for unmapped country codes
 
 ## Previous Changes (Dec 1, 2025)
 - **Centralized Country-City Management System** - Fully implemented with admin CRUD operations at `/admin/locations`
