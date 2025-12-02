@@ -118,6 +118,8 @@ export default function AdminDashboard() {
   const [statusTab, setStatusTab] = useState<string>("all");
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
   const [selectedVideos, setSelectedVideos] = useState<Set<string>>(new Set());
+  const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
+  const [downloadCountry, setDownloadCountry] = useState<string>("all");
 
   const { data: videos = [], refetch: refetchVideos } = useQuery<VideoType[]>({
     queryKey: ['/api/videos'],
@@ -248,7 +250,7 @@ export default function AdminDashboard() {
     return country?.displayName || countryName;
   };
 
-  const handleDownloadCSV = async () => {
+  const handleDownloadCSV = async (selectedCountry: string) => {
     try {
       setIsDownloadingCSV(true);
       const token = await auth.currentUser?.getIdToken();
@@ -256,8 +258,8 @@ export default function AdminDashboard() {
         throw new Error("No auth token");
       }
       const queryParams = new URLSearchParams();
-      if (countryFilter !== "all") {
-        queryParams.set("country", countryFilter);
+      if (selectedCountry !== "all") {
+        queryParams.set("country", selectedCountry);
       }
       const url = `/api/admin/users/download-csv${queryParams.toString() ? `?${queryParams.toString()}` : ""}`;
       const response = await fetch(url, {
@@ -273,16 +275,17 @@ export default function AdminDashboard() {
       const blobUrl = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = blobUrl;
-      const countryName = countryFilter !== "all" ? getCountryDisplayName(countryFilter) : "";
+      const countryName = selectedCountry !== "all" ? getCountryDisplayName(selectedCountry) : "";
       const countryLabel = countryName ? `-${countryName.replace(/\s+/g, "-")}` : "";
       a.download = `users-export${countryLabel}-${new Date().toISOString().split("T")[0]}.csv`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(blobUrl);
       document.body.removeChild(a);
+      setDownloadDialogOpen(false);
       toast({
         title: "Success",
-        description: `User data exported successfully${countryName ? ` (${countryName})` : ""}`,
+        description: `User data exported successfully${countryName ? ` (${countryName})` : " (All Countries)"}`,
       });
     } catch (error) {
       toast({
@@ -790,16 +793,16 @@ export default function AdminDashboard() {
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
-                            onClick={handleDownloadCSV}
-                            disabled={isDownloadingCSV}
                             variant="outline"
                             size="icon"
-                            data-testid="button-download-csv"
+                            onClick={() => setDownloadDialogOpen(true)}
+                            disabled={isDownloadingCSV}
+                            data-testid="button-open-download-dialog"
                           >
-                            <Download className="w-4 h-4" />
+                            <Download className="h-4 w-4" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Export to CSV{countryFilter !== "all" ? ` (${getCountryDisplayName(countryFilter)} only)` : ""}</TooltipContent>
+                        <TooltipContent>Export to CSV</TooltipContent>
                       </Tooltip>
                     </div>
                   </div>
@@ -1065,6 +1068,46 @@ export default function AdminDashboard() {
           setDeleteVideoId(null);
         }}
       />
+
+      <Dialog open={downloadDialogOpen} onOpenChange={(open) => {
+        setDownloadDialogOpen(open);
+        if (!open) setDownloadCountry("all");
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Download Users CSV</DialogTitle>
+            <DialogDescription>Select a country to filter the export, or download all users.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            <Label htmlFor="download-country">Country</Label>
+            <Select value={downloadCountry} onValueChange={setDownloadCountry}>
+              <SelectTrigger id="download-country" data-testid="select-download-country">
+                <SelectValue placeholder="All Countries" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Countries</SelectItem>
+                {countries.map((country) => (
+                  <SelectItem key={country.id} value={country.name}>
+                    {country.displayName ?? country.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter className="gap-2 sm:justify-end">
+            <Button variant="outline" onClick={() => setDownloadDialogOpen(false)} data-testid="button-cancel-download">
+              Cancel
+            </Button>
+            <Button
+              onClick={() => handleDownloadCSV(downloadCountry)}
+              disabled={isDownloadingCSV}
+              data-testid="button-confirm-download"
+            >
+              {isDownloadingCSV ? "Downloading..." : "Download"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
