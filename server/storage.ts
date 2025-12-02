@@ -942,12 +942,13 @@ export class FirestoreStorage implements IStorage {
       const userData = userDoc.data();
       stats.totalUsers++;
       
-      if (userData.roles?.professional || userData.roles?.professional) stats.professionals++;
-      if (userData.roles?.jobSeeker || userData.roles?.jobSeeker) stats.jobSeekers++;
-      if (userData.roles?.employer || userData.roles?.employer) stats.employers++;
-      if (userData.roles?.businessOwner || userData.roles?.businessOwner) stats.businessOwners++;
-      if (userData.roles?.investor || userData.roles?.investor) stats.investors++;
-      if (userData.roles?.admin || userData.roles?.admin) stats.admins++;
+      const roles = userData.roles || {};
+      if (roles.professional || roles.isProfessional || userData.isProfessional) stats.professionals++;
+      if (roles.jobSeeker || roles.isJobSeeker || userData.isJobSeeker) stats.jobSeekers++;
+      if (roles.employer || roles.isEmployer || userData.isEmployer) stats.employers++;
+      if (roles.businessOwner || roles.isBusinessOwner || userData.isBusinessOwner) stats.businessOwners++;
+      if (roles.investor || roles.isInvestor || userData.isInvestor) stats.investors++;
+      if (roles.admin || roles.isAdmin || userData.isAdmin) stats.admins++;
       
       if (userData.status === "pending") stats.pendingApprovals++;
       if (userData.status === "approved") stats.approved++;

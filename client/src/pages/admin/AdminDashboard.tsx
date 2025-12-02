@@ -51,7 +51,7 @@ import Footer from "@/components/Footer";
 import YouTubeEmbed from "@/components/YouTubeEmbed";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from "recharts";
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
 import type { Video as VideoType, Opportunity, Country } from "@shared/schema";
 
 interface UserData {
@@ -599,6 +599,20 @@ export default function AdminDashboard() {
                             <Cell key={`cell-${index}`} fill={entry.fill} />
                           ))}
                         </Pie>
+                        <RechartsTooltip
+                          content={({ active, payload }: { active?: boolean; payload?: any[] }) => {
+                            if (active && payload && payload.length) {
+                              const data = payload[0].payload;
+                              return (
+                                <div className="bg-popover border rounded-lg shadow-lg px-3 py-2" data-testid="tooltip-role-chart">
+                                  <p className="text-sm font-medium">{data.name}</p>
+                                  <p className="text-sm text-muted-foreground">{data.value} users</p>
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
@@ -607,7 +621,6 @@ export default function AdminDashboard() {
                       <div key={item.name} className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.fill }} />
                         <span className="text-sm text-muted-foreground">{item.name}</span>
-                        <span className="text-sm font-medium">({item.value})</span>
                       </div>
                     ))}
                   </div>
