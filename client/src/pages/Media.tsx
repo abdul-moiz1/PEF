@@ -235,7 +235,7 @@ export default function Media() {
                 </Button>
               </a>
               <a
-                href="https://www.youtube.com/watch?v=Z6qLKDD3T3c"
+                href="https://youtube.com/@professionalexecutiveforum?si=bnOpAY1uvIx24KmX"
                 target="_blank"
                 rel="noopener noreferrer"
               >

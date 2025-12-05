@@ -6,7 +6,13 @@ The Professional Executive Forum (PEF) is a global digital platform designed to 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
-## Recent Changes (Dec 2, 2025)
+## Recent Changes (Dec 5, 2025)
+- **Admin Dashboard Restructured** - Moved Media management from top-level tab to Content Management section
+- **Dedicated AdminMedia Page** - New `/admin/media` page for video library management with full CRUD operations
+- **YouTube Channel Integration** - Official PEF YouTube channel link updated throughout (Footer, Media page): `https://youtube.com/@professionalexecutiveforum?si=bnOpAY1uvIx24KmX`
+- **Code Cleanup** - Removed unused video-related state and handlers from AdminDashboard for cleaner codebase
+
+## Previous Changes (Dec 2, 2025)
 - **Admin Dashboard Stats Updated** - Replaced Videos stat card with Applications count showing total job applications
 - **Role Counting Fixed** - Admin stats now correctly count users across all three role data patterns (legacy nested, `is*` prefix nested, and top-level booleans)
 - **User Roles Chart Improved** - Legend shows role names only; counts appear on hover tooltip

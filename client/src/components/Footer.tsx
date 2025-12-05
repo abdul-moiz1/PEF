@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { SiLinkedin, SiYoutube, SiX } from "react-icons/si";
-import logoImage from "@assets/image_1763355890421.png";
+import logoImage from "@assets/ChatGPT_Image_Dec_2,_2025,_08_29_23_PM_1764689382224.png";
 
 const quickLinks = [
   { label: "Home", path: "/" },
@@ -87,7 +87,7 @@ export default function Footer() {
                 <SiLinkedin className="w-5 h-5" />
               </a>
               <a
-                href="https://youtube.com"
+                href="https://youtube.com/@professionalexecutiveforum?si=bnOpAY1uvIx24KmX"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-10 h-10 rounded-md bg-white/10 flex items-center justify-center hover-elevate transition-colors"

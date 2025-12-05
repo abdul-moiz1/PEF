@@ -49,11 +49,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { auth } from "@/lib/firebase";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import YouTubeEmbed from "@/components/YouTubeEmbed";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
-import type { Video as VideoType, Opportunity, Country } from "@shared/schema";
+import type { Opportunity, Country } from "@shared/schema";
 
 interface UserData {
   uid: string;
@@ -86,15 +85,6 @@ interface Stats {
   admins: number;
 }
 
-interface VideoFormData {
-  title: string;
-  description: string;
-  youtubeId: string;
-  thumbnailUrl: string;
-  publishedAt: string;
-  featured: boolean;
-  visible: boolean;
-}
 
 const CHART_COLORS = [
   "hsl(var(--chart-1))",
@@ -110,21 +100,12 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [videoDialogOpen, setVideoDialogOpen] = useState(false);
-  const [editingVideo, setEditingVideo] = useState<VideoType | null>(null);
-  const [deleteVideoId, setDeleteVideoId] = useState<string | null>(null);
-  const [selectedTab, setSelectedTab] = useState<'all' | 'media'>('all');
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [countryFilter, setCountryFilter] = useState<string>("all");
   const [statusTab, setStatusTab] = useState<string>("all");
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
-  const [selectedVideos, setSelectedVideos] = useState<Set<string>>(new Set());
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
   const [downloadCountry, setDownloadCountry] = useState<string>("all");
-
-  const { data: videos = [], refetch: refetchVideos } = useQuery<VideoType[]>({
-    queryKey: ['/api/videos'],
-  });
 
   const { data: opportunities = [], isLoading: opportunitiesLoading } = useQuery<Opportunity[]>({
     queryKey: ['/api/opportunities'],
@@ -199,31 +180,6 @@ export default function AdminDashboard() {
     },
   });
 
-  const bulkUpdateVideosMutation = useMutation({
-    mutationFn: async ({ videoIds, visible }: { videoIds: string[]; visible: boolean }) => {
-      await Promise.all(
-        videoIds.map((videoId) =>
-          apiRequest("PATCH", `/api/videos/${videoId}`, { visible })
-        )
-      );
-    },
-    onSuccess: (_, { visible }) => {
-      refetchVideos();
-      setSelectedVideos(new Set());
-      toast({
-        title: "Success",
-        description: `${selectedVideos.size} video(s) ${visible ? "shown" : "hidden"} successfully`,
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to update selected videos",
-        variant: "destructive",
-      });
-    },
-  });
-
   const handleBulkApprove = () => {
     if (selectedUsers.size === 0) return;
     bulkApproveUsersMutation.mutate(Array.from(selectedUsers));
@@ -232,16 +188,6 @@ export default function AdminDashboard() {
   const handleBulkReject = () => {
     if (selectedUsers.size === 0) return;
     bulkRejectUsersMutation.mutate(Array.from(selectedUsers));
-  };
-
-  const handleBulkShow = () => {
-    if (selectedVideos.size === 0) return;
-    bulkUpdateVideosMutation.mutate({ videoIds: Array.from(selectedVideos), visible: true });
-  };
-
-  const handleBulkHide = () => {
-    if (selectedVideos.size === 0) return;
-    bulkUpdateVideosMutation.mutate({ videoIds: Array.from(selectedVideos), visible: false });
   };
 
   const [isDownloadingCSV, setIsDownloadingCSV] = useState(false);
@@ -342,16 +288,6 @@ export default function AdminDashboard() {
     return filtered;
   };
 
-  const handleOpenVideoDialog = (video?: VideoType) => {
-    setEditingVideo(video || null);
-    setVideoDialogOpen(true);
-  };
-
-  const handleCloseVideoDialog = () => {
-    setEditingVideo(null);
-    setVideoDialogOpen(false);
-  };
-
   const handleUpdateRoles = async (userId: string, roles: any) => {
     try {
       await apiRequest("POST", `/api/admin/users/${userId}/roles`, { roles });
@@ -390,26 +326,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleSelectVideo = (videoId: string) => {
-    setSelectedVideos((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(videoId)) {
-        newSet.delete(videoId);
-      } else {
-        newSet.add(videoId);
-      }
-      return newSet;
-    });
-  };
-
-  const handleSelectAllVideos = (selectAll: boolean) => {
-    if (selectAll) {
-      setSelectedVideos(new Set(videos.map((v) => v.id)));
-    } else {
-      setSelectedVideos(new Set());
-    }
-  };
-
   const roleChartData = stats ? [
     { name: "Professionals", value: stats.professionals, fill: CHART_COLORS[0] },
     { name: "Job Seekers", value: stats.jobSeekers, fill: CHART_COLORS[1] },
@@ -435,6 +351,7 @@ export default function AdminDashboard() {
   const pagesManagementCards = [
     { title: "Leadership", description: "Team members shown on site", icon: Users, path: "/admin/leadership", color: "text-blue-500" },
     { title: "Gallery", description: "Event images & media", icon: Image, path: "/admin/gallery", color: "text-purple-500" },
+    { title: "Media", description: "Videos & YouTube content", icon: Video, path: "/admin/media", color: "text-pink-500" },
     { title: "Locations", description: "Countries & cities data", icon: Globe, path: "/admin/locations", color: "text-cyan-500" },
   ];
 
@@ -708,21 +625,8 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
-        <Tabs value={selectedTab} onValueChange={(value) => setSelectedTab(value as 'all' | 'media')} className="space-y-6">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <TabsList>
-              <TabsTrigger value="all" data-testid="tab-all" className="gap-2">
-                <Users className="w-4 h-4" />
-                Users
-              </TabsTrigger>
-              <TabsTrigger value="media" data-testid="tab-media" className="gap-2">
-                <Video className="w-4 h-4" />
-                Media
-              </TabsTrigger>
-            </TabsList>
-          </div>
-
-          <TabsContent value="all" className="space-y-4">
+        <div className="space-y-6">
+          <div className="space-y-4">
             <Card>
               <CardHeader className="pb-4">
                 <div className="flex flex-col gap-4">
@@ -919,142 +823,8 @@ export default function AdminDashboard() {
                 </Tabs>
               </CardContent>
             </Card>
-          </TabsContent>
-
-          <TabsContent value="media" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center flex-wrap gap-4">
-                  <div className="flex items-center gap-3">
-                    <CardTitle className="text-lg">Video Library</CardTitle>
-                    {videos.length > 0 && (
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          checked={selectedVideos.size === videos.length && videos.length > 0}
-                          onCheckedChange={handleSelectAllVideos}
-                          data-testid="checkbox-select-all-videos"
-                          aria-label="Select all videos"
-                        />
-                        <span className="text-sm text-muted-foreground">Select All</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    {selectedVideos.size > 0 && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="sm">
-                            {selectedVideos.size} selected
-                            <ChevronRight className="w-4 h-4 ml-1" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={handleBulkShow} data-testid="button-bulk-show">
-                            <Eye className="w-4 h-4 mr-2" />
-                            Show Selected
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={handleBulkHide} data-testid="button-bulk-hide">
-                            <EyeOff className="w-4 h-4 mr-2" />
-                            Hide Selected
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
-                    <Button onClick={() => handleOpenVideoDialog()} size="sm" data-testid="button-add-video">
-                      <Plus className="w-4 h-4 mr-1" />
-                      Add Video
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {videos.length === 0 ? (
-                  <div className="py-12 text-center">
-                    <Video className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" />
-                    <p className="text-muted-foreground mb-1">No videos yet</p>
-                    <p className="text-sm text-muted-foreground">Add your first video to get started</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {videos.map((video) => (
-                      <div 
-                        key={video.id} 
-                        className="group relative rounded-lg border overflow-hidden bg-card"
-                        data-testid={`card-admin-video-${video.id}`}
-                      >
-                        <div className="relative aspect-video">
-                          <YouTubeEmbed videoId={video.youtubeId} title={video.title} />
-                          <div className="absolute top-2 left-2 z-10">
-                            <Checkbox
-                              checked={selectedVideos.has(video.id)}
-                              onCheckedChange={() => handleSelectVideo(video.id)}
-                              data-testid={`checkbox-video-${video.id}`}
-                              aria-label={`Select ${video.title}`}
-                              className="bg-white/90 backdrop-blur-sm"
-                            />
-                          </div>
-                          <div className="absolute top-2 right-2 z-10 flex gap-1">
-                            {video.featured && (
-                              <Badge 
-                                className="bg-amber-500/90 backdrop-blur-sm text-white"
-                                data-testid={`badge-featured-${video.id}`}
-                              >
-                                <Star className="w-3 h-3 mr-1" />
-                                Featured
-                              </Badge>
-                            )}
-                            {!video.visible && (
-                              <Badge variant="secondary" className="backdrop-blur-sm">
-                                <EyeOff className="w-3 h-3 mr-1" />
-                                Hidden
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                        <div className="p-3">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-medium text-sm truncate" data-testid={`text-admin-video-title-${video.id}`}>
-                                {video.title}
-                              </h3>
-                              {video.description && (
-                                <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5" data-testid={`text-admin-video-description-${video.id}`}>
-                                  {video.description}
-                                </p>
-                              )}
-                            </div>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-                                  <MoreHorizontal className="w-4 h-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleOpenVideoDialog(video)} data-testid={`button-edit-video-${video.id}`}>
-                                  <Pencil className="w-4 h-4 mr-2" />
-                                  Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem 
-                                  onClick={() => setDeleteVideoId(video.id)} 
-                                  className="text-destructive"
-                                  data-testid={`button-delete-video-${video.id}`}
-                                >
-                                  <Trash2 className="w-4 h-4 mr-2" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
       </main>
       <Footer />
       {selectedUser && (
@@ -1064,23 +834,6 @@ export default function AdminDashboard() {
           onUpdateRoles={(roles) => handleUpdateRoles(selectedUser.uid, roles)}
         />
       )}
-      <VideoFormDialog
-        open={videoDialogOpen}
-        onClose={handleCloseVideoDialog}
-        video={editingVideo}
-        onSuccess={() => {
-          refetchVideos();
-          handleCloseVideoDialog();
-        }}
-      />
-      <DeleteVideoDialog
-        videoId={deleteVideoId}
-        onClose={() => setDeleteVideoId(null)}
-        onSuccess={() => {
-          refetchVideos();
-          setDeleteVideoId(null);
-        }}
-      />
       <Dialog open={downloadDialogOpen} onOpenChange={(open) => {
         setDownloadDialogOpen(open);
         if (!open) setDownloadCountry("all");
