@@ -1287,6 +1287,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid status" });
       }
 
+      // Protect admin users from being rejected
+      if (status === "rejected") {
+        const targetUser = await storage.getUserWithRoles(userId);
+        if (targetUser?.roles?.admin) {
+          return res.status(403).json({ error: "Cannot reject admin users" });
+        }
+      }
+
       await storage.updateUserStatus(userId, status);
       return res.json({ success: true, message: "User status updated successfully" });
     } catch (error) {
@@ -2200,14 +2208,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Membership application not found" });
       }
 
-      // When approving an application, also update the user's status
-      if (validationResult.data.status === "approved" && application.email) {
+      // When approving or rejecting an application, also update the user's status
+      if ((validationResult.data.status === "approved" || validationResult.data.status === "rejected") && application.email) {
         const user = await storage.getUserByEmail(application.email.toLowerCase());
         if (user) {
-          await storage.updateUserStatus(user.id, "approved");
+          // Check if user is an admin - admins should never be rejected
+          const userWithRoles = await storage.getUserWithRoles(user.id);
+          if (validationResult.data.status === "rejected" && userWithRoles?.roles?.admin) {
+            console.log(`Cannot reject admin user ${application.email}`);
+            // Still update the application but don't change admin user status
+          } else {
+            await storage.updateUserStatus(user.id, validationResult.data.status);
+          }
         } else {
           // User hasn't created an account yet - this is okay
-          console.log(`Application approved for ${application.email}, but user account not found yet`);
+          console.log(`Application ${validationResult.data.status} for ${application.email}, but user account not found yet`);
         }
       }
 
