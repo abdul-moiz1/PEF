@@ -323,19 +323,24 @@ export class FirestoreStorage implements IStorage {
         admin: wasAdmin || data.roles.admin || false,
       };
       
+      // IMPORTANT: Preserve rejection status - if a user was rejected by admin, don't auto-approve on re-login
+      const existingApprovalStatus = existingUserData.approvalStatus;
+      const existingStatus = existingUserData.status;
+      const wasRejected = existingApprovalStatus === "rejected" || existingStatus === "rejected";
+      
       // Consolidated structure: everything in one users document
       // Use merge to preserve existing fields set during registration
       const consolidatedUserData = {
         id: data.userId,
         email: data.email,
         displayName: data.displayName,
-        createdAt: new Date(),
+        createdAt: existingUserData.createdAt || new Date(),
         lastLogin: null,
-        // Auto-approve all new users - no admin approval needed
-        approvalStatus: "approved",
+        // Preserve rejection status - only auto-approve if not previously rejected
+        approvalStatus: wasRejected ? "rejected" : (existingApprovalStatus || "approved"),
         // Preserve existing fields
         name: existingUserData.name || data.profile.fullName,
-        status: "approved",
+        status: wasRejected ? "rejected" : (existingStatus || "approved"),
         lastUpdated: new Date(),
         profile: {
           fullName: data.profile.fullName,
@@ -364,9 +369,9 @@ export class FirestoreStorage implements IStorage {
         id: data.userId,
         email: data.email,
         displayName: data.displayName,
-        createdAt: new Date(),
+        createdAt: existingUserData.createdAt || new Date(),
         lastLogin: null,
-        approvalStatus: "approved",
+        approvalStatus: wasRejected ? "rejected" : (existingApprovalStatus || "approved"),
         preRegistered: false,
         preRegisteredAt: null,
         registrationSource: null,
