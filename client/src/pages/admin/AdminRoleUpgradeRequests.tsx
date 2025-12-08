@@ -226,7 +226,7 @@ export default function AdminRoleUpgradeRequests() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8 pt-24">
         <div className="flex items-center gap-4 mb-6">
           <Button variant="ghost" size="icon" onClick={() => setLocation("/admin")} data-testid="button-back">
             <ArrowLeft className="h-4 w-4" />

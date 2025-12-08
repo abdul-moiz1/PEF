@@ -4,15 +4,11 @@ import { useEffect } from "react";
 import { useMemberStatus } from "@/hooks/useMemberStatus";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, CheckCircle, XCircle } from "lucide-react";
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { currentUser, userData, loading: authLoading, logout } = useAuth();
-  const [location, setLocation] = useLocation();
-  const { status, data } = useMemberStatus();
-
-  // Check if user has admin role
-  const isAdmin = userData?.roles?.admin === true;
+  const { currentUser, loading: authLoading } = useAuth();
+  const [, setLocation] = useLocation();
+  const { status } = useMemberStatus();
 
   useEffect(() => {
     if (!authLoading && !currentUser) {
@@ -20,16 +16,6 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     }
   }, [currentUser, authLoading, setLocation]);
 
-  useEffect(() => {
-    if (!authLoading && currentUser && userData && status === "active") {
-      const isOnProfileCompletePage = location === "/profile/complete";
-      const profileCompleted = userData.profileCompleted === true;
-      
-      if (!profileCompleted && !isOnProfileCompletePage) {
-        setLocation("/profile/complete");
-      }
-    }
-  }, [authLoading, currentUser, userData, status, location, setLocation]);
 
   if (authLoading || status === "loading") {
     return (
