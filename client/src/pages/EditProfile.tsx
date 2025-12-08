@@ -19,6 +19,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { DocumentUpload } from "@/components/DocumentUpload";
 import type { Country, City, RoleUpgradeRequest } from "@shared/schema";
 
 const roles = [
@@ -297,25 +298,12 @@ function EditProfileContent() {
   const handleSave = async () => {
     if (!currentUser?.uid) return;
 
-    if (!Object.values(selectedRoles).some((v) => v)) {
-      toast({
-        title: "Error",
-        description: "Please select at least one role",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
       setSaving(true);
       const userRef = doc(db, "users", currentUser.uid);
 
-      // Build roles object - ALWAYS preserve admin status
-      const rolesToSave = {
-        ...selectedRoles,
-        admin: isAdmin, // Preserve admin flag
-      };
-
+      // Note: Roles are NOT saved here. Role changes require admin approval via upgrade requests.
+      // Only profile information and role-specific data is saved.
       await updateDoc(userRef, {
         name: profileData.name,
         country: profileData.country,
@@ -324,7 +312,6 @@ function EditProfileContent() {
         headline: profileData.headline,
         bio: profileData.bio,
         links: profileData.links,
-        roles: rolesToSave,
         professionalData,
         jobSeekerData,
         employerData,
@@ -358,12 +345,6 @@ function EditProfileContent() {
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleRoleToggle = (roleId: keyof typeof selectedRoles) => {
-    // Admin users have all roles locked - they cannot toggle them
-    if (isAdmin) return;
-    setSelectedRoles((prev) => ({ ...prev, [roleId]: !prev[roleId] }));
   };
 
   if (loading) {
@@ -745,26 +726,19 @@ function EditProfileContent() {
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
+                <DocumentUpload
+                  value={proofUrl}
+                  onChange={(url) => setProofUrl(url || "")}
+                  label="Upload Proof Document"
+                  description="Upload supporting documents (business registration, certifications, portfolio, etc.)"
+                />
                 <div>
-                  <Label htmlFor="proofUrl">Proof Document URL (Optional)</Label>
-                  <Input
-                    id="proofUrl"
-                    value={proofUrl}
-                    onChange={(e) => setProofUrl(e.target.value)}
-                    placeholder="https://link-to-your-proof-document"
-                    data-testid="input-proof-url"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Provide a link to supporting documents (LinkedIn, portfolio, business registration, etc.)
-                  </p>
-                </div>
-                <div>
-                  <Label htmlFor="proofDescription">Description (Optional)</Label>
+                  <Label htmlFor="proofDescription">Description</Label>
                   <Textarea
                     id="proofDescription"
                     value={proofDescription}
                     onChange={(e) => setProofDescription(e.target.value)}
-                    placeholder="Briefly explain why you need this role..."
+                    placeholder="Briefly explain why you need this role and describe the uploaded document..."
                     data-testid="textarea-proof-description"
                   />
                 </div>
