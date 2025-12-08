@@ -44,6 +44,7 @@ import BusinessView from "@/pages/business/BusinessView";
 import BrowseJobs from "@/pages/browse/BrowseJobs";
 import BrowseOpportunities from "@/pages/browse/BrowseOpportunities";
 import NotFound from "@/pages/not-found";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 function Router() {
   return (
@@ -64,28 +65,72 @@ function Router() {
       <Route path="/edit-profile" component={EditProfile} />
       <Route path="/profile/complete" component={ProfileComplete} />
       <Route path="/profile/edit" component={ProfileEdit} />
-      <Route path="/dashboard" component={Dashboard} />
-      <Route path="/dashboard/professional" component={ProfessionalDashboard} />
-      <Route path="/dashboard/job-seeker" component={JobSeekerDashboard} />
-      <Route path="/dashboard/employer" component={EmployerDashboard} />
-      <Route path="/dashboard/business-owner" component={BusinessOwnerDashboard} />
-      <Route path="/dashboard/investor" component={InvestorDashboard} />
-      <Route path="/job/create" component={JobCreate} />
-      <Route path="/job/:id/applicants" component={JobApplicants} />
-      <Route path="/job/:id" component={JobView} />
-      <Route path="/business/create" component={BusinessCreate} />
-      <Route path="/business/:id" component={BusinessView} />
-      <Route path="/browse/jobs" component={BrowseJobs} />
-      <Route path="/browse/opportunities" component={BrowseOpportunities} />
-      <Route path="/admin" component={AdminDashboard} />
-      <Route path="/admin/leadership" component={AdminLeadership} />
-      <Route path="/admin/gallery" component={AdminGallery} />
-      <Route path="/admin/opportunities" component={AdminOpportunities} />
-      <Route path="/admin/membership" component={AdminMembership} />
-      <Route path="/admin/locations" component={AdminLocations} />
-      <Route path="/admin/media" component={AdminMedia} />
-      <Route path="/admin/fields" component={AdminFieldsManagement} />
-      <Route path="/admin/role-upgrade-requests" component={AdminRoleUpgradeRequests} />
+      <Route path="/dashboard">
+        {() => <ProtectedRoute><Dashboard /></ProtectedRoute>}
+      </Route>
+      <Route path="/dashboard/professional">
+        {() => <ProtectedRoute><ProfessionalDashboard /></ProtectedRoute>}
+      </Route>
+      <Route path="/dashboard/job-seeker">
+        {() => <ProtectedRoute><JobSeekerDashboard /></ProtectedRoute>}
+      </Route>
+      <Route path="/dashboard/employer">
+        {() => <ProtectedRoute><EmployerDashboard /></ProtectedRoute>}
+      </Route>
+      <Route path="/dashboard/business-owner">
+        {() => <ProtectedRoute><BusinessOwnerDashboard /></ProtectedRoute>}
+      </Route>
+      <Route path="/dashboard/investor">
+        {() => <ProtectedRoute><InvestorDashboard /></ProtectedRoute>}
+      </Route>
+      <Route path="/job/create">
+        {() => <ProtectedRoute><JobCreate /></ProtectedRoute>}
+      </Route>
+      <Route path="/job/:id/applicants">
+        {(params) => <ProtectedRoute><JobApplicants /></ProtectedRoute>}
+      </Route>
+      <Route path="/job/:id">
+        {(params) => <ProtectedRoute><JobView /></ProtectedRoute>}
+      </Route>
+      <Route path="/business/create">
+        {() => <ProtectedRoute><BusinessCreate /></ProtectedRoute>}
+      </Route>
+      <Route path="/business/:id">
+        {(params) => <ProtectedRoute><BusinessView /></ProtectedRoute>}
+      </Route>
+      <Route path="/browse/jobs">
+        {() => <ProtectedRoute><BrowseJobs /></ProtectedRoute>}
+      </Route>
+      <Route path="/browse/opportunities">
+        {() => <ProtectedRoute><BrowseOpportunities /></ProtectedRoute>}
+      </Route>
+      <Route path="/admin">
+        {() => <ProtectedRoute><AdminDashboard /></ProtectedRoute>}
+      </Route>
+      <Route path="/admin/leadership">
+        {() => <ProtectedRoute><AdminLeadership /></ProtectedRoute>}
+      </Route>
+      <Route path="/admin/gallery">
+        {() => <ProtectedRoute><AdminGallery /></ProtectedRoute>}
+      </Route>
+      <Route path="/admin/opportunities">
+        {() => <ProtectedRoute><AdminOpportunities /></ProtectedRoute>}
+      </Route>
+      <Route path="/admin/membership">
+        {() => <ProtectedRoute><AdminMembership /></ProtectedRoute>}
+      </Route>
+      <Route path="/admin/locations">
+        {() => <ProtectedRoute><AdminLocations /></ProtectedRoute>}
+      </Route>
+      <Route path="/admin/media">
+        {() => <ProtectedRoute><AdminMedia /></ProtectedRoute>}
+      </Route>
+      <Route path="/admin/fields">
+        {() => <ProtectedRoute><AdminFieldsManagement /></ProtectedRoute>}
+      </Route>
+      <Route path="/admin/role-upgrade-requests">
+        {() => <ProtectedRoute><AdminRoleUpgradeRequests /></ProtectedRoute>}
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );
