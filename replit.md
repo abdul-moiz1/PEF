@@ -7,6 +7,11 @@ The Professional Executive Forum (PEF) is a global digital platform designed to 
 Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (Dec 8, 2025)
+- **Role Upgrade Request with Document Upload** - Users can no longer directly edit roles; must submit upgrade requests with proof document uploads for admin approval
+- **Read-Only Role Display** - EditProfile roles tab now shows current roles as read-only status cards with "Active" or "Pending" badges
+- **DocumentUpload Component** - New reusable component (`client/src/components/DocumentUpload.tsx`) for uploading proof documents (images, PDFs, Word docs up to 10MB)
+- **Profile Save Without Roles** - handleSave function no longer persists role changes; only profile data and role-specific details are saved
+- **Registration Form Field Selection** - Added Professional Field and Specialization dropdowns to registration form using admin-managed fields from `/api/fields`
 - **Admin-Managed Fields Configuration** - New `/admin/fields` page for managing Main Fields (Electrical, Mechanical, Civil, etc.) and dependent Sub-Fields with sort order
 - **Role Upgrade Request System** - New `/admin/role-upgrade-requests` page for reviewing and approving/rejecting role upgrade requests with proof validation
 - **Chapter Admin Role** - Added Chapter Admin role schema for regional management capabilities
