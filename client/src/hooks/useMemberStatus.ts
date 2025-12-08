@@ -55,8 +55,8 @@ export function useMemberStatus() {
           return { status: "unregistered" as MemberStatus };
         }
 
-        // Check if user has been rejected (explicit rejection only)
-        const approvalStatus = data.user.approvalStatus;
+        // Check if user has been rejected (check both status and approvalStatus for compatibility)
+        const approvalStatus = data.user.approvalStatus || data.user.status;
         if (approvalStatus === "rejected") {
           return {
             status: "rejected" as MemberStatus,

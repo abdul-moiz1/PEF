@@ -1005,6 +1005,7 @@ export class FirestoreStorage implements IStorage {
     const userRef = doc(db, "users", userId);
     await updateDoc(userRef, {
       status,
+      approvalStatus: status,
       lastUpdated: new Date(),
     });
   }
