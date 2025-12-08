@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,15 +8,18 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { Briefcase, Search, Building2, Handshake, TrendingUp, Save, Loader2 } from "lucide-react";
+import { Briefcase, Search, Building2, Handshake, TrendingUp, Save, Loader2, Clock, CheckCircle2, XCircle, Upload, Plus } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { Country, City } from "@shared/schema";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import type { Country, City, RoleUpgradeRequest } from "@shared/schema";
 
 const roles = [
   {
@@ -64,6 +67,8 @@ function EditProfileContent() {
     email: "",
     country: "",
     city: "",
+    phoneCode: "",
+    phone: "",
     languages: [] as string[],
     headline: "",
     bio: "",
@@ -95,6 +100,43 @@ function EditProfileContent() {
   
   // Track admin status separately - this should never be modified by user
   const [isAdmin, setIsAdmin] = useState(false);
+  
+  // Role upgrade request state
+  const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
+  const [requestingRole, setRequestingRole] = useState<string | null>(null);
+  const [proofUrl, setProofUrl] = useState("");
+  const [proofDescription, setProofDescription] = useState("");
+  
+  // Fetch user's existing role upgrade requests
+  const { data: myRoleRequests = [] } = useQuery<RoleUpgradeRequest[]>({
+    queryKey: ["/api/role-upgrade-requests"],
+    enabled: !!currentUser,
+  });
+  
+  // Mutation for creating role upgrade request
+  const createRequestMutation = useMutation({
+    mutationFn: async (data: { requestedRole: string; proofUrl?: string; proofDescription?: string }) => {
+      return apiRequest("POST", "/api/role-upgrade-requests", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/role-upgrade-requests"] });
+      setIsRequestDialogOpen(false);
+      setRequestingRole(null);
+      setProofUrl("");
+      setProofDescription("");
+      toast({
+        title: "Request Submitted",
+        description: "Your role upgrade request has been submitted for admin review.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to submit request",
+        variant: "destructive",
+      });
+    },
+  });
 
   // Role-specific data
   const [professionalData, setProfessionalData] = useState({
@@ -152,6 +194,8 @@ function EditProfileContent() {
             email: data.email || currentUser.email || "",
             country: data.country || "",
             city: data.city || "",
+            phoneCode: data.phoneCode || "",
+            phone: data.phone || "",
             languages: data.languages || [],
             headline: data.headline || "",
             bio: data.bio || "",
@@ -433,7 +477,7 @@ function EditProfileContent() {
                         .filter((c) => c.phoneCode && c.phoneCode.trim())
                         .reduce((acc: { code: string }[], country) => {
                           const existing = acc.find((item) => item.code === country.phoneCode);
-                          if (!existing) {
+                          if (!existing && country.phoneCode) {
                             acc.push({ code: country.phoneCode });
                           }
                           return acc;
@@ -563,18 +607,18 @@ function EditProfileContent() {
         <TabsContent value="roles" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Your Roles</CardTitle>
+              <CardTitle>Your Current Roles</CardTitle>
               <CardDescription>
                 {isAdmin 
                   ? "As an admin, you have access to all roles automatically" 
-                  : "Select the roles that apply to you"}
+                  : "Your active roles are shown below. To add a new role, submit a request for admin approval."}
               </CardDescription>
             </CardHeader>
             <CardContent>
               {isAdmin && (
                 <div className="mb-4 p-4 bg-primary/10 rounded-md border border-primary/20">
                   <p className="text-sm text-foreground">
-                    <strong>Admin Access:</strong> You have full access to all roles and their features. Role selections are locked.
+                    <strong>Admin Access:</strong> You have full access to all roles and their features.
                   </p>
                 </div>
               )}
@@ -582,16 +626,20 @@ function EditProfileContent() {
                 {roles.map((role) => {
                   const Icon = role.icon;
                   const isSelected = selectedRoles[role.id as keyof typeof selectedRoles];
+                  const pendingRequest = myRoleRequests.find(
+                    (r) => r.requestedRole === role.id && r.status === "pending"
+                  );
 
                   return (
                     <Card
                       key={role.id}
                       className={`transition-all border-2 ${
-                        isAdmin 
-                          ? "cursor-default border-primary bg-primary/5 opacity-90" 
-                          : `cursor-pointer hover-elevate ${isSelected ? "border-primary bg-primary/5" : "border-border"}`
+                        isSelected 
+                          ? "border-primary bg-primary/5" 
+                          : pendingRequest 
+                            ? "border-yellow-500/50 bg-yellow-50/50 dark:bg-yellow-900/10"
+                            : "border-border"
                       }`}
-                      onClick={() => handleRoleToggle(role.id as keyof typeof selectedRoles)}
                       data-testid={`card-role-${role.id}`}
                     >
                       <CardContent className="p-6">
@@ -599,28 +647,150 @@ function EditProfileContent() {
                           <div className="w-12 h-12 bg-primary/10 rounded-md flex items-center justify-center">
                             <Icon className="w-6 h-6 text-primary" />
                           </div>
-                          <Checkbox
-                            checked={isSelected}
-                            disabled={isAdmin}
-                            data-testid={`checkbox-${role.id}`}
-                            className="pointer-events-none"
-                          />
+                          {isSelected ? (
+                            <Badge variant="default" className="bg-green-600">
+                              <CheckCircle2 className="w-3 h-3 mr-1" />
+                              Active
+                            </Badge>
+                          ) : pendingRequest ? (
+                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400">
+                              <Clock className="w-3 h-3 mr-1" />
+                              Pending
+                            </Badge>
+                          ) : null}
                         </div>
                         <h4 className="font-bold mb-2">{role.title}</h4>
-                        <p className="text-sm text-muted-foreground">{role.description}</p>
+                        <p className="text-sm text-muted-foreground mb-3">{role.description}</p>
+                        
+                        {!isAdmin && !isSelected && !pendingRequest && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => {
+                              setRequestingRole(role.id);
+                              setIsRequestDialogOpen(true);
+                            }}
+                            data-testid={`button-request-${role.id}`}
+                          >
+                            <Plus className="w-4 h-4 mr-1" />
+                            Request This Role
+                          </Button>
+                        )}
                       </CardContent>
                     </Card>
                   );
                 })}
               </div>
-
-              {!Object.values(selectedRoles).some((v) => v) && !isAdmin && (
-                <p className="text-center text-destructive text-sm mt-4">
-                  Please select at least one role
-                </p>
-              )}
             </CardContent>
           </Card>
+          
+          {/* Pending Role Requests */}
+          {myRoleRequests.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Your Role Requests</CardTitle>
+                <CardDescription>Track the status of your role upgrade requests</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {myRoleRequests.map((request) => {
+                    const roleInfo = roles.find((r) => r.id === request.requestedRole);
+                    return (
+                      <div
+                        key={request.id}
+                        className="flex items-center justify-between p-3 border rounded-md"
+                        data-testid={`request-item-${request.id}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="font-medium">{roleInfo?.title || request.requestedRole}</span>
+                          {request.status === "pending" && (
+                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400">
+                              <Clock className="w-3 h-3 mr-1" />
+                              Pending Review
+                            </Badge>
+                          )}
+                          {request.status === "approved" && (
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400">
+                              <CheckCircle2 className="w-3 h-3 mr-1" />
+                              Approved
+                            </Badge>
+                          )}
+                          {request.status === "rejected" && (
+                            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400">
+                              <XCircle className="w-3 h-3 mr-1" />
+                              Rejected
+                            </Badge>
+                          )}
+                        </div>
+                        {request.adminNotes && (
+                          <p className="text-sm text-muted-foreground">{request.adminNotes}</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
+          {/* Role Request Dialog */}
+          <Dialog open={isRequestDialogOpen} onOpenChange={setIsRequestDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Request Role Upgrade</DialogTitle>
+                <DialogDescription>
+                  Submit a request to add the "{roles.find((r) => r.id === requestingRole)?.title}" role to your profile.
+                  An admin will review your request.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="proofUrl">Proof Document URL (Optional)</Label>
+                  <Input
+                    id="proofUrl"
+                    value={proofUrl}
+                    onChange={(e) => setProofUrl(e.target.value)}
+                    placeholder="https://link-to-your-proof-document"
+                    data-testid="input-proof-url"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Provide a link to supporting documents (LinkedIn, portfolio, business registration, etc.)
+                  </p>
+                </div>
+                <div>
+                  <Label htmlFor="proofDescription">Description (Optional)</Label>
+                  <Textarea
+                    id="proofDescription"
+                    value={proofDescription}
+                    onChange={(e) => setProofDescription(e.target.value)}
+                    placeholder="Briefly explain why you need this role..."
+                    data-testid="textarea-proof-description"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsRequestDialogOpen(false)} data-testid="button-cancel-request">
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (requestingRole) {
+                      createRequestMutation.mutate({
+                        requestedRole: requestingRole,
+                        proofUrl: proofUrl || undefined,
+                        proofDescription: proofDescription || undefined,
+                      });
+                    }
+                  }}
+                  disabled={createRequestMutation.isPending}
+                  data-testid="button-submit-request"
+                >
+                  {createRequestMutation.isPending ? "Submitting..." : "Submit Request"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         <TabsContent value="role-details" className="space-y-6">

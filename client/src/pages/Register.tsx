@@ -17,6 +17,7 @@ import { SiLinkedin } from "react-icons/si";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { checkEmailForJoinNow } from "@/lib/emailValidation";
 import { transformRolesToPrefixed } from "@shared/roleUtils";
+import type { FieldsConfig } from "@shared/schema";
 
 const roles = [
   {
@@ -104,6 +105,8 @@ export default function Register() {
     phone: "",
     country: "",
     city: "",
+    field: "",
+    subField: "",
     languages: "",
     headline: "",
     bio: "",
@@ -120,6 +123,16 @@ export default function Register() {
     queryKey: ["/api/locations/countries", basicInfo.country, "cities"],
     enabled: !!basicInfo.country,
   });
+
+  // Fetch professional fields from admin-managed fields
+  const { data: allFields = [] } = useQuery<FieldsConfig[]>({
+    queryKey: ["/api/fields"],
+  });
+
+  const mainFields = allFields.filter((f) => f.isMainField && f.enabled);
+  const subFields = allFields.filter(
+    (f) => !f.isMainField && f.enabled && f.parentId === basicInfo.field
+  );
 
   const selectedCountry = countries.find(c => c.id === basicInfo.country);
 
@@ -255,6 +268,8 @@ export default function Register() {
         phone: basicInfo.phone?.trim() ? `${basicInfo.phoneCode} ${basicInfo.phone.trim()}` : "",
         country: basicInfo.country,
         city: basicInfo.city?.trim() || "",
+        field: basicInfo.field || "",
+        subField: basicInfo.subField || "",
         languages: basicInfo.languages?.trim() ? basicInfo.languages.split(",").map(l => l.trim()).filter(Boolean) : [],
         headline: basicInfo.headline?.trim() || "",
         bio: basicInfo.bio?.trim() || "",
@@ -487,6 +502,51 @@ export default function Register() {
                             ))}
                           </SelectContent>
                         </Select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="field">Professional Field</Label>
+                        <Select
+                          value={basicInfo.field}
+                          onValueChange={(value) => {
+                            setBasicInfo(prev => ({ ...prev, field: value, subField: "" }));
+                          }}
+                        >
+                          <SelectTrigger id="field" data-testid="select-field">
+                            <SelectValue placeholder="Select your field" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {mainFields.map((field) => (
+                              <SelectItem key={field.id} value={field.id}>
+                                {field.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">Your primary area of expertise</p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="subField">Specialization</Label>
+                        <Select
+                          value={basicInfo.subField}
+                          onValueChange={(value) => handleBasicInfoChange("subField", value)}
+                          disabled={!basicInfo.field || subFields.length === 0}
+                        >
+                          <SelectTrigger id="subField" data-testid="select-sub-field">
+                            <SelectValue placeholder={basicInfo.field ? (subFields.length > 0 ? "Select specialization" : "No specializations available") : "Select field first"} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {subFields.map((sub) => (
+                              <SelectItem key={sub.id} value={sub.id}>
+                                {sub.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">Your specific area of specialization</p>
                       </div>
                     </div>
 
