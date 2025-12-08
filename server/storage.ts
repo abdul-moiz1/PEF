@@ -303,6 +303,12 @@ export class FirestoreStorage implements IStorage {
       const existingUserSnap = await getDoc(doc(db, "users", data.userId));
       const existingUserData = existingUserSnap.exists() ? existingUserSnap.data() : {};
       
+      // DEBUG: Log what we're reading from Firestore
+      console.log("======= DEBUG: completeRegistration =======");
+      console.log("User ID:", data.userId);
+      console.log("Existing approvalStatus:", existingUserData.approvalStatus);
+      console.log("Existing status:", existingUserData.status);
+      
       // IMPORTANT: Preserve existing admin status - never remove admin role during registration
       const existingRoles = existingUserData.roles || {};
       const wasAdmin = existingRoles.isAdmin === true || existingRoles.admin === true;
@@ -327,6 +333,9 @@ export class FirestoreStorage implements IStorage {
       const existingApprovalStatus = existingUserData.approvalStatus;
       const existingStatus = existingUserData.status;
       const wasRejected = existingApprovalStatus === "rejected" || existingStatus === "rejected";
+      
+      console.log("wasRejected:", wasRejected);
+      console.log("============================================");
       
       // Consolidated structure: everything in one users document
       // Use merge to preserve existing fields set during registration
