@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Briefcase, Award, Building2, TrendingUp, Users, Edit, Plus, Eye, Network, Target } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { OnboardingCard } from "@/components/OnboardingCard";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import type { Opportunity } from "@shared/schema";
@@ -163,37 +162,6 @@ export default function ProfessionalDashboard() {
             </Button>
           </div>
         </div>
-
-        <div className="mb-6">
-          <OnboardingCard roleType="professional" />
-        </div>
-
-        {completeness < 100 && (
-          <Card className="mb-6 border-orange-200 dark:border-orange-800">
-            <CardContent className="pt-6">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex-1">
-                  <h3 className="font-semibold mb-1">Complete Your Profile</h3>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    {completeness}% complete - Add more details to increase your visibility
-                  </p>
-                  <div className="w-full bg-muted rounded-full h-2">
-                    <div 
-                      className="bg-primary h-2 rounded-full transition-all" 
-                      style={{ width: `${completeness}%` }}
-                    />
-                  </div>
-                </div>
-                <Button 
-                  onClick={() => setLocation("/edit-profile")} 
-                  data-testid="button-complete-profile"
-                >
-                  Complete Profile
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <Card>

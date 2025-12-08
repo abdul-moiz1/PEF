@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Users, Briefcase, TrendingUp, Eye, FileText, Trash2 } from "lucide-react";
-import { OnboardingCard } from "@/components/OnboardingCard";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -140,10 +139,6 @@ export default function EmployerDashboard() {
             </Button>
           </div>
           <p className="text-muted-foreground">Manage your job postings and find talent</p>
-        </div>
-
-        <div className="mb-6">
-          <OnboardingCard roleType="employer" />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
