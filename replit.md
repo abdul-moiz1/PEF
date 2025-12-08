@@ -7,6 +7,13 @@ The Professional Executive Forum (PEF) is a global digital platform designed to 
 Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (Dec 8, 2025)
+- **Rejected User Access Block** - Rejected/suspended users can no longer access the dashboard; they see a beautiful suspension message on login with options to contact support or sign out
+  - Added `useMemberStatus` hook check in Login.tsx to block rejected users
+  - Shows "Account Suspended" message with clear explanation and action buttons
+  - Prevents redirect to dashboard until member status is verified
+- **Page Scroll Reset on Navigation** - Added ScrollToTop component in App.tsx that resets scroll position to top when navigating between pages
+  - Fixes issue where scroll position was retained when moving between pages
+  - Works with all navigation including navbar clicks
 - **Dashboard Onboarding Cards** - Added reusable OnboardingCard component to collect role-specific data inline on dashboards after login
   - Integrated into all 5 dashboard types: Job Seeker, Professional, Employer, Business Owner, and Investor
   - Role-specific form fields: education, skills, experience (Job Seeker/Professional), company info (Employer), business details (Business Owner), investment preferences (Investor)
