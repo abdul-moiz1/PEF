@@ -31,6 +31,8 @@ import AdminOpportunities from "@/pages/admin/AdminOpportunities";
 import AdminMembership from "@/pages/admin/AdminMembership";
 import AdminLocations from "@/pages/admin/AdminLocations";
 import AdminMedia from "@/pages/admin/AdminMedia";
+import AdminFieldsManagement from "@/pages/admin/AdminFieldsManagement";
+import AdminRoleUpgradeRequests from "@/pages/admin/AdminRoleUpgradeRequests";
 import ProfileComplete from "@/pages/ProfileComplete";
 import ProfileEdit from "@/pages/ProfileEdit";
 import JobCreate from "@/pages/job/JobCreate";
@@ -81,6 +83,8 @@ function Router() {
       <Route path="/admin/membership" component={AdminMembership} />
       <Route path="/admin/locations" component={AdminLocations} />
       <Route path="/admin/media" component={AdminMedia} />
+      <Route path="/admin/fields" component={AdminFieldsManagement} />
+      <Route path="/admin/role-upgrade-requests" component={AdminRoleUpgradeRequests} />
       <Route component={NotFound} />
     </Switch>
   );

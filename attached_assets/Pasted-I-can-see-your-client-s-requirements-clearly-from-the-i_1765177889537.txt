@@ -1,0 +1,46 @@
+I can see your client's requirements clearly from the images. Let me summarize what needs to be built:
+
+Overall Mechanism:
+
+5 Public Role Dashboards: Job Seeker, Employer/Recruiter, Professional, Business Owner, Investor
+Admin Dashboard (manages whole website)
+Chapter Admin Dashboard (manages chapter-level members, reviews regional job posts)
+Signup Form (Basic Details):
+
+Full Name, Email, Country Code, Phone, Country, City, Languages
+Basic Profile: Professional Headline, Bio, LinkedIn URL (optional), Website (optional)
+Role Selection (mandatory): Job Seeker, Professional, Employer/Recruiter, Business Owner, Investor
+Role-Specific Dashboards (After Signup):
+
+Job Seeker: Education Level, Field, Sub-Field, Years of Experience, Skills
+Professional: Current Job Title, Education Level, Field, Sub-Field, Experience Level, Skills
+Employer/Recruiter: Company Name, Company Website, Job Posting Permissions, Field
+Business Owner: Company/Business Description, Business Sector, Business Stage, Investment Required, Partnerships Needed
+Investor: Investment Sectors (multi-select), Investment Range
+Let me quickly check what's already implemented in the codebase so I can plan what needs to be added or modified.
+
+
+Searched for "What user roles and dashboard types are currently implemented in this application?"
+
+Planned role dashboard integration (15 seconds)
+Based on my analysis of your codebase, here's what I found:
+
+Already Implemented:
+
+5 Role Dashboards (Job Seeker, Professional, Employer, Business Owner, Investor)
+Admin Dashboard
+Basic user profile schema (Full Name, Phone, Country, City, Languages, Headline, Bio, LinkedIn, Website)
+Role-specific profile tables for all 5 roles
+What Needs to be Added/Modified:
+
+Chapter Admin Dashboard - Not yet implemented (for managing chapter-level members and reviewing regional job posts)
+
+Update Signup Form - Add country code field separately, ensure Role Selection is mandatory
+
+Update Role-Specific Profiles to match your client's exact fields:
+
+Job Seeker: Add Education Level, Field, Sub-Field, Years of Experience, Skills
+Professional: Add Education Level, Field, Sub-Field (keep Current Job Title, Experience level, Skills)
+Employer: Add Company Website, Job Posting Permissions, Field
+Business Owner: Add Business Stage (Startup/Growing/Established), Investment Required (Yes/No), Partnerships Needed (Yes/No)
+Investor: Update Investment Sectors with the specific multi-select options (Technology/IT/SaaS, Healthcare/MedTech, etc.)

@@ -2596,6 +2596,399 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Fields Configuration Routes (Admin-managed dropdowns)
+  app.get("/api/fields", async (req, res) => {
+    try {
+      const fields = await storage.getAllFieldsConfig();
+      return res.json(fields);
+    } catch (error) {
+      console.error("Error fetching fields:", error);
+      return res.status(500).json({ error: "Failed to fetch fields" });
+    }
+  });
+
+  app.get("/api/fields/main", async (req, res) => {
+    try {
+      const mainFields = await storage.getMainFields();
+      return res.json(mainFields);
+    } catch (error) {
+      console.error("Error fetching main fields:", error);
+      return res.status(500).json({ error: "Failed to fetch main fields" });
+    }
+  });
+
+  app.get("/api/fields/sub/:parentId", async (req, res) => {
+    try {
+      const { parentId } = req.params;
+      const subFields = await storage.getSubFieldsByParentId(parentId);
+      return res.json(subFields);
+    } catch (error) {
+      console.error("Error fetching sub fields:", error);
+      return res.status(500).json({ error: "Failed to fetch sub fields" });
+    }
+  });
+
+  app.post("/api/admin/fields", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      const uid = await verifyAuthToken(token);
+      
+      const userWithRoles = await storage.getUserWithRoles(uid);
+      if (!userWithRoles || !userWithRoles.roles?.admin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { name, parentId, isMainField, sortOrder, enabled } = req.body;
+      if (!name) {
+        return res.status(400).json({ error: "Field name is required" });
+      }
+
+      const field = await storage.createFieldConfig({
+        name,
+        parentId: parentId || null,
+        isMainField: isMainField ?? (parentId ? false : true),
+        sortOrder: sortOrder ?? 0,
+        enabled: enabled ?? true,
+      });
+      
+      return res.status(201).json(field);
+    } catch (error) {
+      console.error("Error creating field:", error);
+      return res.status(500).json({ error: "Failed to create field" });
+    }
+  });
+
+  app.patch("/api/admin/fields/:id", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      const uid = await verifyAuthToken(token);
+      
+      const userWithRoles = await storage.getUserWithRoles(uid);
+      if (!userWithRoles || !userWithRoles.roles?.admin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const updated = await storage.updateFieldConfig(id, req.body);
+      if (!updated) {
+        return res.status(404).json({ error: "Field not found" });
+      }
+      
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error updating field:", error);
+      return res.status(500).json({ error: "Failed to update field" });
+    }
+  });
+
+  app.delete("/api/admin/fields/:id", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      const uid = await verifyAuthToken(token);
+      
+      const userWithRoles = await storage.getUserWithRoles(uid);
+      if (!userWithRoles || !userWithRoles.roles?.admin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      await storage.deleteFieldConfig(id);
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting field:", error);
+      return res.status(500).json({ error: "Failed to delete field" });
+    }
+  });
+
+  // Role Upgrade Requests Routes
+  app.get("/api/role-upgrade-requests", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      const uid = await verifyAuthToken(token);
+
+      const requests = await storage.getRoleUpgradeRequestsByUserId(uid);
+      return res.json(requests);
+    } catch (error) {
+      console.error("Error fetching role upgrade requests:", error);
+      return res.status(500).json({ error: "Failed to fetch requests" });
+    }
+  });
+
+  app.post("/api/role-upgrade-requests", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      const uid = await verifyAuthToken(token);
+
+      const { requestedRole, proofUrl, proofDescription } = req.body;
+      if (!requestedRole) {
+        return res.status(400).json({ error: "Requested role is required" });
+      }
+
+      const userWithRoles = await storage.getUserWithRoles(uid);
+      const currentRoles = userWithRoles?.roles ? {
+        professional: userWithRoles.roles.professional,
+        jobSeeker: userWithRoles.roles.jobSeeker,
+        employer: userWithRoles.roles.employer,
+        businessOwner: userWithRoles.roles.businessOwner,
+        investor: userWithRoles.roles.investor,
+      } : {};
+
+      const request = await storage.createRoleUpgradeRequest({
+        userId: uid,
+        requestedRole,
+        currentRoles,
+        proofUrl: proofUrl || null,
+        proofDescription: proofDescription || null,
+        status: "pending",
+        adminNotes: null,
+        reviewedBy: null,
+      });
+      
+      return res.status(201).json(request);
+    } catch (error) {
+      console.error("Error creating role upgrade request:", error);
+      return res.status(500).json({ error: "Failed to create request" });
+    }
+  });
+
+  app.get("/api/admin/role-upgrade-requests", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      const uid = await verifyAuthToken(token);
+      
+      const userWithRoles = await storage.getUserWithRoles(uid);
+      if (!userWithRoles || !userWithRoles.roles?.admin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const requests = await storage.getAllRoleUpgradeRequests();
+      return res.json(requests);
+    } catch (error) {
+      console.error("Error fetching role upgrade requests:", error);
+      return res.status(500).json({ error: "Failed to fetch requests" });
+    }
+  });
+
+  app.get("/api/admin/role-upgrade-requests/pending", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      const uid = await verifyAuthToken(token);
+      
+      const userWithRoles = await storage.getUserWithRoles(uid);
+      if (!userWithRoles || !userWithRoles.roles?.admin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const requests = await storage.getPendingRoleUpgradeRequests();
+      return res.json(requests);
+    } catch (error) {
+      console.error("Error fetching pending requests:", error);
+      return res.status(500).json({ error: "Failed to fetch requests" });
+    }
+  });
+
+  app.post("/api/admin/role-upgrade-requests/:id/approve", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      const uid = await verifyAuthToken(token);
+      
+      const userWithRoles = await storage.getUserWithRoles(uid);
+      if (!userWithRoles || !userWithRoles.roles?.admin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const updated = await storage.approveRoleUpgradeRequest(id, uid);
+      if (!updated) {
+        return res.status(404).json({ error: "Request not found" });
+      }
+      
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error approving request:", error);
+      return res.status(500).json({ error: "Failed to approve request" });
+    }
+  });
+
+  app.post("/api/admin/role-upgrade-requests/:id/reject", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      const uid = await verifyAuthToken(token);
+      
+      const userWithRoles = await storage.getUserWithRoles(uid);
+      if (!userWithRoles || !userWithRoles.roles?.admin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const { notes } = req.body;
+      const updated = await storage.rejectRoleUpgradeRequest(id, uid, notes);
+      if (!updated) {
+        return res.status(404).json({ error: "Request not found" });
+      }
+      
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error rejecting request:", error);
+      return res.status(500).json({ error: "Failed to reject request" });
+    }
+  });
+
+  // Chapter Admin Routes
+  app.get("/api/admin/chapter-admins", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      const uid = await verifyAuthToken(token);
+      
+      const userWithRoles = await storage.getUserWithRoles(uid);
+      if (!userWithRoles || !userWithRoles.roles?.admin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const chapterAdmins = await storage.getAllChapterAdmins();
+      return res.json(chapterAdmins);
+    } catch (error) {
+      console.error("Error fetching chapter admins:", error);
+      return res.status(500).json({ error: "Failed to fetch chapter admins" });
+    }
+  });
+
+  app.post("/api/admin/chapter-admins", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      const uid = await verifyAuthToken(token);
+      
+      const userWithRoles = await storage.getUserWithRoles(uid);
+      if (!userWithRoles || !userWithRoles.roles?.admin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { userId, countryId, cityId, permissions } = req.body;
+      if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+      }
+
+      const chapterAdmin = await storage.createChapterAdmin({
+        userId,
+        countryId: countryId || null,
+        cityId: cityId || null,
+        permissions: permissions || null,
+      });
+      
+      return res.status(201).json(chapterAdmin);
+    } catch (error) {
+      console.error("Error creating chapter admin:", error);
+      return res.status(500).json({ error: "Failed to create chapter admin" });
+    }
+  });
+
+  app.patch("/api/admin/chapter-admins/:id", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      const uid = await verifyAuthToken(token);
+      
+      const userWithRoles = await storage.getUserWithRoles(uid);
+      if (!userWithRoles || !userWithRoles.roles?.admin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const updated = await storage.updateChapterAdmin(id, req.body);
+      if (!updated) {
+        return res.status(404).json({ error: "Chapter admin not found" });
+      }
+      
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error updating chapter admin:", error);
+      return res.status(500).json({ error: "Failed to update chapter admin" });
+    }
+  });
+
+  app.delete("/api/admin/chapter-admins/:id", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      const uid = await verifyAuthToken(token);
+      
+      const userWithRoles = await storage.getUserWithRoles(uid);
+      if (!userWithRoles || !userWithRoles.roles?.admin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      await storage.deleteChapterAdmin(id);
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting chapter admin:", error);
+      return res.status(500).json({ error: "Failed to delete chapter admin" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

@@ -21,6 +21,9 @@ export const investmentTypeEnum = pgEnum("investment_type", ["equity", "partners
 export const opportunityTypeEnum = pgEnum("opportunity_type", ["job", "investment", "partnership", "collaboration"]);
 export const opportunityStatusEnum = pgEnum("opportunity_status", ["open", "closed"]);
 export const applicationStatusEnum = pgEnum("application_status", ["applied", "under_review", "interview", "offer", "rejected", "withdrawn"]);
+export const businessStageEnum = pgEnum("business_stage", ["startup", "growing", "established"]);
+export const experienceLevelEnum = pgEnum("experience_level", ["entry", "junior", "mid", "senior", "expert"]);
+export const educationLevelEnum = pgEnum("education_level", ["high_school", "diploma", "bachelors", "masters", "phd", "other"]);
 
 export const users = pgTable("users", {
   id: varchar("id", { length: 128 }).primaryKey(),
@@ -38,6 +41,7 @@ export const userProfiles = pgTable("user_profiles", {
   id: varchar("id", { length: 128 }).primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id", { length: 128 }).notNull().references(() => users.id, { onDelete: "cascade" }),
   fullName: text("full_name").notNull(),
+  countryCode: varchar("country_code", { length: 10 }),
   phone: varchar("phone", { length: 50 }),
   country: varchar("country", { length: 100 }).notNull(),
   city: varchar("city", { length: 100 }),
@@ -60,17 +64,22 @@ export const userRoles = pgTable("user_roles", {
   businessOwner: boolean("business_owner").default(false).notNull(),
   investor: boolean("investor").default(false).notNull(),
   admin: boolean("admin").default(false).notNull(),
+  chapterAdmin: boolean("chapter_admin").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const professionalProfiles = pgTable("professional_profiles", {
   id: varchar("id", { length: 128 }).primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id", { length: 128 }).notNull().references(() => users.id, { onDelete: "cascade" }),
-  yearsOfExperience: integer("years_of_experience"),
-  industry: varchar("industry", { length: 255 }),
-  skills: text("skills").array(),
-  certifications: text("certifications").array(),
   currentJobTitle: text("current_job_title"),
+  educationLevel: educationLevelEnum("education_level"),
+  field: varchar("field", { length: 255 }),
+  subField: varchar("sub_field", { length: 255 }),
+  experienceLevel: experienceLevelEnum("experience_level"),
+  yearsOfExperience: integer("years_of_experience"),
+  skills: text("skills").array(),
+  industry: varchar("industry", { length: 255 }),
+  certifications: text("certifications").array(),
   currentEmployer: text("current_employer"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -79,6 +88,11 @@ export const professionalProfiles = pgTable("professional_profiles", {
 export const jobSeekerProfiles = pgTable("job_seeker_profiles", {
   id: varchar("id", { length: 128 }).primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id", { length: 128 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  educationLevel: educationLevelEnum("education_level"),
+  field: varchar("field", { length: 255 }),
+  subField: varchar("sub_field", { length: 255 }),
+  yearsOfExperience: integer("years_of_experience"),
+  skills: text("skills").array(),
   targetJobTitles: text("target_job_titles").array(),
   preferredIndustries: text("preferred_industries").array(),
   employmentType: employmentTypeEnum("employment_type"),
@@ -95,6 +109,9 @@ export const employerProfiles = pgTable("employer_profiles", {
   id: varchar("id", { length: 128 }).primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id", { length: 128 }).notNull().references(() => users.id, { onDelete: "cascade" }),
   companyName: text("company_name").notNull(),
+  companyWebsite: text("company_website"),
+  jobPostingPermissions: boolean("job_posting_permissions").default(true),
+  field: varchar("field", { length: 255 }),
   industry: varchar("industry", { length: 255 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -104,6 +121,11 @@ export const businessOwnerProfiles = pgTable("business_owner_profiles", {
   id: varchar("id", { length: 128 }).primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id", { length: 128 }).notNull().references(() => users.id, { onDelete: "cascade" }),
   businessName: text("business_name").notNull(),
+  businessDescription: text("business_description"),
+  businessSector: varchar("business_sector", { length: 255 }),
+  businessStage: businessStageEnum("business_stage"),
+  investmentRequired: boolean("investment_required").default(false),
+  partnershipsNeeded: boolean("partnerships_needed").default(false),
   industry: varchar("industry", { length: 255 }),
   companySize: varchar("company_size", { length: 50 }),
   yearsInOperation: integer("years_in_operation"),
@@ -258,6 +280,42 @@ export const cities = pgTable("cities", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const fieldsConfig = pgTable("fields_config", {
+  id: varchar("id", { length: 128 }).primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  parentId: varchar("parent_id", { length: 128 }),
+  isMainField: boolean("is_main_field").default(true).notNull(),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  enabled: boolean("enabled").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const roleUpgradeRequests = pgTable("role_upgrade_requests", {
+  id: varchar("id", { length: 128 }).primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id", { length: 128 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  requestedRole: varchar("requested_role", { length: 50 }).notNull(),
+  currentRoles: json("current_roles"),
+  proofUrl: text("proof_url"),
+  proofDescription: text("proof_description"),
+  status: approvalStatusEnum("status").default("pending").notNull(),
+  adminNotes: text("admin_notes"),
+  reviewedBy: varchar("reviewed_by", { length: 128 }),
+  reviewedAt: timestamp("reviewed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const chapterAdmins = pgTable("chapter_admins", {
+  id: varchar("id", { length: 128 }).primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id", { length: 128 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  countryId: varchar("country_id", { length: 128 }).references(() => countries.id, { onDelete: "cascade" }),
+  cityId: varchar("city_id", { length: 128 }).references(() => cities.id, { onDelete: "cascade" }),
+  permissions: json("permissions"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({ createdAt: true, lastLogin: true });
 export const selectUserSchema = createSelectSchema(users);
 
@@ -308,6 +366,15 @@ export const selectCountrySchema = createSelectSchema(countries);
 
 export const insertCitySchema = createInsertSchema(cities).omit({ id: true, createdAt: true, updatedAt: true });
 export const selectCitySchema = createSelectSchema(cities);
+
+export const insertFieldsConfigSchema = createInsertSchema(fieldsConfig).omit({ id: true, createdAt: true, updatedAt: true });
+export const selectFieldsConfigSchema = createSelectSchema(fieldsConfig);
+
+export const insertRoleUpgradeRequestSchema = createInsertSchema(roleUpgradeRequests).omit({ id: true, createdAt: true, updatedAt: true, reviewedAt: true });
+export const selectRoleUpgradeRequestSchema = createSelectSchema(roleUpgradeRequests);
+
+export const insertChapterAdminSchema = createInsertSchema(chapterAdmins).omit({ id: true, createdAt: true, updatedAt: true });
+export const selectChapterAdminSchema = createSelectSchema(chapterAdmins);
 
 export const jobDetailsSchema = z.object({
   employmentType: z.enum(["full-time", "part-time", "remote", "contract"]).optional(),
@@ -373,6 +440,15 @@ export type InsertCountry = z.infer<typeof insertCountrySchema>;
 
 export type City = typeof cities.$inferSelect;
 export type InsertCity = z.infer<typeof insertCitySchema>;
+
+export type FieldsConfig = typeof fieldsConfig.$inferSelect;
+export type InsertFieldsConfig = z.infer<typeof insertFieldsConfigSchema>;
+
+export type RoleUpgradeRequest = typeof roleUpgradeRequests.$inferSelect;
+export type InsertRoleUpgradeRequest = z.infer<typeof insertRoleUpgradeRequestSchema>;
+
+export type ChapterAdmin = typeof chapterAdmins.$inferSelect;
+export type InsertChapterAdmin = z.infer<typeof insertChapterAdminSchema>;
 
 export const firestoreCitySchema = z.object({
   id: z.string(),

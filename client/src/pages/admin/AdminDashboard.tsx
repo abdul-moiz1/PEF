@@ -353,6 +353,8 @@ export default function AdminDashboard() {
     { title: "Gallery", description: "Event images & media", icon: Image, path: "/admin/gallery", color: "text-purple-500" },
     { title: "Media", description: "Videos & YouTube content", icon: Video, path: "/admin/media", color: "text-pink-500" },
     { title: "Locations", description: "Countries & cities data", icon: Globe, path: "/admin/locations", color: "text-cyan-500" },
+    { title: "Fields", description: "Manage professional fields", icon: Database, path: "/admin/fields", color: "text-amber-500" },
+    { title: "Role Requests", description: "Role upgrade approvals", icon: UserCheck, path: "/admin/role-upgrade-requests", color: "text-green-500" },
   ];
 
   const dataSourceCards = [

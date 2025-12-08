@@ -55,6 +55,12 @@ import {
   type FirestoreCity,
   type InsertFirestoreCountry,
   type InsertFirestoreCity,
+  type FieldsConfig,
+  type InsertFieldsConfig,
+  type RoleUpgradeRequest,
+  type InsertRoleUpgradeRequest,
+  type ChapterAdmin,
+  type InsertChapterAdmin,
 } from "@shared/schema";
 import { toFirestoreRoles } from "@shared/roleUtils";
 
@@ -175,6 +181,33 @@ export interface IStorage {
   updateCity(id: string, data: Partial<InsertCity>): Promise<City | undefined>;
   deleteCity(id: string): Promise<void>;
   bulkCreateCities(citiesData: InsertCity[]): Promise<City[]>;
+  
+  // Fields configuration (admin-managed dropdowns)
+  createFieldConfig(field: InsertFieldsConfig): Promise<FieldsConfig>;
+  getAllFieldsConfig(): Promise<FieldsConfig[]>;
+  getMainFields(): Promise<FieldsConfig[]>;
+  getSubFieldsByParentId(parentId: string): Promise<FieldsConfig[]>;
+  getFieldConfigById(id: string): Promise<FieldsConfig | undefined>;
+  updateFieldConfig(id: string, data: Partial<InsertFieldsConfig>): Promise<FieldsConfig | undefined>;
+  deleteFieldConfig(id: string): Promise<void>;
+  
+  // Role upgrade requests
+  createRoleUpgradeRequest(request: InsertRoleUpgradeRequest): Promise<RoleUpgradeRequest>;
+  getAllRoleUpgradeRequests(): Promise<RoleUpgradeRequest[]>;
+  getPendingRoleUpgradeRequests(): Promise<RoleUpgradeRequest[]>;
+  getRoleUpgradeRequestById(id: string): Promise<RoleUpgradeRequest | undefined>;
+  getRoleUpgradeRequestsByUserId(userId: string): Promise<RoleUpgradeRequest[]>;
+  updateRoleUpgradeRequest(id: string, data: Partial<InsertRoleUpgradeRequest>): Promise<RoleUpgradeRequest | undefined>;
+  approveRoleUpgradeRequest(id: string, adminId: string): Promise<RoleUpgradeRequest | undefined>;
+  rejectRoleUpgradeRequest(id: string, adminId: string, notes?: string): Promise<RoleUpgradeRequest | undefined>;
+  
+  // Chapter admins
+  createChapterAdmin(chapterAdmin: InsertChapterAdmin): Promise<ChapterAdmin>;
+  getAllChapterAdmins(): Promise<ChapterAdmin[]>;
+  getChapterAdminById(id: string): Promise<ChapterAdmin | undefined>;
+  getChapterAdminByUserId(userId: string): Promise<ChapterAdmin | undefined>;
+  updateChapterAdmin(id: string, data: Partial<InsertChapterAdmin>): Promise<ChapterAdmin | undefined>;
+  deleteChapterAdmin(id: string): Promise<void>;
 }
 
 export class FirestoreStorage implements IStorage {
@@ -229,6 +262,7 @@ export class FirestoreStorage implements IStorage {
         businessOwner: userData.roles.businessOwner || userData.roles.isBusinessOwner || false,
         investor: userData.roles.investor || userData.roles.isInvestor || false,
         admin: userData.roles.admin || userData.roles.isAdmin || false,
+        chapterAdmin: userData.roles.chapterAdmin || userData.roles.isChapterAdmin || false,
         createdAt: normalizeDate(userData.createdAt),
       };
     }
@@ -343,6 +377,7 @@ export class FirestoreStorage implements IStorage {
         id: profileId,
         userId: data.userId,
         fullName: data.profile.fullName,
+        countryCode: data.profile.countryCode || null,
         phone: data.profile.phone || null,
         country: data.profile.country,
         city: data.profile.city || null,
@@ -386,6 +421,7 @@ export class FirestoreStorage implements IStorage {
       id: profileId,
       userId: insertProfile.userId,
       fullName: insertProfile.fullName,
+      countryCode: insertProfile.countryCode || null,
       phone: insertProfile.phone || null,
       country: insertProfile.country,
       city: insertProfile.city || null,
@@ -412,6 +448,7 @@ export class FirestoreStorage implements IStorage {
       "roles.isBusinessOwner": insertRoles.businessOwner || false,
       "roles.isInvestor": insertRoles.investor || false,
       "roles.isAdmin": insertRoles.admin || false,
+      "roles.isChapterAdmin": insertRoles.chapterAdmin || false,
     });
     
     const roles: UserRoles = {
@@ -423,6 +460,7 @@ export class FirestoreStorage implements IStorage {
       businessOwner: insertRoles.businessOwner || false,
       investor: insertRoles.investor || false,
       admin: insertRoles.admin || false,
+      chapterAdmin: insertRoles.chapterAdmin || false,
       createdAt: new Date(),
     };
     
@@ -781,6 +819,7 @@ export class FirestoreStorage implements IStorage {
         id: userDoc.id,
         userId: userDoc.id,
         fullName: userData.profile?.fullName || userData.displayName || "",
+        countryCode: userData.profile?.countryCode || null,
         phone: userData.profile?.phone || null,
         country: userData.profile?.country || "",
         city: userData.profile?.city || null,
@@ -1741,6 +1780,244 @@ export class FirestoreStorage implements IStorage {
     }
     
     return createdCities;
+  }
+
+  // Fields configuration methods
+  async createFieldConfig(field: InsertFieldsConfig): Promise<FieldsConfig> {
+    const fieldId = this.generateId();
+    const now = new Date();
+    const newField: FieldsConfig = {
+      id: fieldId,
+      name: field.name,
+      parentId: field.parentId || null,
+      isMainField: field.isMainField ?? true,
+      sortOrder: field.sortOrder ?? 0,
+      enabled: field.enabled ?? true,
+      createdAt: now,
+      updatedAt: now,
+    };
+    
+    await setDoc(doc(db, "fieldsConfig", fieldId), newField);
+    return newField;
+  }
+
+  async getAllFieldsConfig(): Promise<FieldsConfig[]> {
+    const querySnapshot = await getDocs(collection(db, "fieldsConfig"));
+    return querySnapshot.docs.map(doc => normalizeDocData<FieldsConfig>({ id: doc.id, ...doc.data() }));
+  }
+
+  async getMainFields(): Promise<FieldsConfig[]> {
+    const q = query(collection(db, "fieldsConfig"), where("isMainField", "==", true), where("enabled", "==", true));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => normalizeDocData<FieldsConfig>({ id: doc.id, ...doc.data() }));
+  }
+
+  async getSubFieldsByParentId(parentId: string): Promise<FieldsConfig[]> {
+    const q = query(collection(db, "fieldsConfig"), where("parentId", "==", parentId), where("enabled", "==", true));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => normalizeDocData<FieldsConfig>({ id: doc.id, ...doc.data() }));
+  }
+
+  async getFieldConfigById(id: string): Promise<FieldsConfig | undefined> {
+    const docRef = doc(db, "fieldsConfig", id);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return normalizeDocData<FieldsConfig>({ id: docSnap.id, ...docSnap.data() });
+    }
+    return undefined;
+  }
+
+  async updateFieldConfig(id: string, data: Partial<InsertFieldsConfig>): Promise<FieldsConfig | undefined> {
+    const docRef = doc(db, "fieldsConfig", id);
+    const docSnap = await getDoc(docRef);
+    if (!docSnap.exists()) return undefined;
+    
+    await updateDoc(docRef, {
+      ...data,
+      updatedAt: new Date(),
+    });
+    
+    const updatedSnap = await getDoc(docRef);
+    return normalizeDocData<FieldsConfig>({ id: updatedSnap.id, ...updatedSnap.data() });
+  }
+
+  async deleteFieldConfig(id: string): Promise<void> {
+    await deleteDoc(doc(db, "fieldsConfig", id));
+  }
+
+  // Role upgrade request methods
+  async createRoleUpgradeRequest(request: InsertRoleUpgradeRequest): Promise<RoleUpgradeRequest> {
+    const requestId = this.generateId();
+    const now = new Date();
+    const newRequest: RoleUpgradeRequest = {
+      id: requestId,
+      userId: request.userId,
+      requestedRole: request.requestedRole,
+      currentRoles: request.currentRoles || null,
+      proofUrl: request.proofUrl || null,
+      proofDescription: request.proofDescription || null,
+      status: request.status || "pending",
+      adminNotes: request.adminNotes || null,
+      reviewedBy: request.reviewedBy || null,
+      reviewedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    
+    await setDoc(doc(db, "roleUpgradeRequests", requestId), newRequest);
+    return newRequest;
+  }
+
+  async getAllRoleUpgradeRequests(): Promise<RoleUpgradeRequest[]> {
+    const querySnapshot = await getDocs(collection(db, "roleUpgradeRequests"));
+    return querySnapshot.docs.map(doc => normalizeDocData<RoleUpgradeRequest>({ id: doc.id, ...doc.data() }));
+  }
+
+  async getPendingRoleUpgradeRequests(): Promise<RoleUpgradeRequest[]> {
+    const q = query(collection(db, "roleUpgradeRequests"), where("status", "==", "pending"));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => normalizeDocData<RoleUpgradeRequest>({ id: doc.id, ...doc.data() }));
+  }
+
+  async getRoleUpgradeRequestById(id: string): Promise<RoleUpgradeRequest | undefined> {
+    const docRef = doc(db, "roleUpgradeRequests", id);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return normalizeDocData<RoleUpgradeRequest>({ id: docSnap.id, ...docSnap.data() });
+    }
+    return undefined;
+  }
+
+  async getRoleUpgradeRequestsByUserId(userId: string): Promise<RoleUpgradeRequest[]> {
+    const q = query(collection(db, "roleUpgradeRequests"), where("userId", "==", userId));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => normalizeDocData<RoleUpgradeRequest>({ id: doc.id, ...doc.data() }));
+  }
+
+  async updateRoleUpgradeRequest(id: string, data: Partial<InsertRoleUpgradeRequest>): Promise<RoleUpgradeRequest | undefined> {
+    const docRef = doc(db, "roleUpgradeRequests", id);
+    const docSnap = await getDoc(docRef);
+    if (!docSnap.exists()) return undefined;
+    
+    await updateDoc(docRef, {
+      ...data,
+      updatedAt: new Date(),
+    });
+    
+    const updatedSnap = await getDoc(docRef);
+    return normalizeDocData<RoleUpgradeRequest>({ id: updatedSnap.id, ...updatedSnap.data() });
+  }
+
+  async approveRoleUpgradeRequest(id: string, adminId: string): Promise<RoleUpgradeRequest | undefined> {
+    const request = await this.getRoleUpgradeRequestById(id);
+    if (!request) return undefined;
+    
+    const now = new Date();
+    await updateDoc(doc(db, "roleUpgradeRequests", id), {
+      status: "approved",
+      reviewedBy: adminId,
+      reviewedAt: now,
+      updatedAt: now,
+    });
+    
+    // Update user roles
+    const roleKey = `roles.is${request.requestedRole.charAt(0).toUpperCase() + request.requestedRole.slice(1)}`;
+    await updateDoc(doc(db, "users", request.userId), {
+      [roleKey]: true,
+    });
+    
+    const updatedSnap = await getDoc(doc(db, "roleUpgradeRequests", id));
+    return normalizeDocData<RoleUpgradeRequest>({ id: updatedSnap.id, ...updatedSnap.data() });
+  }
+
+  async rejectRoleUpgradeRequest(id: string, adminId: string, notes?: string): Promise<RoleUpgradeRequest | undefined> {
+    const request = await this.getRoleUpgradeRequestById(id);
+    if (!request) return undefined;
+    
+    const now = new Date();
+    await updateDoc(doc(db, "roleUpgradeRequests", id), {
+      status: "rejected",
+      reviewedBy: adminId,
+      reviewedAt: now,
+      adminNotes: notes || null,
+      updatedAt: now,
+    });
+    
+    const updatedSnap = await getDoc(doc(db, "roleUpgradeRequests", id));
+    return normalizeDocData<RoleUpgradeRequest>({ id: updatedSnap.id, ...updatedSnap.data() });
+  }
+
+  // Chapter admin methods
+  async createChapterAdmin(chapterAdmin: InsertChapterAdmin): Promise<ChapterAdmin> {
+    const adminId = this.generateId();
+    const now = new Date();
+    const newAdmin: ChapterAdmin = {
+      id: adminId,
+      userId: chapterAdmin.userId,
+      countryId: chapterAdmin.countryId || null,
+      cityId: chapterAdmin.cityId || null,
+      permissions: chapterAdmin.permissions || null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    
+    await setDoc(doc(db, "chapterAdmins", adminId), newAdmin);
+    
+    // Update user roles to mark them as chapter admin
+    await updateDoc(doc(db, "users", chapterAdmin.userId), {
+      "roles.isChapterAdmin": true,
+    });
+    
+    return newAdmin;
+  }
+
+  async getAllChapterAdmins(): Promise<ChapterAdmin[]> {
+    const querySnapshot = await getDocs(collection(db, "chapterAdmins"));
+    return querySnapshot.docs.map(doc => normalizeDocData<ChapterAdmin>({ id: doc.id, ...doc.data() }));
+  }
+
+  async getChapterAdminById(id: string): Promise<ChapterAdmin | undefined> {
+    const docRef = doc(db, "chapterAdmins", id);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return normalizeDocData<ChapterAdmin>({ id: docSnap.id, ...docSnap.data() });
+    }
+    return undefined;
+  }
+
+  async getChapterAdminByUserId(userId: string): Promise<ChapterAdmin | undefined> {
+    const q = query(collection(db, "chapterAdmins"), where("userId", "==", userId));
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
+      const doc = querySnapshot.docs[0];
+      return normalizeDocData<ChapterAdmin>({ id: doc.id, ...doc.data() });
+    }
+    return undefined;
+  }
+
+  async updateChapterAdmin(id: string, data: Partial<InsertChapterAdmin>): Promise<ChapterAdmin | undefined> {
+    const docRef = doc(db, "chapterAdmins", id);
+    const docSnap = await getDoc(docRef);
+    if (!docSnap.exists()) return undefined;
+    
+    await updateDoc(docRef, {
+      ...data,
+      updatedAt: new Date(),
+    });
+    
+    const updatedSnap = await getDoc(docRef);
+    return normalizeDocData<ChapterAdmin>({ id: updatedSnap.id, ...updatedSnap.data() });
+  }
+
+  async deleteChapterAdmin(id: string): Promise<void> {
+    const chapterAdmin = await this.getChapterAdminById(id);
+    if (chapterAdmin) {
+      // Remove chapter admin role from user
+      await updateDoc(doc(db, "users", chapterAdmin.userId), {
+        "roles.isChapterAdmin": false,
+      });
+    }
+    await deleteDoc(doc(db, "chapterAdmins", id));
   }
 }
 
