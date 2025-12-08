@@ -33,8 +33,15 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { RoleUpgradeRequest } from "@shared/schema";
-import { format } from "date-fns";
+import { format, isValid } from "date-fns";
 import { auth } from "@/lib/firebase";
+
+function safeFormatDate(dateValue: string | Date | null | undefined, formatString: string): string | null {
+  if (!dateValue) return null;
+  const date = new Date(dateValue);
+  if (!isValid(date)) return null;
+  return format(date, formatString);
+}
 
 const ROLE_LABELS: Record<string, string> = {
   professional: "Professional",
@@ -276,11 +283,11 @@ export default function AdminRoleUpgradeRequests() {
               </a>
             )}
             <p className="text-xs text-muted-foreground">
-              Submitted: {format(new Date(request.createdAt), "PPp")}
+              Submitted: {safeFormatDate(request.createdAt, "PPp") || "Unknown"}
             </p>
-            {request.reviewedAt && (
+            {request.reviewedAt && safeFormatDate(request.reviewedAt, "PPp") && (
               <p className="text-xs text-muted-foreground">
-                Reviewed: {format(new Date(request.reviewedAt), "PPp")}
+                Reviewed: {safeFormatDate(request.reviewedAt, "PPp")}
               </p>
             )}
             {request.adminNotes && (
