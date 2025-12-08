@@ -35,6 +35,11 @@ interface ProfileData {
   linkedinUrl?: string | null;
   websiteUrl?: string | null;
   portfolioUrl?: string | null;
+  professionalData?: Record<string, unknown>;
+  jobSeekerData?: Record<string, unknown>;
+  employerData?: Record<string, unknown>;
+  businessOwnerData?: Record<string, unknown>;
+  investorData?: Record<string, unknown>;
 }
 
 interface AuthContextType {
@@ -327,6 +332,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       approvalStatus: "approved",
       createdAt: serverTimestamp(),
       lastUpdated: serverTimestamp(),
+      profileCompleted: true,
       profile: {
         fullName: name,
         phone: profileData?.phone || null,
@@ -340,11 +346,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         portfolioUrl: profileData?.portfolioUrl || null,
       },
       roles: toFirestoreRoles(roles),
-      professionalData: {},
-      jobSeekerData: {},
-      employerData: {},
-      businessOwnerData: {},
-      investorData: {},
+      professionalData: profileData?.professionalData || {},
+      jobSeekerData: profileData?.jobSeekerData || {},
+      employerData: profileData?.employerData || {},
+      businessOwnerData: profileData?.businessOwnerData || {},
+      investorData: profileData?.investorData || {},
       // Add pre-registration tracking fields
       preRegistered: preRegistrationData !== null,
       preRegisteredAt: preRegistrationData?.createdAt || null,

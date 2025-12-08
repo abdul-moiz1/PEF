@@ -139,41 +139,45 @@ function EditProfileContent() {
     },
   });
 
-  // Role-specific data
+  // Role-specific data - matching signup form fields
   const [professionalData, setProfessionalData] = useState({
-    title: "",
-    experience: "",
+    currentJobTitle: "",
+    educationLevel: "",
+    field: "",
+    subField: "",
+    experienceLevel: "",
     skills: [] as string[],
-    certifications: [] as string[],
   });
 
   const [jobSeekerData, setJobSeekerData] = useState({
-    desiredRole: "",
-    desiredLocation: "",
-    desiredSalary: "",
-    availability: "",
+    educationLevel: "",
+    field: "",
+    subField: "",
+    yearsOfExperience: "",
+    skills: [] as string[],
   });
 
   const [employerData, setEmployerData] = useState({
     companyName: "",
-    industry: "",
+    companyWebsite: "",
     companySize: "",
-    location: "",
+    field: "",
+    jobPostingPermissions: false,
   });
 
   const [businessOwnerData, setBusinessOwnerData] = useState({
     businessName: "",
-    businessType: "",
-    industry: "",
-    revenue: "",
-    employees: "",
+    businessDescription: "",
+    businessSector: "",
+    businessStage: "",
+    investmentRequired: "",
+    partnershipsNeeded: "",
   });
 
   const [investorData, setInvestorData] = useState({
+    investmentSectors: [] as string[],
     investmentRange: "",
     preferredStage: "",
-    investmentFocus: [] as string[],
-    industries: [] as string[],
   });
 
   // Load user data from Firestore
@@ -233,50 +237,54 @@ function EditProfileContent() {
             }
           }
 
-          // Load role-specific data
+          // Load role-specific data - matching signup form fields
           if (data.professionalData) {
             setProfessionalData({
-              title: data.professionalData.title || "",
-              experience: data.professionalData.experience || "",
+              currentJobTitle: data.professionalData.currentJobTitle || data.professionalData.title || "",
+              educationLevel: data.professionalData.educationLevel || "",
+              field: data.professionalData.field || "",
+              subField: data.professionalData.subField || "",
+              experienceLevel: data.professionalData.experienceLevel || data.professionalData.experience || "",
               skills: data.professionalData.skills || [],
-              certifications: data.professionalData.certifications || [],
             });
           }
 
           if (data.jobSeekerData) {
             setJobSeekerData({
-              desiredRole: data.jobSeekerData.desiredRole || "",
-              desiredLocation: data.jobSeekerData.desiredLocation || "",
-              desiredSalary: data.jobSeekerData.desiredSalary || "",
-              availability: data.jobSeekerData.availability || "",
+              educationLevel: data.jobSeekerData.educationLevel || "",
+              field: data.jobSeekerData.field || "",
+              subField: data.jobSeekerData.subField || "",
+              yearsOfExperience: data.jobSeekerData.yearsOfExperience || "",
+              skills: data.jobSeekerData.skills || [],
             });
           }
 
           if (data.employerData) {
             setEmployerData({
               companyName: data.employerData.companyName || "",
-              industry: data.employerData.industry || "",
+              companyWebsite: data.employerData.companyWebsite || data.employerData.website || "",
               companySize: data.employerData.companySize || "",
-              location: data.employerData.location || "",
+              field: data.employerData.field || data.employerData.industry || "",
+              jobPostingPermissions: data.employerData.jobPostingPermissions || false,
             });
           }
 
           if (data.businessOwnerData) {
             setBusinessOwnerData({
               businessName: data.businessOwnerData.businessName || "",
-              businessType: data.businessOwnerData.businessType || "",
-              industry: data.businessOwnerData.industry || "",
-              revenue: data.businessOwnerData.revenue || "",
-              employees: data.businessOwnerData.employees || "",
+              businessDescription: data.businessOwnerData.businessDescription || "",
+              businessSector: data.businessOwnerData.businessSector || data.businessOwnerData.industry || "",
+              businessStage: data.businessOwnerData.businessStage || "",
+              investmentRequired: data.businessOwnerData.investmentRequired || "",
+              partnershipsNeeded: data.businessOwnerData.partnershipsNeeded || "",
             });
           }
 
           if (data.investorData) {
             setInvestorData({
+              investmentSectors: data.investorData.investmentSectors || data.investorData.investmentFocus || [],
               investmentRange: data.investorData.investmentRange || "",
               preferredStage: data.investorData.preferredStage || "",
-              investmentFocus: data.investorData.investmentFocus || [],
-              industries: data.investorData.industries || [],
             });
           }
         }
@@ -777,29 +785,83 @@ function EditProfileContent() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="prof-title">Job Title</Label>
+                    <Label htmlFor="prof-title">Current Job Title</Label>
                     <Input
                       id="prof-title"
                       placeholder="e.g., Senior Software Engineer"
-                      value={professionalData.title}
+                      value={professionalData.currentJobTitle}
                       onChange={(e) =>
-                        setProfessionalData({ ...professionalData, title: e.target.value })
+                        setProfessionalData({ ...professionalData, currentJobTitle: e.target.value })
                       }
                       data-testid="input-prof-title"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="prof-experience">Experience</Label>
-                    <Input
-                      id="prof-experience"
-                      placeholder="e.g., 5+ years in software development"
-                      value={professionalData.experience}
-                      onChange={(e) =>
-                        setProfessionalData({ ...professionalData, experience: e.target.value })
+                    <Label htmlFor="prof-education">Education Level</Label>
+                    <Select
+                      value={professionalData.educationLevel}
+                      onValueChange={(value) =>
+                        setProfessionalData({ ...professionalData, educationLevel: value })
                       }
-                      data-testid="input-prof-experience"
+                    >
+                      <SelectTrigger data-testid="select-prof-education">
+                        <SelectValue placeholder="Select education level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="high_school">High School</SelectItem>
+                        <SelectItem value="bachelors">Bachelor's Degree</SelectItem>
+                        <SelectItem value="masters">Master's Degree</SelectItem>
+                        <SelectItem value="phd">PhD</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="prof-field">Professional Field</Label>
+                    <Input
+                      id="prof-field"
+                      placeholder="e.g., Engineering, Finance"
+                      value={professionalData.field}
+                      onChange={(e) =>
+                        setProfessionalData({ ...professionalData, field: e.target.value })
+                      }
+                      data-testid="input-prof-field"
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="prof-subfield">Specialization</Label>
+                    <Input
+                      id="prof-subfield"
+                      placeholder="e.g., Software Development"
+                      value={professionalData.subField}
+                      onChange={(e) =>
+                        setProfessionalData({ ...professionalData, subField: e.target.value })
+                      }
+                      data-testid="input-prof-subfield"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="prof-experience">Experience Level</Label>
+                    <Select
+                      value={professionalData.experienceLevel}
+                      onValueChange={(value) =>
+                        setProfessionalData({ ...professionalData, experienceLevel: value })
+                      }
+                    >
+                      <SelectTrigger data-testid="select-prof-experience">
+                        <SelectValue placeholder="Select experience level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="entry">Entry Level (0-2 years)</SelectItem>
+                        <SelectItem value="mid">Mid Level (3-5 years)</SelectItem>
+                        <SelectItem value="senior">Senior (6-10 years)</SelectItem>
+                        <SelectItem value="expert">Expert (10+ years)</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
@@ -818,25 +880,6 @@ function EditProfileContent() {
                     data-testid="input-prof-skills"
                   />
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="prof-certifications">Certifications (comma-separated)</Label>
-                  <Input
-                    id="prof-certifications"
-                    placeholder="AWS Certified, PMP"
-                    value={professionalData.certifications.join(", ")}
-                    onChange={(e) =>
-                      setProfessionalData({
-                        ...professionalData,
-                        certifications: e.target.value
-                          .split(",")
-                          .map((c) => c.trim())
-                          .filter((c) => c),
-                      })
-                    }
-                    data-testid="input-prof-certifications"
-                  />
-                </div>
               </CardContent>
             </Card>
           )}
@@ -845,61 +888,92 @@ function EditProfileContent() {
             <Card>
               <CardHeader>
                 <CardTitle>Job Seeker Details</CardTitle>
-                <CardDescription>What you're looking for in your next role</CardDescription>
+                <CardDescription>Your qualifications and what you're looking for</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="job-desired-role">Desired Role</Label>
-                    <Input
-                      id="job-desired-role"
-                      placeholder="e.g., Full Stack Developer"
-                      value={jobSeekerData.desiredRole}
-                      onChange={(e) =>
-                        setJobSeekerData({ ...jobSeekerData, desiredRole: e.target.value })
+                    <Label htmlFor="job-education">Education Level</Label>
+                    <Select
+                      value={jobSeekerData.educationLevel}
+                      onValueChange={(value) =>
+                        setJobSeekerData({ ...jobSeekerData, educationLevel: value })
                       }
-                      data-testid="input-job-desired-role"
+                    >
+                      <SelectTrigger data-testid="select-job-education">
+                        <SelectValue placeholder="Select education level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="high_school">High School</SelectItem>
+                        <SelectItem value="bachelors">Bachelor's Degree</SelectItem>
+                        <SelectItem value="masters">Master's Degree</SelectItem>
+                        <SelectItem value="phd">PhD</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="job-field">Professional Field</Label>
+                    <Input
+                      id="job-field"
+                      placeholder="e.g., Engineering, Finance"
+                      value={jobSeekerData.field}
+                      onChange={(e) =>
+                        setJobSeekerData({ ...jobSeekerData, field: e.target.value })
+                      }
+                      data-testid="input-job-field"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="job-location">Desired Location</Label>
+                    <Label htmlFor="job-subfield">Specialization</Label>
                     <Input
-                      id="job-location"
-                      placeholder="e.g., Remote, Dubai, Riyadh"
-                      value={jobSeekerData.desiredLocation}
+                      id="job-subfield"
+                      placeholder="e.g., Software Development"
+                      value={jobSeekerData.subField}
                       onChange={(e) =>
-                        setJobSeekerData({ ...jobSeekerData, desiredLocation: e.target.value })
+                        setJobSeekerData({ ...jobSeekerData, subField: e.target.value })
                       }
-                      data-testid="input-job-location"
+                      data-testid="input-job-subfield"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="job-salary">Desired Salary Range</Label>
-                    <Input
-                      id="job-salary"
-                      placeholder="e.g., $80,000 - $120,000"
-                      value={jobSeekerData.desiredSalary}
-                      onChange={(e) =>
-                        setJobSeekerData({ ...jobSeekerData, desiredSalary: e.target.value })
+                    <Label htmlFor="job-experience">Years of Experience</Label>
+                    <Select
+                      value={jobSeekerData.yearsOfExperience}
+                      onValueChange={(value) =>
+                        setJobSeekerData({ ...jobSeekerData, yearsOfExperience: value })
                       }
-                      data-testid="input-job-salary"
-                    />
+                    >
+                      <SelectTrigger data-testid="select-job-experience">
+                        <SelectValue placeholder="Select experience" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0-2">0-2 years</SelectItem>
+                        <SelectItem value="3-5">3-5 years</SelectItem>
+                        <SelectItem value="6-10">6-10 years</SelectItem>
+                        <SelectItem value="10+">10+ years</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="job-availability">Availability</Label>
-                    <Input
-                      id="job-availability"
-                      placeholder="e.g., Immediate, 2 weeks notice"
-                      value={jobSeekerData.availability}
-                      onChange={(e) =>
-                        setJobSeekerData({ ...jobSeekerData, availability: e.target.value })
-                      }
-                      data-testid="input-job-availability"
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="job-skills">Skills (comma-separated)</Label>
+                  <Input
+                    id="job-skills"
+                    placeholder="React, Node.js, TypeScript"
+                    value={jobSeekerData.skills.join(", ")}
+                    onChange={(e) =>
+                      setJobSeekerData({
+                        ...jobSeekerData,
+                        skills: e.target.value.split(",").map((s) => s.trim()).filter((s) => s),
+                      })
+                    }
+                    data-testid="input-job-skills"
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -927,43 +1001,63 @@ function EditProfileContent() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="emp-industry">Industry</Label>
+                    <Label htmlFor="emp-website">Company Website</Label>
                     <Input
-                      id="emp-industry"
-                      placeholder="e.g., Technology, Finance"
-                      value={employerData.industry}
+                      id="emp-website"
+                      placeholder="https://yourcompany.com"
+                      value={employerData.companyWebsite}
                       onChange={(e) =>
-                        setEmployerData({ ...employerData, industry: e.target.value })
+                        setEmployerData({ ...employerData, companyWebsite: e.target.value })
                       }
-                      data-testid="input-emp-industry"
+                      data-testid="input-emp-website"
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="emp-size">Company Size</Label>
-                    <Input
-                      id="emp-size"
-                      placeholder="e.g., 50-200 employees"
+                    <Select
                       value={employerData.companySize}
-                      onChange={(e) =>
-                        setEmployerData({ ...employerData, companySize: e.target.value })
+                      onValueChange={(value) =>
+                        setEmployerData({ ...employerData, companySize: value })
                       }
-                      data-testid="input-emp-size"
-                    />
+                    >
+                      <SelectTrigger data-testid="select-emp-size">
+                        <SelectValue placeholder="Select company size" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1-10">1-10 employees</SelectItem>
+                        <SelectItem value="11-50">11-50 employees</SelectItem>
+                        <SelectItem value="51-200">51-200 employees</SelectItem>
+                        <SelectItem value="201-500">201-500 employees</SelectItem>
+                        <SelectItem value="500+">500+ employees</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="emp-location">Location</Label>
+                    <Label htmlFor="emp-field">Industry</Label>
                     <Input
-                      id="emp-location"
-                      placeholder="e.g., Riyadh, Saudi Arabia"
-                      value={employerData.location}
+                      id="emp-field"
+                      placeholder="e.g., Technology, Finance"
+                      value={employerData.field}
                       onChange={(e) =>
-                        setEmployerData({ ...employerData, location: e.target.value })
+                        setEmployerData({ ...employerData, field: e.target.value })
                       }
-                      data-testid="input-emp-location"
+                      data-testid="input-emp-field"
                     />
                   </div>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="emp-posting"
+                    checked={employerData.jobPostingPermissions}
+                    onCheckedChange={(checked) =>
+                      setEmployerData({ ...employerData, jobPostingPermissions: checked === true })
+                    }
+                    data-testid="checkbox-emp-posting"
+                  />
+                  <Label htmlFor="emp-posting">I want to post job listings</Label>
                 </div>
               </CardContent>
             </Card>
@@ -991,56 +1085,91 @@ function EditProfileContent() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="biz-type">Business Type</Label>
+                    <Label htmlFor="biz-sector">Business Sector</Label>
                     <Input
-                      id="biz-type"
-                      placeholder="e.g., LLC, Corporation"
-                      value={businessOwnerData.businessType}
+                      id="biz-sector"
+                      placeholder="e.g., Technology, Retail"
+                      value={businessOwnerData.businessSector}
                       onChange={(e) =>
-                        setBusinessOwnerData({ ...businessOwnerData, businessType: e.target.value })
+                        setBusinessOwnerData({ ...businessOwnerData, businessSector: e.target.value })
                       }
-                      data-testid="input-biz-type"
+                      data-testid="input-biz-sector"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="biz-industry">Industry</Label>
-                    <Input
-                      id="biz-industry"
-                      placeholder="e.g., E-commerce, Manufacturing"
-                      value={businessOwnerData.industry}
-                      onChange={(e) =>
-                        setBusinessOwnerData({ ...businessOwnerData, industry: e.target.value })
+                    <Label htmlFor="biz-stage">Business Stage</Label>
+                    <Select
+                      value={businessOwnerData.businessStage}
+                      onValueChange={(value) =>
+                        setBusinessOwnerData({ ...businessOwnerData, businessStage: value })
                       }
-                      data-testid="input-biz-industry"
-                    />
+                    >
+                      <SelectTrigger data-testid="select-biz-stage">
+                        <SelectValue placeholder="Select business stage" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="idea">Idea Stage</SelectItem>
+                        <SelectItem value="startup">Startup</SelectItem>
+                        <SelectItem value="growth">Growth Stage</SelectItem>
+                        <SelectItem value="established">Established</SelectItem>
+                        <SelectItem value="expansion">Expansion</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="biz-revenue">Revenue Range</Label>
-                    <Input
-                      id="biz-revenue"
-                      placeholder="e.g., $1M - $5M"
-                      value={businessOwnerData.revenue}
-                      onChange={(e) =>
-                        setBusinessOwnerData({ ...businessOwnerData, revenue: e.target.value })
+                    <Label htmlFor="biz-investment">Investment Required</Label>
+                    <Select
+                      value={businessOwnerData.investmentRequired}
+                      onValueChange={(value) =>
+                        setBusinessOwnerData({ ...businessOwnerData, investmentRequired: value })
                       }
-                      data-testid="input-biz-revenue"
-                    />
+                    >
+                      <SelectTrigger data-testid="select-biz-investment">
+                        <SelectValue placeholder="Select investment need" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="no">Not seeking investment</SelectItem>
+                        <SelectItem value="yes_small">Yes - Under $100K</SelectItem>
+                        <SelectItem value="yes_medium">Yes - $100K-$500K</SelectItem>
+                        <SelectItem value="yes_large">Yes - Over $500K</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="biz-employees">Number of Employees</Label>
-                    <Input
-                      id="biz-employees"
-                      placeholder="e.g., 10-50"
-                      value={businessOwnerData.employees}
-                      onChange={(e) =>
-                        setBusinessOwnerData({ ...businessOwnerData, employees: e.target.value })
+                    <Label htmlFor="biz-partnerships">Partnerships Needed</Label>
+                    <Select
+                      value={businessOwnerData.partnershipsNeeded}
+                      onValueChange={(value) =>
+                        setBusinessOwnerData({ ...businessOwnerData, partnershipsNeeded: value })
                       }
-                      data-testid="input-biz-employees"
-                    />
+                    >
+                      <SelectTrigger data-testid="select-biz-partnerships">
+                        <SelectValue placeholder="Select partnership need" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="no">Not seeking partnerships</SelectItem>
+                        <SelectItem value="yes_strategic">Strategic Partners</SelectItem>
+                        <SelectItem value="yes_distribution">Distribution Partners</SelectItem>
+                        <SelectItem value="yes_technology">Technology Partners</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="biz-description">Business Description</Label>
+                  <Textarea
+                    id="biz-description"
+                    placeholder="Describe your business..."
+                    value={businessOwnerData.businessDescription}
+                    onChange={(e) =>
+                      setBusinessOwnerData({ ...businessOwnerData, businessDescription: e.target.value })
+                    }
+                    data-testid="textarea-biz-description"
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -1056,66 +1185,63 @@ function EditProfileContent() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="inv-range">Investment Range</Label>
-                    <Input
-                      id="inv-range"
-                      placeholder="e.g., $50K - $500K"
+                    <Select
                       value={investorData.investmentRange}
-                      onChange={(e) =>
-                        setInvestorData({ ...investorData, investmentRange: e.target.value })
+                      onValueChange={(value) =>
+                        setInvestorData({ ...investorData, investmentRange: value })
                       }
-                      data-testid="input-inv-range"
-                    />
+                    >
+                      <SelectTrigger data-testid="select-inv-range">
+                        <SelectValue placeholder="Select investment range" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="under_50k">Under $50K</SelectItem>
+                        <SelectItem value="50k_100k">$50K - $100K</SelectItem>
+                        <SelectItem value="100k_500k">$100K - $500K</SelectItem>
+                        <SelectItem value="500k_1m">$500K - $1M</SelectItem>
+                        <SelectItem value="over_1m">Over $1M</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="inv-stage">Preferred Stage</Label>
-                    <Input
-                      id="inv-stage"
-                      placeholder="e.g., Seed, Series A"
+                    <Label htmlFor="inv-stage">Preferred Business Stage</Label>
+                    <Select
                       value={investorData.preferredStage}
-                      onChange={(e) =>
-                        setInvestorData({ ...investorData, preferredStage: e.target.value })
+                      onValueChange={(value) =>
+                        setInvestorData({ ...investorData, preferredStage: value })
                       }
-                      data-testid="input-inv-stage"
-                    />
+                    >
+                      <SelectTrigger data-testid="select-inv-stage">
+                        <SelectValue placeholder="Select preferred stage" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="idea">Idea Stage</SelectItem>
+                        <SelectItem value="seed">Seed Stage</SelectItem>
+                        <SelectItem value="early">Early Stage</SelectItem>
+                        <SelectItem value="growth">Growth Stage</SelectItem>
+                        <SelectItem value="any">Any Stage</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="inv-focus">Investment Focus (comma-separated)</Label>
+                  <Label htmlFor="inv-sectors">Investment Sectors (comma-separated)</Label>
                   <Input
-                    id="inv-focus"
+                    id="inv-sectors"
                     placeholder="e.g., Technology, Healthcare, Fintech"
-                    value={investorData.investmentFocus.join(", ")}
+                    value={investorData.investmentSectors.join(", ")}
                     onChange={(e) =>
                       setInvestorData({
                         ...investorData,
-                        investmentFocus: e.target.value
+                        investmentSectors: e.target.value
                           .split(",")
                           .map((f) => f.trim())
                           .filter((f) => f),
                       })
                     }
-                    data-testid="input-inv-focus"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="inv-industries">Preferred Industries (comma-separated)</Label>
-                  <Input
-                    id="inv-industries"
-                    placeholder="e.g., SaaS, AI, Renewable Energy"
-                    value={investorData.industries.join(", ")}
-                    onChange={(e) =>
-                      setInvestorData({
-                        ...investorData,
-                        industries: e.target.value
-                          .split(",")
-                          .map((i) => i.trim())
-                          .filter((i) => i),
-                      })
-                    }
-                    data-testid="input-inv-industries"
+                    data-testid="input-inv-sectors"
                   />
                 </div>
               </CardContent>
