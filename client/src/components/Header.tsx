@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Menu, X, User, LogOut, LayoutDashboard } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import logoImage from "@assets/ChatGPT_Image_Dec_2,_2025,_08_29_23_PM_1764689382224.png";
 import {
@@ -27,6 +27,12 @@ export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { currentUser, userData, logout } = useAuth();
+  const [, setLocation] = useLocation();
+
+  const handleLogout = async () => {
+    await logout();
+    setLocation("/login");
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -103,7 +109,7 @@ export default function Header() {
                       Edit Profile
                     </DropdownMenuItem>
                   </Link>
-                  <DropdownMenuItem onClick={logout} data-testid="menu-item-logout">
+                  <DropdownMenuItem onClick={handleLogout} data-testid="menu-item-logout">
                     <LogOut className="w-4 h-4 mr-2" />
                     Logout
                   </DropdownMenuItem>
@@ -179,7 +185,7 @@ export default function Header() {
                 <Button
                   variant="ghost"
                   className="w-full justify-start text-white hover:bg-white/10"
-                  onClick={() => { logout(); setIsMobileMenuOpen(false); }}
+                  onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }}
                   data-testid="button-mobile-logout"
                 >
                   <LogOut className="w-4 h-4 mr-2" />
