@@ -52,7 +52,8 @@ import Footer from "@/components/Footer";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
-import type { Opportunity, Country } from "@shared/schema";
+import type { Opportunity, Country, RoleUpgradeRequest } from "@shared/schema";
+import { format, isValid } from "date-fns";
 
 interface UserData {
   uid: string;
@@ -85,6 +86,22 @@ interface Stats {
   admins: number;
 }
 
+function safeFormatDate(dateValue: string | Date | null | undefined, formatString: string): string | null {
+  if (!dateValue) return null;
+  const date = new Date(dateValue);
+  if (!isValid(date)) return null;
+  return format(date, formatString);
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  professional: "Professional",
+  jobSeeker: "Job Seeker",
+  employer: "Employer",
+  businessOwner: "Business Owner",
+  investor: "Investor",
+  admin: "Admin",
+};
+
 
 const CHART_COLORS = [
   "hsl(var(--chart-1))",
@@ -106,6 +123,10 @@ export default function AdminDashboard() {
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
   const [downloadCountry, setDownloadCountry] = useState<string>("all");
+  const [roleRequestTab, setRoleRequestTab] = useState<string>("pending");
+  const [selectedRoleRequest, setSelectedRoleRequest] = useState<RoleUpgradeRequest | null>(null);
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const [rejectNotes, setRejectNotes] = useState("");
 
   const { data: opportunities = [], isLoading: opportunitiesLoading } = useQuery<Opportunity[]>({
     queryKey: ['/api/opportunities'],
@@ -124,6 +145,11 @@ export default function AdminDashboard() {
 
   const { data: countries = [] } = useQuery<Country[]>({
     queryKey: ["/api/locations/countries"],
+  });
+
+  const { data: roleRequests = [], isLoading: roleRequestsLoading } = useQuery<RoleUpgradeRequest[]>({
+    queryKey: ["/api/admin/role-upgrade-requests"],
+    enabled: !!currentUser && !!userData?.roles?.admin,
   });
 
   const loading = usersLoading || statsLoading;
@@ -188,6 +214,107 @@ export default function AdminDashboard() {
   const handleBulkReject = () => {
     if (selectedUsers.size === 0) return;
     bulkRejectUsersMutation.mutate(Array.from(selectedUsers));
+  };
+
+  const approveRoleRequestMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest("POST", `/api/admin/role-upgrade-requests/${id}/approve`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/role-upgrade-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+      toast({
+        title: "Request Approved",
+        description: "The role upgrade request has been approved.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const rejectRoleRequestMutation = useMutation({
+    mutationFn: async ({ id, notes }: { id: string; notes: string }) => {
+      return apiRequest("POST", `/api/admin/role-upgrade-requests/${id}/reject`, { notes });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/role-upgrade-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+      setIsRejectDialogOpen(false);
+      setSelectedRoleRequest(null);
+      setRejectNotes("");
+      toast({
+        title: "Request Rejected",
+        description: "The role upgrade request has been rejected.",
+      });
+    },
+    onError: (error: Error) => {
+      setRejectNotes("");
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleApproveRoleRequest = (request: RoleUpgradeRequest) => {
+    approveRoleRequestMutation.mutate(request.id);
+  };
+
+  const handleOpenRejectDialog = (request: RoleUpgradeRequest) => {
+    setSelectedRoleRequest(request);
+    setRejectNotes("");
+    setIsRejectDialogOpen(true);
+  };
+
+  const handleRejectRoleRequest = () => {
+    if (!selectedRoleRequest) return;
+    rejectRoleRequestMutation.mutate({ id: selectedRoleRequest.id, notes: rejectNotes });
+  };
+
+  const pendingRoleRequests = roleRequests.filter((r) => r.status === "pending");
+  const approvedRoleRequests = roleRequests.filter((r) => r.status === "approved");
+  const rejectedRoleRequests = roleRequests.filter((r) => r.status === "rejected");
+
+  const getUserDisplayName = (userId: string) => {
+    const user = users.find(u => u.uid === userId);
+    if (user?.name) return user.name;
+    if (user?.email) return user.email.split('@')[0];
+    return userId.substring(0, 8) + "...";
+  };
+
+  const getRoleRequestStatusBadge = (status: string) => {
+    switch (status) {
+      case "pending":
+        return (
+          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400">
+            <Clock className="h-3 w-3 mr-1" />
+            Pending
+          </Badge>
+        );
+      case "approved":
+        return (
+          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400">
+            <CheckCircle2 className="h-3 w-3 mr-1" />
+            Approved
+          </Badge>
+        );
+      case "rejected":
+        return (
+          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400">
+            <XCircle className="h-3 w-3 mr-1" />
+            Rejected
+          </Badge>
+        );
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
   };
 
   const [isDownloadingCSV, setIsDownloadingCSV] = useState(false);
@@ -354,7 +481,6 @@ export default function AdminDashboard() {
     { title: "Media", description: "Videos & YouTube content", icon: Video, path: "/admin/media", color: "text-pink-500" },
     { title: "Locations", description: "Countries & cities data", icon: Globe, path: "/admin/locations", color: "text-cyan-500" },
     { title: "Fields", description: "Manage professional fields", icon: Database, path: "/admin/fields", color: "text-amber-500" },
-    { title: "Role Requests", description: "Role upgrade approvals", icon: UserCheck, path: "/admin/role-upgrade-requests", color: "text-green-500" },
   ];
 
   const dataSourceCards = [
@@ -748,6 +874,10 @@ export default function AdminDashboard() {
                       <XCircle className="w-3.5 h-3.5 mr-1" />
                       Rejected ({rejectedUsers.length})
                     </TabsTrigger>
+                    <TabsTrigger value="role-requests" data-testid="tab-role-requests">
+                      <UserCheck className="w-3.5 h-3.5 mr-1" />
+                      Role Requests {pendingRoleRequests.length > 0 && `(${pendingRoleRequests.length})`}
+                    </TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="all">
@@ -822,6 +952,134 @@ export default function AdminDashboard() {
                       />
                     )}
                   </TabsContent>
+
+                  <TabsContent value="role-requests">
+                    <div className="space-y-4">
+                      <div className="grid gap-4 md:grid-cols-3 mb-4">
+                        <Card>
+                          <CardContent className="p-4 flex items-center gap-4">
+                            <div className="p-3 rounded-full bg-yellow-100 dark:bg-yellow-900/20">
+                              <Clock className="h-6 w-6 text-yellow-600" />
+                            </div>
+                            <div>
+                              <p className="text-2xl font-bold" data-testid="text-role-pending-count">{pendingRoleRequests.length}</p>
+                              <p className="text-sm text-muted-foreground">Pending</p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardContent className="p-4 flex items-center gap-4">
+                            <div className="p-3 rounded-full bg-green-100 dark:bg-green-900/20">
+                              <CheckCircle2 className="h-6 w-6 text-green-600" />
+                            </div>
+                            <div>
+                              <p className="text-2xl font-bold" data-testid="text-role-approved-count">{approvedRoleRequests.length}</p>
+                              <p className="text-sm text-muted-foreground">Approved</p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardContent className="p-4 flex items-center gap-4">
+                            <div className="p-3 rounded-full bg-red-100 dark:bg-red-900/20">
+                              <XCircle className="h-6 w-6 text-red-600" />
+                            </div>
+                            <div>
+                              <p className="text-2xl font-bold" data-testid="text-role-rejected-count">{rejectedRoleRequests.length}</p>
+                              <p className="text-sm text-muted-foreground">Rejected</p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+
+                      <Tabs value={roleRequestTab} onValueChange={setRoleRequestTab}>
+                        <TabsList className="mb-4">
+                          <TabsTrigger value="pending" data-testid="tab-role-pending">
+                            Pending ({pendingRoleRequests.length})
+                          </TabsTrigger>
+                          <TabsTrigger value="approved" data-testid="tab-role-approved">
+                            Approved ({approvedRoleRequests.length})
+                          </TabsTrigger>
+                          <TabsTrigger value="rejected" data-testid="tab-role-rejected">
+                            Rejected ({rejectedRoleRequests.length})
+                          </TabsTrigger>
+                        </TabsList>
+
+                        <TabsContent value="pending">
+                          {roleRequestsLoading ? (
+                            <p className="text-muted-foreground">Loading...</p>
+                          ) : pendingRoleRequests.length === 0 ? (
+                            <Card>
+                              <CardContent className="p-6 text-center">
+                                <p className="text-muted-foreground">No pending role requests</p>
+                              </CardContent>
+                            </Card>
+                          ) : (
+                            <div className="space-y-4">
+                              {pendingRoleRequests.map((request) => (
+                                <RoleRequestCard
+                                  key={request.id}
+                                  request={request}
+                                  getUserDisplayName={getUserDisplayName}
+                                  getStatusBadge={getRoleRequestStatusBadge}
+                                  onApprove={handleApproveRoleRequest}
+                                  onReject={handleOpenRejectDialog}
+                                  isApproving={approveRoleRequestMutation.isPending}
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </TabsContent>
+
+                        <TabsContent value="approved">
+                          {approvedRoleRequests.length === 0 ? (
+                            <Card>
+                              <CardContent className="p-6 text-center">
+                                <p className="text-muted-foreground">No approved role requests</p>
+                              </CardContent>
+                            </Card>
+                          ) : (
+                            <div className="space-y-4">
+                              {approvedRoleRequests.map((request) => (
+                                <RoleRequestCard
+                                  key={request.id}
+                                  request={request}
+                                  getUserDisplayName={getUserDisplayName}
+                                  getStatusBadge={getRoleRequestStatusBadge}
+                                  onApprove={handleApproveRoleRequest}
+                                  onReject={handleOpenRejectDialog}
+                                  isApproving={approveRoleRequestMutation.isPending}
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </TabsContent>
+
+                        <TabsContent value="rejected">
+                          {rejectedRoleRequests.length === 0 ? (
+                            <Card>
+                              <CardContent className="p-6 text-center">
+                                <p className="text-muted-foreground">No rejected role requests</p>
+                              </CardContent>
+                            </Card>
+                          ) : (
+                            <div className="space-y-4">
+                              {rejectedRoleRequests.map((request) => (
+                                <RoleRequestCard
+                                  key={request.id}
+                                  request={request}
+                                  getUserDisplayName={getUserDisplayName}
+                                  getStatusBadge={getRoleRequestStatusBadge}
+                                  onApprove={handleApproveRoleRequest}
+                                  onReject={handleOpenRejectDialog}
+                                  isApproving={approveRoleRequestMutation.isPending}
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </TabsContent>
+                      </Tabs>
+                    </div>
+                  </TabsContent>
                 </Tabs>
               </CardContent>
             </Card>
@@ -875,7 +1133,135 @@ export default function AdminDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Role Request</DialogTitle>
+            <DialogDescription>
+              Provide a reason for rejecting this role upgrade request.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="rejectNotes">Rejection Notes (Optional)</Label>
+              <Textarea
+                id="rejectNotes"
+                value={rejectNotes}
+                onChange={(e) => setRejectNotes(e.target.value)}
+                placeholder="Enter reason for rejection..."
+                data-testid="textarea-role-reject-notes"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsRejectDialogOpen(false)} data-testid="button-cancel-role-reject">
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleRejectRoleRequest}
+              disabled={rejectRoleRequestMutation.isPending}
+              data-testid="button-confirm-role-reject"
+            >
+              {rejectRoleRequestMutation.isPending ? "Rejecting..." : "Reject Request"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+function RoleRequestCard({
+  request,
+  getUserDisplayName,
+  getStatusBadge,
+  onApprove,
+  onReject,
+  isApproving,
+}: {
+  request: RoleUpgradeRequest;
+  getUserDisplayName: (userId: string) => string;
+  getStatusBadge: (status: string) => JSX.Element;
+  onApprove: (request: RoleUpgradeRequest) => void;
+  onReject: (request: RoleUpgradeRequest) => void;
+  isApproving: boolean;
+}) {
+  return (
+    <Card data-testid={`role-request-card-${request.id}`}>
+      <CardContent className="p-4">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="flex items-center font-medium text-foreground">
+                <Users className="h-4 w-4 mr-1" />
+                {getUserDisplayName(request.userId)}
+              </span>
+              {getStatusBadge(request.status)}
+            </div>
+            <div className="flex items-center gap-2">
+              <UserCheck className="h-4 w-4 text-muted-foreground" />
+              <span>Requested Role: </span>
+              <Badge>{ROLE_LABELS[request.requestedRole] || request.requestedRole}</Badge>
+            </div>
+            {request.proofDescription && (
+              <div className="flex items-start gap-2">
+                <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <span className="text-sm text-muted-foreground">{request.proofDescription}</span>
+              </div>
+            )}
+            {request.proofUrl && (
+              <a
+                href={request.proofUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-sm text-primary hover:underline"
+                data-testid={`link-proof-${request.id}`}
+              >
+                <ArrowRight className="h-3 w-3" />
+                View Proof Document
+              </a>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Submitted: {safeFormatDate(request.createdAt, "PPp") || "Unknown"}
+            </p>
+            {request.reviewedAt && safeFormatDate(request.reviewedAt, "PPp") && (
+              <p className="text-xs text-muted-foreground">
+                Reviewed: {safeFormatDate(request.reviewedAt, "PPp")}
+              </p>
+            )}
+            {request.adminNotes && (
+              <div className="bg-muted p-2 rounded-md mt-2">
+                <p className="text-sm font-medium">Admin Notes:</p>
+                <p className="text-sm text-muted-foreground">{request.adminNotes}</p>
+              </div>
+            )}
+          </div>
+          {request.status === "pending" && (
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                onClick={() => onApprove(request)}
+                disabled={isApproving}
+                data-testid={`button-approve-role-${request.id}`}
+              >
+                <CheckCircle2 className="h-4 w-4 mr-1" />
+                Approve
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => onReject(request)}
+                data-testid={`button-reject-role-${request.id}`}
+              >
+                <XCircle className="h-4 w-4 mr-1" />
+                Reject
+              </Button>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
