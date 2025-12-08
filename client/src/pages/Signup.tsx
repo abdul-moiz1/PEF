@@ -87,7 +87,6 @@ export default function Signup() {
     bio: "",
     linkedinUrl: "",
     websiteUrl: "",
-    portfolioUrl: "",
   });
 
   const [selectedRoles, setSelectedRoles] = useState({
@@ -175,7 +174,6 @@ export default function Signup() {
         bio: basicInfo.bio?.trim() || null,
         linkedinUrl: basicInfo.linkedinUrl?.trim() || null,
         websiteUrl: basicInfo.websiteUrl?.trim() || null,
-        portfolioUrl: basicInfo.portfolioUrl?.trim() || null,
       };
 
       console.log("Submitting registration form...");
@@ -322,7 +320,6 @@ export default function Signup() {
           bio: data.bio || "",
           linkedinUrl: data.linkedinUrl || "",
           websiteUrl: data.websiteUrl || "",
-          portfolioUrl: data.portfolioUrl || "",
         }));
 
         if (data.roles) {
@@ -599,17 +596,6 @@ export default function Signup() {
                         />
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="portfolioUrl">Portfolio URL</Label>
-                        <Input
-                          id="portfolioUrl"
-                          type="url"
-                          value={basicInfo.portfolioUrl}
-                          onChange={(e) => handleBasicInfoChange("portfolioUrl", e.target.value)}
-                          placeholder="https://yourportfolio.com"
-                          data-testid="input-portfolio"
-                        />
-                      </div>
                     </div>
 
                     <div className="flex justify-between gap-4">
