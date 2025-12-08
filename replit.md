@@ -6,7 +6,14 @@ The Professional Executive Forum (PEF) is a global digital platform designed to 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
-## Recent Changes (Dec 5, 2025)
+## Recent Changes (Dec 8, 2025)
+- **Admin-Managed Fields Configuration** - New `/admin/fields` page for managing Main Fields (Electrical, Mechanical, Civil, etc.) and dependent Sub-Fields with sort order
+- **Role Upgrade Request System** - New `/admin/role-upgrade-requests` page for reviewing and approving/rejecting role upgrade requests with proof validation
+- **Chapter Admin Role** - Added Chapter Admin role schema for regional management capabilities
+- **Database Schema Updates** - Added fieldsConfig, roleUpgradeRequests, and chapterAdmins tables to shared/schema.ts
+- **Navigation Links** - Added Fields and Role Requests to Admin Dashboard quick access cards
+
+## Previous Changes (Dec 5, 2025)
 - **Admin Dashboard Restructured** - Moved Media management from top-level tab to Content Management section
 - **Dedicated AdminMedia Page** - New `/admin/media` page for video library management with full CRUD operations
 - **YouTube Channel Integration** - Official PEF YouTube channel link updated throughout (Footer, Media page): `https://youtube.com/@professionalexecutiveforum?si=bnOpAY1uvIx24KmX`
