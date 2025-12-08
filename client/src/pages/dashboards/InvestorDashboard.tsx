@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Target, DollarSign, Briefcase, Building2, Eye, BookmarkPlus } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { OnboardingCard } from "@/components/OnboardingCard";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 
@@ -143,6 +144,10 @@ export default function InvestorDashboard() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Investor Dashboard</h1>
           <p className="text-muted-foreground">Discover and track investment opportunities</p>
+        </div>
+
+        <div className="mb-6">
+          <OnboardingCard roleType="investor" />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

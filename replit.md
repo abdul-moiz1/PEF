@@ -7,6 +7,13 @@ The Professional Executive Forum (PEF) is a global digital platform designed to 
 Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (Dec 8, 2025)
+- **Dashboard Onboarding Cards** - Added reusable OnboardingCard component to collect role-specific data inline on dashboards after login
+  - Integrated into all 5 dashboard types: Job Seeker, Professional, Employer, Business Owner, and Investor
+  - Role-specific form fields: education, skills, experience (Job Seeker/Professional), company info (Employer), business details (Business Owner), investment preferences (Investor)
+  - Progress tracking with visual progress bar and completion status
+  - Collapsible UI that auto-hides when profile is 100% complete
+  - Data stored in Firestore under respective `*Data` fields (jobSeekerData, professionalData, etc.)
+  - Component location: `client/src/components/OnboardingCard.tsx`
 - **Role Upgrade Request with Document Upload** - Users can no longer directly edit roles; must submit upgrade requests with proof document uploads for admin approval
 - **Read-Only Role Display** - EditProfile roles tab now shows current roles as read-only status cards with "Active" or "Pending" badges
 - **DocumentUpload Component** - New reusable component (`client/src/components/DocumentUpload.tsx`) for uploading proof documents (images, PDFs, Word docs up to 10MB)

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Briefcase, MapPin, DollarSign, Clock, FileText, CheckCircle2 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { OnboardingCard } from "@/components/OnboardingCard";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -195,6 +196,10 @@ export default function JobSeekerDashboard() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Job Seeker Dashboard</h1>
           <p className="text-muted-foreground">Find your next career opportunity</p>
+        </div>
+
+        <div className="mb-6">
+          <OnboardingCard roleType="jobSeeker" />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

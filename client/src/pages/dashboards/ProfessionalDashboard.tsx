@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Briefcase, Award, Building2, TrendingUp, Users, Edit, Plus, Eye, Network, Target } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { OnboardingCard } from "@/components/OnboardingCard";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import type { Opportunity } from "@shared/schema";
@@ -161,6 +162,10 @@ export default function ProfessionalDashboard() {
               Edit Profile
             </Button>
           </div>
+        </div>
+
+        <div className="mb-6">
+          <OnboardingCard roleType="professional" />
         </div>
 
         {completeness < 100 && (

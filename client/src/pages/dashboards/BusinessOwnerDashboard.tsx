@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Handshake, TrendingUp, DollarSign, Globe, Building2, Target, MapPin, Calendar, CheckCircle, Clock, XCircle } from "lucide-react";
+import { OnboardingCard } from "@/components/OnboardingCard";
 import { format } from "date-fns";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -248,6 +249,10 @@ export default function BusinessOwnerDashboard() {
             <PostOpportunityDialog />
           </div>
           <p className="text-muted-foreground">Manage your business and find growth opportunities</p>
+        </div>
+
+        <div className="mb-6">
+          <OnboardingCard roleType="businessOwner" />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
