@@ -997,6 +997,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/admin/users/:userId", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      const uid = await verifyAuthToken(token);
+
+      const userWithRoles = await storage.getUserWithRoles(uid);
+      if (!userWithRoles || !userWithRoles.roles?.admin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { userId } = req.params;
+      const targetUser = await storage.getUserWithRoles(userId);
+      if (!targetUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      return res.json({
+        user: targetUser.user,
+        roles: targetUser.roles,
+      });
+    } catch (error) {
+      console.error("Admin user details fetch error:", error);
+      return res.status(500).json({ error: "Failed to fetch user details" });
+    }
+  });
+
   app.get("/api/admin/stats", async (req, res) => {
     try {
       const authHeader = req.headers.authorization;

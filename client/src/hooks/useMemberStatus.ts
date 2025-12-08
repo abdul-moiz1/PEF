@@ -55,9 +55,19 @@ export function useMemberStatus() {
           return { status: "unregistered" as MemberStatus };
         }
 
-        // All authenticated users are now active - no approval needed
+        // Check if user has been rejected (explicit rejection only)
+        const approvalStatus = data.user.approvalStatus;
+        if (approvalStatus === "rejected") {
+          return {
+            status: "rejected" as MemberStatus,
+            user: data.user,
+            roles: data.roles,
+          };
+        }
+
+        // All other authenticated users are active (pending, approved, or undefined)
         return {
-          status: "active",
+          status: "active" as MemberStatus,
           user: data.user,
           roles: data.roles,
         };

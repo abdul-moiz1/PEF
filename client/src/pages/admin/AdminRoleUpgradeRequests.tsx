@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft,
@@ -18,12 +20,21 @@ import {
   UserPlus,
   FileText,
   ExternalLink,
+  User,
+  Mail,
+  MapPin,
+  Briefcase,
+  Calendar,
+  Shield,
+  Building,
+  Globe,
 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { RoleUpgradeRequest } from "@shared/schema";
 import { format } from "date-fns";
+import { auth } from "@/lib/firebase";
 
 const ROLE_LABELS: Record<string, string> = {
   professional: "Professional",
@@ -31,7 +42,35 @@ const ROLE_LABELS: Record<string, string> = {
   employer: "Employer",
   businessOwner: "Business Owner",
   investor: "Investor",
+  admin: "Admin",
 };
+
+interface UserDetails {
+  user: {
+    id: string;
+    email: string;
+    displayName: string | null;
+    approvalStatus: string;
+    createdAt: string;
+    profile?: {
+      fullName?: string;
+      country?: string;
+      city?: string;
+      phone?: string;
+      headline?: string;
+      bio?: string;
+      linkedinUrl?: string;
+    };
+  };
+  roles: {
+    professional: boolean;
+    jobSeeker: boolean;
+    employer: boolean;
+    businessOwner: boolean;
+    investor: boolean;
+    admin: boolean;
+  } | null;
+}
 
 export default function AdminRoleUpgradeRequests() {
   const { currentUser, userData } = useAuth();
@@ -41,11 +80,41 @@ export default function AdminRoleUpgradeRequests() {
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [rejectNotes, setRejectNotes] = useState("");
   const [activeTab, setActiveTab] = useState("pending");
+  const [userPreviewOpen, setUserPreviewOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   const { data: requests = [], isLoading } = useQuery<RoleUpgradeRequest[]>({
     queryKey: ["/api/admin/role-upgrade-requests"],
     enabled: !!currentUser && !!userData?.roles?.admin,
   });
+
+  const { data: allUsers = [] } = useQuery<Array<{ uid: string; email: string; displayName?: string; profile?: { fullName?: string } }>>({
+    queryKey: ["/api/admin/users"],
+    enabled: !!currentUser && !!userData?.roles?.admin,
+  });
+
+  const { data: userDetails, isLoading: userDetailsLoading } = useQuery<UserDetails>({
+    queryKey: ["/api/admin/users", selectedUserId],
+    enabled: !!selectedUserId && userPreviewOpen,
+    queryFn: async () => {
+      const token = await auth.currentUser?.getIdToken();
+      const response = await fetch(`/api/admin/users/${selectedUserId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) throw new Error("Failed to fetch user details");
+      return response.json();
+    },
+  });
+
+  const getUserDisplayName = (userId: string) => {
+    const user = allUsers.find(u => u.uid === userId);
+    if (user?.profile?.fullName) return user.profile.fullName;
+    if (user?.displayName) return user.displayName;
+    if (user?.email) return user.email.split('@')[0];
+    return userId.substring(0, 8) + "...";
+  };
 
   const approveMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -105,6 +174,11 @@ export default function AdminRoleUpgradeRequests() {
     rejectMutation.mutate({ id: selectedRequest.id, notes: rejectNotes });
   };
 
+  const handleOpenUserPreview = (userId: string) => {
+    setSelectedUserId(userId);
+    setUserPreviewOpen(true);
+  };
+
   const pendingRequests = requests.filter((r) => r.status === "pending");
   const approvedRequests = requests.filter((r) => r.status === "approved");
   const rejectedRequests = requests.filter((r) => r.status === "rejected");
@@ -137,6 +211,18 @@ export default function AdminRoleUpgradeRequests() {
     }
   };
 
+  const getActiveRoles = (roles: UserDetails["roles"]) => {
+    if (!roles) return [];
+    return Object.entries(roles)
+      .filter(([_, active]) => active)
+      .map(([role]) => ROLE_LABELS[role] || role);
+  };
+
+  const getInitials = (name: string | null | undefined) => {
+    if (!name) return "?";
+    return name.split(" ").map(n => n[0]).join("").toUpperCase().substring(0, 2);
+  };
+
   if (!currentUser || !userData?.roles?.admin) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -155,7 +241,15 @@ export default function AdminRoleUpgradeRequests() {
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-medium" data-testid={`text-user-id-${request.id}`}>User ID: {request.userId}</span>
+              <button
+                type="button"
+                className="flex items-center font-medium text-foreground hover:text-primary transition-colors cursor-pointer"
+                onClick={() => handleOpenUserPreview(request.userId)}
+                data-testid={`button-user-preview-${request.id}`}
+              >
+                <User className="h-4 w-4 mr-1" />
+                {getUserDisplayName(request.userId)}
+              </button>
               {getStatusBadge(request.status)}
             </div>
             <div className="flex items-center gap-2">
@@ -368,6 +462,157 @@ export default function AdminRoleUpgradeRequests() {
                 data-testid="button-confirm-reject"
               >
                 {rejectMutation.isPending ? "Rejecting..." : "Reject Request"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={userPreviewOpen} onOpenChange={setUserPreviewOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                User Details
+              </DialogTitle>
+              <DialogDescription>
+                Complete profile information for this user
+              </DialogDescription>
+            </DialogHeader>
+            
+            {userDetailsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : userDetails ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-16 w-16">
+                    <AvatarFallback className="bg-primary/10 text-primary text-lg">
+                      {getInitials(userDetails.user.profile?.fullName || userDetails.user.displayName)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="text-lg font-semibold">
+                      {userDetails.user.profile?.fullName || userDetails.user.displayName || "Unknown User"}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">{userDetails.user.email}</p>
+                    <Badge 
+                      variant="outline" 
+                      className={
+                        userDetails.user.approvalStatus === "approved" 
+                          ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400"
+                          : userDetails.user.approvalStatus === "rejected"
+                          ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400"
+                          : "bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400"
+                      }
+                    >
+                      {userDetails.user.approvalStatus}
+                    </Badge>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-3">
+                  {userDetails.user.profile?.headline && (
+                    <div className="flex items-start gap-2">
+                      <Briefcase className="h-4 w-4 text-muted-foreground mt-1" />
+                      <div>
+                        <p className="text-sm font-medium">Headline</p>
+                        <p className="text-sm text-muted-foreground">{userDetails.user.profile.headline}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {(userDetails.user.profile?.country || userDetails.user.profile?.city) && (
+                    <div className="flex items-start gap-2">
+                      <MapPin className="h-4 w-4 text-muted-foreground mt-1" />
+                      <div>
+                        <p className="text-sm font-medium">Location</p>
+                        <p className="text-sm text-muted-foreground">
+                          {[userDetails.user.profile.city, userDetails.user.profile.country].filter(Boolean).join(", ")}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {userDetails.user.profile?.phone && (
+                    <div className="flex items-start gap-2">
+                      <Mail className="h-4 w-4 text-muted-foreground mt-1" />
+                      <div>
+                        <p className="text-sm font-medium">Phone</p>
+                        <p className="text-sm text-muted-foreground">{userDetails.user.profile.phone}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {userDetails.user.profile?.linkedinUrl && (
+                    <div className="flex items-start gap-2">
+                      <Globe className="h-4 w-4 text-muted-foreground mt-1" />
+                      <div>
+                        <p className="text-sm font-medium">LinkedIn</p>
+                        <a 
+                          href={userDetails.user.profile.linkedinUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-sm text-primary hover:underline"
+                        >
+                          View Profile
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-start gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground mt-1" />
+                    <div>
+                      <p className="text-sm font-medium">Member Since</p>
+                      <p className="text-sm text-muted-foreground">
+                        {format(new Date(userDetails.user.createdAt), "PPP")}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Shield className="h-4 w-4 text-muted-foreground" />
+                    <p className="text-sm font-medium">Active Roles</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {getActiveRoles(userDetails.roles).length > 0 ? (
+                      getActiveRoles(userDetails.roles).map((role) => (
+                        <Badge key={role} variant="secondary">
+                          {role}
+                        </Badge>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No active roles</p>
+                    )}
+                  </div>
+                </div>
+
+                {userDetails.user.profile?.bio && (
+                  <>
+                    <Separator />
+                    <div>
+                      <p className="text-sm font-medium mb-1">Bio</p>
+                      <p className="text-sm text-muted-foreground">{userDetails.user.profile.bio}</p>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-muted-foreground">Failed to load user details</p>
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setUserPreviewOpen(false)} data-testid="button-close-preview">
+                Close
               </Button>
             </DialogFooter>
           </DialogContent>
