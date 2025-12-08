@@ -25,8 +25,9 @@ export function useMemberStatus() {
   const { currentUser, loading: authLoading } = useAuth();
 
   const { data, isLoading, error, refetch } = useQuery<MemberStatusData>({
-    queryKey: ["/api/auth/member-status"],
+    queryKey: ["/api/auth/member-status", currentUser?.uid],
     enabled: !authLoading && !!currentUser,
+    staleTime: 0,
     retry: false,
     queryFn: async () => {
       try {
