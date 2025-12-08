@@ -3,19 +3,21 @@ import { useLocation, Link } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import LoadingOverlay from "@/components/LoadingOverlay";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight, Loader2, XCircle, Mail, LogOut } from "lucide-react";
 import { SiGoogle } from "react-icons/si";
+import { useMemberStatus } from "@/hooks/useMemberStatus";
 
 export default function Login() {
   const [, setLocation] = useLocation();
-  const { login, signInWithGoogle, currentUser, userData, loading: authLoading } = useAuth();
+  const { login, signInWithGoogle, currentUser, userData, loading: authLoading, logout } = useAuth();
   const { toast } = useToast();
+  const { status: memberStatus, data: memberData } = useMemberStatus();
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
@@ -25,6 +27,16 @@ export default function Login() {
   });
 
   useEffect(() => {
+    // Don't redirect if user is rejected
+    if (memberStatus === "rejected") {
+      return;
+    }
+    
+    // Wait for member status to be determined before redirecting
+    if (memberStatus === "loading") {
+      return;
+    }
+    
     if (!authLoading && currentUser && userData) {
       // Set redirecting state to show loading UI
       setRedirecting(true);
@@ -40,7 +52,7 @@ export default function Login() {
         setLocation("/dashboard");
       }
     }
-  }, [currentUser, userData, authLoading, setLocation]);
+  }, [currentUser, userData, authLoading, setLocation, memberStatus]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,7 +60,7 @@ export default function Login() {
 
     try {
       await login(credentials.email, credentials.password);
-      setLocation("/dashboard");
+      // Don't redirect immediately - let useEffect handle based on member status
     } catch (error: any) {
       let errorMessage = "Invalid email or password";
       if (error.code === "auth/user-not-found") {
@@ -97,6 +109,91 @@ export default function Login() {
   // Show loading overlay when redirecting
   if (redirecting) {
     return <LoadingOverlay message="Redirecting to your dashboard..." />;
+  }
+
+  // Show suspended account message for rejected users
+  if (memberStatus === "rejected" && currentUser) {
+    const handleLogout = async () => {
+      await logout();
+      setLocation("/");
+    };
+
+    return (
+      <div className="min-h-screen">
+        <Header />
+        <main className="py-16 md:py-24 bg-background">
+          <div className="max-w-lg mx-auto px-4 sm:px-6 lg:px-8">
+            <Card className="border-2">
+              <CardHeader className="text-center pb-2">
+                <div className="mx-auto w-20 h-20 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center mb-4">
+                  <XCircle className="h-10 w-10 text-red-600 dark:text-red-400" />
+                </div>
+                <CardTitle className="text-2xl">Account Suspended</CardTitle>
+                <CardDescription className="text-base mt-2">
+                  Your account has been suspended by the administration. Access to the platform has been restricted.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                  <h3 className="font-medium text-sm">What this means:</h3>
+                  <ul className="text-sm text-muted-foreground space-y-2">
+                    <li className="flex items-start gap-2">
+                      <span className="text-red-500 mt-0.5">•</span>
+                      <span>Your profile has been reviewed and suspended by the administration</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-red-500 mt-0.5">•</span>
+                      <span>You cannot access your dashboard or other member features</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="bg-primary/5 rounded-lg p-4 space-y-3">
+                  <h3 className="font-medium text-sm">What you can do:</h3>
+                  <ul className="text-sm text-muted-foreground space-y-2">
+                    <li className="flex items-start gap-2">
+                      <span className="text-primary mt-0.5">•</span>
+                      <span>Contact our support team to learn more about the suspension</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-primary mt-0.5">•</span>
+                      <span>Request a review if you believe this was made in error</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => window.location.href = "mailto:support@pef.com"}
+                    data-testid="button-contact-support"
+                  >
+                    <Mail className="h-4 w-4 mr-2" />
+                    Contact Support
+                  </Button>
+                  <Button 
+                    variant="destructive" 
+                    className="flex-1"
+                    onClick={handleLogout}
+                    data-testid="button-logout-suspended"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign Out
+                  </Button>
+                </div>
+
+                <p className="text-xs text-center text-muted-foreground">
+                  If you have questions about this suspension, please reach out to our support team. 
+                  We're here to help.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
   }
 
   return (
