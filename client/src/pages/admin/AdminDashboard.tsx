@@ -892,6 +892,9 @@ export default function AdminDashboard() {
                         selectedUsers={selectedUsers}
                         onSelectUser={handleSelectUser}
                         onSelectAll={(selectAll) => handleSelectAllUsers(filterUsers(users), selectAll)}
+                        roleRequests={roleRequests}
+                        onApproveRoleRequest={handleApproveRoleRequest}
+                        onRejectRoleRequest={handleOpenRejectDialog}
                       />
                     )}
                   </TabsContent>
@@ -911,6 +914,9 @@ export default function AdminDashboard() {
                         selectedUsers={selectedUsers}
                         onSelectUser={handleSelectUser}
                         onSelectAll={(selectAll) => handleSelectAllUsers(filterUsers(pendingUsers), selectAll)}
+                        roleRequests={roleRequests}
+                        onApproveRoleRequest={handleApproveRoleRequest}
+                        onRejectRoleRequest={handleOpenRejectDialog}
                       />
                     )}
                   </TabsContent>
@@ -930,6 +936,9 @@ export default function AdminDashboard() {
                         selectedUsers={selectedUsers}
                         onSelectUser={handleSelectUser}
                         onSelectAll={(selectAll) => handleSelectAllUsers(filterUsers(approvedUsers), selectAll)}
+                        roleRequests={roleRequests}
+                        onApproveRoleRequest={handleApproveRoleRequest}
+                        onRejectRoleRequest={handleOpenRejectDialog}
                       />
                     )}
                   </TabsContent>
@@ -949,6 +958,9 @@ export default function AdminDashboard() {
                         selectedUsers={selectedUsers}
                         onSelectUser={handleSelectUser}
                         onSelectAll={(selectAll) => handleSelectAllUsers(filterUsers(rejectedUsers), selectAll)}
+                        roleRequests={roleRequests}
+                        onApproveRoleRequest={handleApproveRoleRequest}
+                        onRejectRoleRequest={handleOpenRejectDialog}
                       />
                     )}
                   </TabsContent>
@@ -1271,14 +1283,24 @@ function UsersTable({
   selectedUsers,
   onSelectUser,
   onSelectAll,
+  roleRequests = [],
+  onApproveRoleRequest,
+  onRejectRoleRequest,
 }: {
   users: UserData[];
   onUserClick: (user: UserData) => void;
   selectedUsers: Set<string>;
   onSelectUser: (userId: string) => void;
   onSelectAll: (selectAll: boolean) => void;
+  roleRequests?: RoleUpgradeRequest[];
+  onApproveRoleRequest?: (request: RoleUpgradeRequest) => void;
+  onRejectRoleRequest?: (request: RoleUpgradeRequest) => void;
 }) {
   const allSelected = users.length > 0 && users.every((u) => selectedUsers.has(u.uid));
+  
+  const getUserPendingRequests = (userId: string) => {
+    return roleRequests.filter(r => r.userId === userId && r.status === "pending");
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -1309,6 +1331,7 @@ function UsersTable({
             <th className="text-left p-3 font-medium text-xs text-muted-foreground uppercase tracking-wider">User</th>
             <th className="text-left p-3 font-medium text-xs text-muted-foreground uppercase tracking-wider">Status</th>
             <th className="text-left p-3 font-medium text-xs text-muted-foreground uppercase tracking-wider">Roles</th>
+            <th className="text-left p-3 font-medium text-xs text-muted-foreground uppercase tracking-wider">Pending Requests</th>
           </tr>
         </thead>
         <tbody>
@@ -1371,6 +1394,44 @@ function UsersTable({
                     <Badge className="text-xs bg-primary">Admin</Badge>
                   )}
                 </div>
+              </td>
+              <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                {getUserPendingRequests(user.uid).length > 0 ? (
+                  <div className="space-y-2">
+                    {getUserPendingRequests(user.uid).map((request) => (
+                      <div key={request.id} className="flex items-center gap-2 flex-wrap">
+                        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 text-xs">
+                          <Clock className="h-3 w-3 mr-1" />
+                          {ROLE_LABELS[request.requestedRole] || request.requestedRole}
+                        </Badge>
+                        {onApproveRoleRequest && onRejectRoleRequest && (
+                          <div className="flex gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 px-2 text-green-600 hover:text-green-700 hover:bg-green-50"
+                              onClick={() => onApproveRoleRequest(request)}
+                              data-testid={`button-quick-approve-role-${request.id}`}
+                            >
+                              <CheckCircle2 className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => onRejectRoleRequest(request)}
+                              data-testid={`button-quick-reject-role-${request.id}`}
+                            >
+                              <XCircle className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-xs text-muted-foreground">—</span>
+                )}
               </td>
             </tr>
           ))}
