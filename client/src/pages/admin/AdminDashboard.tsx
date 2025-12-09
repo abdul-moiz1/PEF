@@ -1104,6 +1104,9 @@ export default function AdminDashboard() {
           user={selectedUser}
           onClose={() => setSelectedUser(null)}
           onUpdateRoles={(roles) => handleUpdateRoles(selectedUser.uid, roles)}
+          roleRequests={roleRequests}
+          onApproveRoleRequest={handleApproveRoleRequest}
+          onRejectRoleRequest={handleOpenRejectDialog}
         />
       )}
       <Dialog open={downloadDialogOpen} onOpenChange={(open) => {
@@ -1395,38 +1398,18 @@ function UsersTable({
                   )}
                 </div>
               </td>
-              <td className="p-3" onClick={(e) => e.stopPropagation()}>
+              <td className="p-3">
                 {getUserPendingRequests(user.uid).length > 0 ? (
-                  <div className="space-y-2">
+                  <div className="flex flex-wrap gap-1">
                     {getUserPendingRequests(user.uid).map((request) => (
-                      <div key={request.id} className="flex items-center gap-2 flex-wrap">
-                        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 text-xs">
-                          <Clock className="h-3 w-3 mr-1" />
-                          {ROLE_LABELS[request.requestedRole] || request.requestedRole}
-                        </Badge>
-                        {onApproveRoleRequest && onRejectRoleRequest && (
-                          <div className="flex gap-1">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-6 px-2 text-green-600 hover:text-green-700 hover:bg-green-50"
-                              onClick={() => onApproveRoleRequest(request)}
-                              data-testid={`button-quick-approve-role-${request.id}`}
-                            >
-                              <CheckCircle2 className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-6 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                              onClick={() => onRejectRoleRequest(request)}
-                              data-testid={`button-quick-reject-role-${request.id}`}
-                            >
-                              <XCircle className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        )}
-                      </div>
+                      <Badge 
+                        key={request.id} 
+                        variant="outline" 
+                        className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 text-xs"
+                      >
+                        <Clock className="h-3 w-3 mr-1" />
+                        {ROLE_LABELS[request.requestedRole] || request.requestedRole}
+                      </Badge>
                     ))}
                   </div>
                 ) : (
@@ -1445,10 +1428,16 @@ function UserManagementDialog({
   user,
   onClose,
   onUpdateRoles,
+  roleRequests = [],
+  onApproveRoleRequest,
+  onRejectRoleRequest,
 }: {
   user: UserData;
   onClose: () => void;
   onUpdateRoles: (roles: any) => void;
+  roleRequests?: RoleUpgradeRequest[];
+  onApproveRoleRequest?: (request: RoleUpgradeRequest) => void;
+  onRejectRoleRequest?: (request: RoleUpgradeRequest) => void;
 }) {
   const { toast } = useToast();
   const [roles, setRoles] = useState({
@@ -1459,6 +1448,8 @@ function UserManagementDialog({
     investor: user.roles?.isInvestor || false,
     admin: user.roles?.isAdmin || false,
   });
+  
+  const pendingRequests = roleRequests.filter(r => r.userId === user.uid && r.status === "pending");
 
   const updateStatusMutation = useMutation({
     mutationFn: async (status: "approved" | "rejected") => {
@@ -1548,6 +1539,46 @@ function UserManagementDialog({
               ))}
             </div>
           </div>
+          
+          {pendingRequests.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium mb-3">Pending Role Requests</h3>
+              <div className="space-y-2">
+                {pendingRequests.map((request) => (
+                  <div key={request.id} className="flex items-center justify-between p-3 rounded-md bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400">
+                        <Clock className="h-3 w-3 mr-1" />
+                        {ROLE_LABELS[request.requestedRole] || request.requestedRole}
+                      </Badge>
+                    </div>
+                    {onApproveRoleRequest && onRejectRoleRequest && (
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700"
+                          onClick={() => onApproveRoleRequest(request)}
+                          data-testid={`button-approve-role-request-${request.id}`}
+                        >
+                          <CheckCircle2 className="h-4 w-4 mr-1" />
+                          Approve
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => onRejectRoleRequest(request)}
+                          data-testid={`button-reject-role-request-${request.id}`}
+                        >
+                          <XCircle className="h-4 w-4 mr-1" />
+                          Reject
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <DialogFooter className="flex-col sm:flex-row gap-2">
