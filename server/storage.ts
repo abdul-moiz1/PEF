@@ -83,6 +83,17 @@ function normalizeDocData<T>(data: any): T {
   return normalized as T;
 }
 
+// Helper function to normalize role upgrade request data (defaults missing status to "pending")
+function normalizeRoleUpgradeRequest(data: any): RoleUpgradeRequest {
+  const normalized = normalizeDocData<RoleUpgradeRequest>(data);
+  // Default missing status to "pending" for backwards compatibility
+  if (!normalized.status) {
+    normalized.status = "pending";
+  }
+  if (data.reviewedAt) normalized.reviewedAt = normalizeDate(data.reviewedAt);
+  return normalized;
+}
+
 export interface RegistrationData {
   userId: string;
   email: string;
@@ -1876,20 +1887,20 @@ export class FirestoreStorage implements IStorage {
 
   async getAllRoleUpgradeRequests(): Promise<RoleUpgradeRequest[]> {
     const querySnapshot = await getDocs(collection(db, "roleUpgradeRequests"));
-    return querySnapshot.docs.map(doc => normalizeDocData<RoleUpgradeRequest>({ id: doc.id, ...doc.data() }));
+    return querySnapshot.docs.map(doc => normalizeRoleUpgradeRequest({ id: doc.id, ...doc.data() }));
   }
 
   async getPendingRoleUpgradeRequests(): Promise<RoleUpgradeRequest[]> {
-    const q = query(collection(db, "roleUpgradeRequests"), where("status", "==", "pending"));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => normalizeDocData<RoleUpgradeRequest>({ id: doc.id, ...doc.data() }));
+    // Also fetch requests with no status (legacy data) and treat them as pending
+    const allRequests = await this.getAllRoleUpgradeRequests();
+    return allRequests.filter(r => r.status === "pending");
   }
 
   async getRoleUpgradeRequestById(id: string): Promise<RoleUpgradeRequest | undefined> {
     const docRef = doc(db, "roleUpgradeRequests", id);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-      return normalizeDocData<RoleUpgradeRequest>({ id: docSnap.id, ...docSnap.data() });
+      return normalizeRoleUpgradeRequest({ id: docSnap.id, ...docSnap.data() });
     }
     return undefined;
   }
@@ -1897,7 +1908,7 @@ export class FirestoreStorage implements IStorage {
   async getRoleUpgradeRequestsByUserId(userId: string): Promise<RoleUpgradeRequest[]> {
     const q = query(collection(db, "roleUpgradeRequests"), where("userId", "==", userId));
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => normalizeDocData<RoleUpgradeRequest>({ id: doc.id, ...doc.data() }));
+    return querySnapshot.docs.map(doc => normalizeRoleUpgradeRequest({ id: doc.id, ...doc.data() }));
   }
 
   async updateRoleUpgradeRequest(id: string, data: Partial<InsertRoleUpgradeRequest>): Promise<RoleUpgradeRequest | undefined> {
@@ -1911,7 +1922,7 @@ export class FirestoreStorage implements IStorage {
     });
     
     const updatedSnap = await getDoc(docRef);
-    return normalizeDocData<RoleUpgradeRequest>({ id: updatedSnap.id, ...updatedSnap.data() });
+    return normalizeRoleUpgradeRequest({ id: updatedSnap.id, ...updatedSnap.data() });
   }
 
   async approveRoleUpgradeRequest(id: string, adminId: string): Promise<RoleUpgradeRequest | undefined> {
@@ -1933,7 +1944,7 @@ export class FirestoreStorage implements IStorage {
     });
     
     const updatedSnap = await getDoc(doc(db, "roleUpgradeRequests", id));
-    return normalizeDocData<RoleUpgradeRequest>({ id: updatedSnap.id, ...updatedSnap.data() });
+    return normalizeRoleUpgradeRequest({ id: updatedSnap.id, ...updatedSnap.data() });
   }
 
   async rejectRoleUpgradeRequest(id: string, adminId: string, notes?: string): Promise<RoleUpgradeRequest | undefined> {
@@ -1950,7 +1961,7 @@ export class FirestoreStorage implements IStorage {
     });
     
     const updatedSnap = await getDoc(doc(db, "roleUpgradeRequests", id));
-    return normalizeDocData<RoleUpgradeRequest>({ id: updatedSnap.id, ...updatedSnap.data() });
+    return normalizeRoleUpgradeRequest({ id: updatedSnap.id, ...updatedSnap.data() });
   }
 
   // Chapter admin methods
