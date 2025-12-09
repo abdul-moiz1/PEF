@@ -57,6 +57,7 @@ export default function InvestorDashboard() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("opportunities");
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const investorData = userData?.investorData || {};
   const isLoading = authLoading || rolesLoading;
@@ -116,13 +117,21 @@ export default function InvestorDashboard() {
     enabled: !!currentUser && hasRole("investor"),
   });
 
-  // Filter for investment opportunities that are approved and open
+  // Filter for investment opportunities
   const investmentOpportunities = opportunities.filter(
-    (opp) => opp.type === "investment" && opp.approvalStatus === "approved" && opp.status === "open"
+    (opp) => opp.type === "investment"
   );
 
+  // Filter by status
+  const statusFilteredOpportunities = investmentOpportunities.filter(opp => {
+    if (statusFilter === "all") return opp.approvalStatus === "approved" && opp.status === "open";
+    if (statusFilter === "open") return opp.status === "open" && opp.approvalStatus === "approved";
+    if (statusFilter === "closed") return opp.status === "closed";
+    return true;
+  });
+
   // Filter by search
-  const filteredOpportunities = investmentOpportunities.filter(opp => {
+  const filteredOpportunities = statusFilteredOpportunities.filter(opp => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     return opp.title.toLowerCase().includes(query) || 
@@ -252,15 +261,30 @@ export default function InvestorDashboard() {
                     <CardTitle>Investment Opportunities</CardTitle>
                     <CardDescription>Businesses seeking investment in your focus areas</CardDescription>
                   </div>
-                  <div className="relative w-full md:w-64">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search opportunities..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-9"
-                      data-testid="input-search-opportunities"
-                    />
+                  <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex flex-wrap gap-2">
+                      {["all", "open", "closed"].map((status) => (
+                        <Button
+                          key={status}
+                          variant={statusFilter === status ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setStatusFilter(status)}
+                          data-testid={`filter-${status}`}
+                        >
+                          {status.charAt(0).toUpperCase() + status.slice(1)}
+                        </Button>
+                      ))}
+                    </div>
+                    <div className="relative w-full md:w-64">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search opportunities..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-9"
+                        data-testid="input-search-opportunities"
+                      />
+                    </div>
                   </div>
                 </div>
               </CardHeader>
