@@ -3,7 +3,8 @@ import { useUserRoles } from "@/hooks/useUserRoles";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, Briefcase, MapPin, DollarSign, Clock, FileText, CheckCircle2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Search, Briefcase, MapPin, DollarSign, Clock, FileText, CheckCircle2, User } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useLocation } from "wouter";
@@ -33,6 +34,7 @@ export default function JobSeekerDashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
+  const [applicationFilter, setApplicationFilter] = useState<string>("all");
 
   const isLoading = authLoading || rolesLoading;
 
@@ -141,9 +143,10 @@ export default function JobSeekerDashboard() {
     );
   });
 
-  const recentApplications = applications
-    .sort((a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime())
-    .slice(0, 5);
+  const filteredApplications = applications.filter(app => {
+    if (applicationFilter === "all") return true;
+    return app.status === applicationFilter;
+  });
 
   const statusCounts = applications.reduce((acc, app) => {
     acc[app.status] = (acc[app.status] || 0) + 1;
@@ -253,12 +256,27 @@ export default function JobSeekerDashboard() {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
+        <Tabs defaultValue="jobs" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
+            <TabsTrigger value="jobs" data-testid="tab-jobs">
+              <Briefcase className="w-4 h-4 mr-2" />
+              Job Vacancies
+            </TabsTrigger>
+            <TabsTrigger value="applications" data-testid="tab-applications">
+              <FileText className="w-4 h-4 mr-2" />
+              My Applications
+            </TabsTrigger>
+            <TabsTrigger value="profile" data-testid="tab-profile">
+              <User className="w-4 h-4 mr-2" />
+              My Profile
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="jobs" className="space-y-4">
             <Card>
               <CardHeader>
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <CardTitle>Available Jobs</CardTitle>
+                  <CardTitle>Available Job Vacancies</CardTitle>
                   <div className="flex flex-wrap gap-2">
                     <input
                       type="text"
@@ -292,192 +310,252 @@ export default function JobSeekerDashboard() {
                     </p>
                   </div>
                 ) : (
-                  filteredOpportunities.slice(0, 6).map((job) => {
-                    const application = applicationMap.get(job.id);
-                    const hasApplied = !!application;
-                    // Safe type guard for details
-                    const details = (job.details && typeof job.details === 'object') ? job.details as JobDetails : null;
-
-                    return (
-                      <div
-                        key={job.id}
-                        className="p-4 rounded-md border hover-elevate"
-                        data-testid={`card-job-${job.id}`}
-                      >
-                        <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-lg mb-1">{job.title}</h3>
-                            {job.sector && <p className="text-muted-foreground mb-2">{job.sector}</p>}
-                          </div>
-                          {hasApplied && (
-                            <Badge
-                              variant={getStatusBadgeVariant(application.status)}
-                              data-testid={`badge-status-${job.id}`}
-                            >
-                              {getStatusLabel(application.status)}
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                          {job.description}
-                        </p>
-                        <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-3">
-                          {(job.city || job.country) && (
-                            <div className="flex items-center gap-1">
-                              <MapPin className="w-4 h-4" />
-                              {[job.city, job.country].filter(Boolean).join(", ")}
-                            </div>
-                          )}
-                          {details?.employmentType && (
-                            <div className="flex items-center gap-1">
-                              <Briefcase className="w-4 h-4" />
-                              {details.employmentType}
-                            </div>
-                          )}
-                          {details?.salaryMin && details?.salaryMax && (
-                            <div className="flex items-center gap-1">
-                              <DollarSign className="w-4 h-4" />
-                              {details.salaryCurrency || "$"}
-                              {details.salaryMin.toLocaleString()} -{" "}
-                              {details.salaryMax.toLocaleString()}
-                            </div>
-                          )}
-                          <div className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            {format(new Date(job.createdAt), "MMM d, yyyy")}
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {hasApplied ? (
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              disabled
-                              data-testid={`button-applied-${job.id}`}
-                            >
-                              <CheckCircle2 className="w-4 h-4 mr-2" />
-                              Applied
-                            </Button>
-                          ) : (
-                            <Button
-                              size="sm"
-                              onClick={() => applyMutation.mutate(job.id)}
-                              disabled={applyMutation.isPending}
-                              data-testid={`button-apply-${job.id}`}
-                            >
-                              {applyMutation.isPending ? "Applying..." : "Apply Now"}
-                            </Button>
-                          )}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setLocation(`/opportunities/${job.id}`)}
-                            data-testid={`button-details-${job.id}`}
-                          >
-                            View Details
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Applications</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {applicationsLoading ? (
-                  <div className="text-center py-4">
-                    <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left p-3 font-medium">Job Title</th>
+                          <th className="text-left p-3 font-medium">Sector</th>
+                          <th className="text-left p-3 font-medium">Location</th>
+                          <th className="text-left p-3 font-medium">Posted</th>
+                          <th className="text-left p-3 font-medium">Status</th>
+                          <th className="text-left p-3 font-medium">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredOpportunities.map((job) => {
+                          const application = applicationMap.get(job.id);
+                          const hasApplied = !!application;
+                          return (
+                            <tr key={job.id} className="border-b hover:bg-muted/50" data-testid={`row-job-${job.id}`}>
+                              <td className="p-3">
+                                <div>
+                                  <p className="font-medium">{job.title}</p>
+                                  <p className="text-sm text-muted-foreground line-clamp-1">{job.description}</p>
+                                </div>
+                              </td>
+                              <td className="p-3 text-sm">{job.sector || "-"}</td>
+                              <td className="p-3 text-sm">
+                                <div className="flex items-center gap-1">
+                                  <MapPin className="w-3 h-3" />
+                                  {[job.city, job.country].filter(Boolean).join(", ") || "-"}
+                                </div>
+                              </td>
+                              <td className="p-3 text-sm">{format(new Date(job.createdAt), "MMM d, yyyy")}</td>
+                              <td className="p-3">
+                                {hasApplied ? (
+                                  <Badge variant={getStatusBadgeVariant(application.status)}>
+                                    {getStatusLabel(application.status)}
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline">Open</Badge>
+                                )}
+                              </td>
+                              <td className="p-3">
+                                <div className="flex flex-wrap gap-2">
+                                  {hasApplied ? (
+                                    <Button size="sm" variant="secondary" disabled data-testid={`button-applied-${job.id}`}>
+                                      Applied
+                                    </Button>
+                                  ) : (
+                                    <Button
+                                      size="sm"
+                                      onClick={() => applyMutation.mutate(job.id)}
+                                      disabled={applyMutation.isPending}
+                                      data-testid={`button-apply-${job.id}`}
+                                    >
+                                      Apply
+                                    </Button>
+                                  )}
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setLocation(`/opportunities/${job.id}`)}
+                                    data-testid={`button-details-${job.id}`}
+                                  >
+                                    View
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
-                ) : recentApplications.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-4">
-                    No applications yet. Start applying to jobs above!
-                  </p>
-                ) : (
-                  recentApplications.map((app) => (
-                    <div
-                      key={app.id}
-                      className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-md border"
-                      data-testid={`card-application-${app.id}`}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium">{app.opportunity.title}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {app.opportunity.sector || "Job Opportunity"}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={getStatusBadgeVariant(app.status)}>
-                          {getStatusLabel(app.status)}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">
-                          {format(new Date(app.appliedAt), "MMM d")}
-                        </span>
-                      </div>
-                    </div>
-                  ))
                 )}
               </CardContent>
             </Card>
-          </div>
+          </TabsContent>
 
-          <div className="space-y-6">
+          <TabsContent value="applications" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Application Status</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-2">
-                  {[
-                    { label: "Applied", count: statusCounts.applied || 0 },
-                    { label: "Under Review", count: statusCounts.under_review || 0 },
-                    { label: "Interview", count: statusCounts.interview || 0 },
-                    { label: "Offer", count: statusCounts.offer || 0 },
-                    { label: "Rejected", count: statusCounts.rejected || 0 },
-                  ].map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between p-2 rounded-md bg-muted"
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <CardTitle>My Applications</CardTitle>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant={applicationFilter === "all" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setApplicationFilter("all")}
+                      data-testid="filter-all"
                     >
-                      <span className="text-sm">{item.label}</span>
-                      <span className="text-sm font-semibold">{item.count}</span>
+                      All ({applications.length})
+                    </Button>
+                    <Button
+                      variant={applicationFilter === "applied" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setApplicationFilter("applied")}
+                      data-testid="filter-applied"
+                    >
+                      Applied ({statusCounts.applied || 0})
+                    </Button>
+                    <Button
+                      variant={applicationFilter === "under_review" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setApplicationFilter("under_review")}
+                      data-testid="filter-pending"
+                    >
+                      Pending ({statusCounts.under_review || 0})
+                    </Button>
+                    <Button
+                      variant={applicationFilter === "interview" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setApplicationFilter("interview")}
+                      data-testid="filter-interview"
+                    >
+                      Interview ({statusCounts.interview || 0})
+                    </Button>
+                    <Button
+                      variant={applicationFilter === "offer" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setApplicationFilter("offer")}
+                      data-testid="filter-approved"
+                    >
+                      Approved ({statusCounts.offer || 0})
+                    </Button>
+                    <Button
+                      variant={applicationFilter === "rejected" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setApplicationFilter("rejected")}
+                      data-testid="filter-rejected"
+                    >
+                      Rejected ({statusCounts.rejected || 0})
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {applicationsLoading ? (
+                  <div className="text-center py-8">
+                    <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">Loading applications...</p>
+                  </div>
+                ) : filteredApplications.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">
+                      {applicationFilter === "all" ? "No applications yet. Start applying to jobs!" : `No ${applicationFilter.replace("_", " ")} applications`}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left p-3 font-medium">Job Title</th>
+                          <th className="text-left p-3 font-medium">Company/Sector</th>
+                          <th className="text-left p-3 font-medium">Applied Date</th>
+                          <th className="text-left p-3 font-medium">Status</th>
+                          <th className="text-left p-3 font-medium">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredApplications.map((app) => (
+                          <tr key={app.id} className="border-b hover:bg-muted/50" data-testid={`row-application-${app.id}`}>
+                            <td className="p-3">
+                              <p className="font-medium">{app.opportunity?.title || "Unknown Job"}</p>
+                            </td>
+                            <td className="p-3 text-sm">{app.opportunity?.sector || "-"}</td>
+                            <td className="p-3 text-sm">{format(new Date(app.appliedAt), "MMM d, yyyy")}</td>
+                            <td className="p-3">
+                              <Badge variant={getStatusBadgeVariant(app.status)}>
+                                {getStatusLabel(app.status)}
+                              </Badge>
+                            </td>
+                            <td className="p-3">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setLocation(`/opportunities/${app.opportunityId}`)}
+                                data-testid={`button-view-job-${app.id}`}
+                              >
+                                View Job
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="profile" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>My Profile</CardTitle>
+                <CardDescription>Your confidential job seeker profile</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">Application Stats</p>
+                    <div className="space-y-2">
+                      {[
+                        { label: "Applied", count: statusCounts.applied || 0 },
+                        { label: "Under Review", count: statusCounts.under_review || 0 },
+                        { label: "Interview", count: statusCounts.interview || 0 },
+                        { label: "Offer", count: statusCounts.offer || 0 },
+                        { label: "Rejected", count: statusCounts.rejected || 0 },
+                      ].map((item, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between p-2 rounded-md bg-muted"
+                        >
+                          <span className="text-sm">{item.label}</span>
+                          <span className="text-sm font-semibold">{item.count}</span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  </div>
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">Quick Actions</p>
+                    <Button
+                      className="w-full"
+                      variant="outline"
+                      onClick={() => setLocation("/edit-profile")}
+                      data-testid="button-edit-profile"
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      Edit Profile
+                    </Button>
+                    <Button
+                      className="w-full"
+                      variant="outline"
+                      onClick={() => setLocation("/opportunities")}
+                      data-testid="button-browse-all"
+                    >
+                      <Search className="w-4 h-4 mr-2" />
+                      Browse All Jobs
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <Button
-                  className="w-full"
-                  variant="outline"
-                  onClick={() => setLocation("/opportunities")}
-                  data-testid="button-browse-all"
-                >
-                  <Search className="w-4 h-4 mr-2" />
-                  Browse All Jobs
-                </Button>
-                <Button
-                  className="w-full"
-                  variant="outline"
-                  onClick={() => setLocation("/edit-profile")}
-                  data-testid="button-edit-profile"
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  Edit Profile
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+          </TabsContent>
+        </Tabs>
       </main>
       <Footer />
     </div>

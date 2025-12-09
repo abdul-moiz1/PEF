@@ -1,20 +1,39 @@
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Briefcase, Award, Building2, TrendingUp, Users, Edit, Plus, Eye, Network, Target } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Briefcase, Award, Building2, TrendingUp, Users, Edit, Plus, Eye, Network, Target, Search, FileText } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import type { Opportunity } from "@shared/schema";
 import { format } from "date-fns";
+import { Input } from "@/components/ui/input";
+
+interface Application {
+  id: string;
+  jobId: string;
+  userId: string;
+  status: string;
+  appliedAt: Date | string;
+  job?: {
+    title: string;
+    company: string;
+    location?: string;
+  };
+}
 
 export default function ProfessionalDashboard() {
   const { currentUser, userData, loading: authLoading } = useAuth();
   const { hasRole, isLoading: rolesLoading } = useUserRoles(currentUser?.uid);
   const [, setLocation] = useLocation();
+  const [activeTab, setActiveTab] = useState("opportunities");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const professionalData = userData?.professionalData || {};
   const isLoading = authLoading || rolesLoading;
@@ -35,7 +54,23 @@ export default function ProfessionalDashboard() {
     enabled: !isLoading && hasRole("professional") && !!currentUser,
   });
 
-  // ✅ FIX: Show loading spinner while Firestore is fetching data
+  // Fetch applications for the professional
+  const { data: applications = [], isLoading: applicationsLoading } = useQuery<Application[]>({
+    queryKey: ["/api/applications", "my", currentUser?.uid],
+    queryFn: async () => {
+      if (!currentUser) throw new Error("Not authenticated");
+      const token = await currentUser.getIdToken(true);
+      const response = await fetch("/api/applications?myApplications=true", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) throw new Error("Failed to fetch applications");
+      return response.json();
+    },
+    enabled: !isLoading && hasRole("professional") && !!currentUser,
+  });
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -47,7 +82,6 @@ export default function ProfessionalDashboard() {
     );
   }
 
-  // Check role access only after loading is complete
   if (!hasRole("professional")) {
     return (
       <div className="min-h-screen">
@@ -76,7 +110,6 @@ export default function ProfessionalDashboard() {
   const certifications = professionalData.certifications || [];
   const industry = professionalData.industry || "";
 
-  // Helper to safely extract skills from opportunity details
   const getOpportunitySkills = (opp: Opportunity): string[] => {
     if (!opp.details || typeof opp.details !== 'object') return [];
     const details = opp.details as Record<string, unknown>;
@@ -84,11 +117,8 @@ export default function ProfessionalDashboard() {
     return details.skills.filter((skill): skill is string => typeof skill === 'string');
   };
 
-  // Helper to calculate skill match score
   const calculateMatchScore = (opp: Opportunity) => {
     let score = 0;
-    
-    // Match by skills
     if (skills.length > 0) {
       const oppSkills = getOpportunitySkills(opp);
       if (oppSkills.length > 0) {
@@ -101,19 +131,15 @@ export default function ProfessionalDashboard() {
         score += matchedSkills.length * 3;
       }
     }
-    
-    // Match by sector/industry
     if (industry && opp.sector) {
       if (opp.sector.toLowerCase().includes(industry.toLowerCase()) ||
           industry.toLowerCase().includes(opp.sector.toLowerCase())) {
         score += 2;
       }
     }
-    
     return score;
   };
 
-  // Get matching skills for an opportunity
   const getMatchingSkills = (opp: Opportunity): string[] => {
     if (!skills.length) return [];
     const oppSkills = getOpportunitySkills(opp);
@@ -127,11 +153,26 @@ export default function ProfessionalDashboard() {
     );
   };
 
-  const relevantOpportunities = opportunities
-    .filter(opp => opp.status === "open" && opp.approvalStatus === "approved")
+  // Filter opportunities - jobs from employers
+  const jobOpportunities = opportunities
+    .filter(opp => opp.status === "open" && opp.approvalStatus === "approved" && opp.type === "job")
     .map(opp => ({ ...opp, matchScore: calculateMatchScore(opp) }))
-    .sort((a, b) => b.matchScore - a.matchScore)
-    .slice(0, 6);
+    .sort((a, b) => b.matchScore - a.matchScore);
+
+  // Filter opportunities by search
+  const filteredOpportunities = jobOpportunities.filter(opp => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return opp.title.toLowerCase().includes(query) || 
+           (opp.sector?.toLowerCase().includes(query)) ||
+           (opp.description?.toLowerCase().includes(query));
+  });
+
+  // Filter applications by status
+  const filteredApplications = applications.filter(app => {
+    if (statusFilter === "all") return true;
+    return app.status.toLowerCase() === statusFilter.toLowerCase();
+  });
 
   const profileCompleteness = () => {
     let score = 0;
@@ -145,6 +186,23 @@ export default function ProfessionalDashboard() {
   };
 
   const completeness = profileCompleteness();
+
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "approved":
+      case "accepted":
+        return "default";
+      case "pending":
+      case "applied":
+        return "secondary";
+      case "rejected":
+        return "destructive";
+      case "interview":
+        return "outline";
+      default:
+        return "secondary";
+    }
+  };
 
   return (
     <div className="min-h-screen">
@@ -179,23 +237,23 @@ export default function ProfessionalDashboard() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Network Reach</CardTitle>
-              <Network className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Available Jobs</CardTitle>
+              <Briefcase className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold" data-testid="text-network-reach">Active</div>
-              <p className="text-xs text-muted-foreground">Visible to employers</p>
+              <div className="text-2xl font-bold" data-testid="text-jobs-count">{jobOpportunities.length}</div>
+              <p className="text-xs text-muted-foreground">From employers</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Opportunities</CardTitle>
-              <Target className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">My Applications</CardTitle>
+              <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold" data-testid="text-opportunities-count">{relevantOpportunities.length}</div>
-              <p className="text-xs text-muted-foreground">Available now</p>
+              <div className="text-2xl font-bold" data-testid="text-applications-count">{applications.length}</div>
+              <p className="text-xs text-muted-foreground">Submitted</p>
             </CardContent>
           </Card>
 
@@ -213,255 +271,329 @@ export default function ProfessionalDashboard() {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList data-testid="tabs-list">
+            <TabsTrigger value="opportunities" data-testid="tab-opportunities">
+              <Briefcase className="w-4 h-4 mr-2" />
+              Jobs
+            </TabsTrigger>
+            <TabsTrigger value="applications" data-testid="tab-applications">
+              <FileText className="w-4 h-4 mr-2" />
+              Applications
+            </TabsTrigger>
+            <TabsTrigger value="profile" data-testid="tab-profile">
+              <Users className="w-4 h-4 mr-2" />
+              Profile
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="opportunities" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Professional Profile</CardTitle>
-                <CardDescription>Your professional information and experience</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h3 className="font-semibold mb-2">Current Position</h3>
-                  <div className="flex items-start gap-3">
-                    <Building2 className="w-5 h-5 text-muted-foreground mt-1" />
-                    <div>
-                      <p className="font-medium">{currentJobTitle}</p>
-                      <p className="text-sm text-muted-foreground">{currentEmployer}</p>
-                    </div>
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <CardTitle>Available Job Opportunities</CardTitle>
+                    <CardDescription>Jobs posted by employers matching your skills</CardDescription>
+                  </div>
+                  <div className="relative w-full md:w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search jobs..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9"
+                      data-testid="input-search-jobs"
+                    />
                   </div>
                 </div>
-
-                {skills.length > 0 && (
-                  <div>
-                    <h3 className="font-semibold mb-2">Skills & Expertise</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {skills.map((skill, idx) => (
-                        <Badge key={idx} variant="secondary" data-testid={`badge-skill-${idx}`}>{skill}</Badge>
-                      ))}
-                    </div>
+              </CardHeader>
+              <CardContent>
+                {opportunitiesLoading ? (
+                  <div className="text-center py-8">
+                    <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">Loading jobs...</p>
                   </div>
-                )}
-
-                {certifications.length > 0 && (
-                  <div>
-                    <h3 className="font-semibold mb-2">Certifications</h3>
-                    <div className="space-y-2">
-                      {certifications.map((cert, idx) => (
-                        <div key={idx} className="flex items-center gap-2" data-testid={`cert-${idx}`}>
-                          <Award className="w-4 h-4 text-primary" />
-                          <span className="text-sm">{cert}</span>
-                        </div>
-                      ))}
-                    </div>
+                ) : filteredOpportunities.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Briefcase className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-muted-foreground">No job opportunities available</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full" data-testid="table-opportunities">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-3 px-4 font-medium">Job Title</th>
+                          <th className="text-left py-3 px-4 font-medium">Sector</th>
+                          <th className="text-left py-3 px-4 font-medium">Location</th>
+                          <th className="text-left py-3 px-4 font-medium">Posted</th>
+                          <th className="text-left py-3 px-4 font-medium">Match</th>
+                          <th className="text-left py-3 px-4 font-medium">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredOpportunities.map((opp) => {
+                          const matchingSkills = getMatchingSkills(opp);
+                          const hasMatch = matchingSkills.length > 0;
+                          return (
+                            <tr key={opp.id} className="border-b hover-elevate" data-testid={`row-job-${opp.id}`}>
+                              <td className="py-3 px-4">
+                                <div className="font-medium">{opp.title}</div>
+                                <div className="text-sm text-muted-foreground">{opp.type}</div>
+                              </td>
+                              <td className="py-3 px-4">{opp.sector || "N/A"}</td>
+                              <td className="py-3 px-4">
+                                {[opp.city, opp.country].filter(Boolean).join(", ") || "N/A"}
+                              </td>
+                              <td className="py-3 px-4 text-sm text-muted-foreground">
+                                {format(new Date(opp.createdAt), "MMM d, yyyy")}
+                              </td>
+                              <td className="py-3 px-4">
+                                {hasMatch ? (
+                                  <Badge variant="default" data-testid={`badge-match-${opp.id}`}>Match</Badge>
+                                ) : (
+                                  <Badge variant="secondary">No Match</Badge>
+                                )}
+                              </td>
+                              <td className="py-3 px-4">
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => setLocation(`/opportunities/${opp.id}`)}
+                                  data-testid={`button-view-job-${opp.id}`}
+                                >
+                                  View
+                                </Button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
 
+          <TabsContent value="applications" className="space-y-4">
             <Card>
               <CardHeader>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <CardTitle>Opportunities For You</CardTitle>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => setLocation("/opportunities")}
-                    data-testid="button-view-all-opportunities"
-                  >
-                    View All
-                  </Button>
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <CardTitle>My Applications</CardTitle>
+                    <CardDescription>Track the status of your job applications</CardDescription>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {["all", "applied", "pending", "interview", "approved", "rejected"].map((status) => (
+                      <Button
+                        key={status}
+                        variant={statusFilter === status ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setStatusFilter(status)}
+                        data-testid={`filter-${status}`}
+                      >
+                        {status.charAt(0).toUpperCase() + status.slice(1)}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {opportunitiesLoading ? (
+              <CardContent>
+                {applicationsLoading ? (
                   <div className="text-center py-8">
                     <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">Loading opportunities...</p>
+                    <p className="text-sm text-muted-foreground">Loading applications...</p>
                   </div>
-                ) : relevantOpportunities.length === 0 ? (
+                ) : filteredApplications.length === 0 ? (
                   <div className="text-center py-8">
-                    <Target className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-muted-foreground">No opportunities available at the moment</p>
+                    <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-muted-foreground">
+                      {statusFilter === "all" ? "No applications yet" : `No ${statusFilter} applications`}
+                    </p>
                     <Button 
                       variant="outline" 
                       size="sm" 
                       className="mt-4"
-                      onClick={() => setLocation("/opportunities")}
-                      data-testid="button-browse-opportunities"
+                      onClick={() => setActiveTab("opportunities")}
+                      data-testid="button-browse-jobs"
                     >
-                      Browse All Opportunities
+                      Browse Jobs
                     </Button>
                   </div>
                 ) : (
-                  relevantOpportunities.map((opp) => {
-                    const matchingSkills = getMatchingSkills(opp);
-                    const hasMatch = matchingSkills.length > 0 || 
-                                     (industry && opp.sector && 
-                                      (opp.sector.toLowerCase().includes(industry.toLowerCase()) ||
-                                       industry.toLowerCase().includes(opp.sector.toLowerCase())));
-                    
-                    return (
-                      <div 
-                        key={opp.id} 
-                        className={`p-4 rounded-md border hover-elevate ${hasMatch ? 'border-primary/30 bg-primary/5' : ''}`}
-                        data-testid={`card-opportunity-${opp.id}`}
-                      >
-                        <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <p className="font-medium">{opp.title}</p>
-                              {hasMatch && (
-                                <Badge variant="default" className="text-xs" data-testid={`badge-match-${opp.id}`}>
-                                  Match
-                                </Badge>
-                              )}
-                            </div>
-                            <p className="text-sm text-muted-foreground">{opp.sector || "Various Sectors"}</p>
-                          </div>
-                          <Badge variant="secondary" data-testid={`badge-type-${opp.id}`}>
-                            {opp.type.charAt(0).toUpperCase() + opp.type.slice(1)}
-                          </Badge>
-                        </div>
-                        
-                        {matchingSkills.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mb-2">
-                            {matchingSkills.slice(0, 3).map((skill, idx) => (
-                              <Badge key={idx} variant="outline" className="text-xs" data-testid={`badge-matched-skill-${opp.id}-${idx}`}>
-                                {skill}
+                  <div className="overflow-x-auto">
+                    <table className="w-full" data-testid="table-applications">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-3 px-4 font-medium">Job Title</th>
+                          <th className="text-left py-3 px-4 font-medium">Company</th>
+                          <th className="text-left py-3 px-4 font-medium">Applied Date</th>
+                          <th className="text-left py-3 px-4 font-medium">Status</th>
+                          <th className="text-left py-3 px-4 font-medium">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredApplications.map((app) => (
+                          <tr key={app.id} className="border-b hover-elevate" data-testid={`row-application-${app.id}`}>
+                            <td className="py-3 px-4 font-medium">{app.job?.title || "Unknown Job"}</td>
+                            <td className="py-3 px-4">{app.job?.company || "Unknown"}</td>
+                            <td className="py-3 px-4 text-sm text-muted-foreground">
+                              {format(new Date(app.appliedAt), "MMM d, yyyy")}
+                            </td>
+                            <td className="py-3 px-4">
+                              <Badge variant={getStatusBadgeVariant(app.status)} data-testid={`badge-status-${app.id}`}>
+                                {app.status}
                               </Badge>
-                            ))}
-                            {matchingSkills.length > 3 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{matchingSkills.length - 3} more
-                              </Badge>
-                            )}
-                          </div>
-                        )}
-                        
-                        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mb-3">
-                          {(opp.city || opp.country) && (
-                            <span>{[opp.city, opp.country].filter(Boolean).join(", ")}</span>
-                          )}
-                          <span>•</span>
-                          <span>{format(new Date(opp.createdAt), "MMM d, yyyy")}</span>
-                        </div>
-                        
-                        <Button 
-                          size="sm" 
-                          variant={hasMatch ? "default" : "outline"}
-                          onClick={() => setLocation(`/opportunities/${opp.id}`)}
-                          data-testid={`button-view-opportunity-${opp.id}`}
-                        >
-                          View Details
-                        </Button>
-                      </div>
-                    );
-                  })
+                            </td>
+                            <td className="py-3 px-4">
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => setLocation(`/jobs/${app.jobId}`)}
+                                data-testid={`button-view-application-${app.id}`}
+                              >
+                                View Job
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </CardContent>
             </Card>
-          </div>
+          </TabsContent>
 
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
-                <CardDescription>Boost your professional presence</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <Button 
-                  className="w-full" 
-                  variant="outline" 
-                  onClick={() => setLocation("/edit-profile")} 
-                  data-testid="button-update-profile"
-                >
-                  <Edit className="w-4 h-4 mr-2" />
-                  Update Profile
-                </Button>
-                <Button 
-                  className="w-full" 
-                  variant="outline" 
-                  onClick={() => setLocation("/opportunities")} 
-                  data-testid="button-browse-opportunities-action"
-                >
-                  <TrendingUp className="w-4 h-4 mr-2" />
-                  Browse Opportunities
-                </Button>
-                <Button 
-                  className="w-full" 
-                  variant="outline" 
-                  onClick={() => setLocation("/edit-profile")}
-                  data-testid="button-showcase-skills"
-                >
-                  <Award className="w-4 h-4 mr-2" />
-                  Showcase Skills
-                </Button>
-                <Button 
-                  className="w-full" 
-                  variant="outline"
-                  onClick={() => setLocation("/opportunities")}
-                  data-testid="button-network"
-                >
-                  <Network className="w-4 h-4 mr-2" />
-                  Network & Connect
-                </Button>
-              </CardContent>
-            </Card>
+          <TabsContent value="profile" className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Professional Profile</CardTitle>
+                    <CardDescription>Your professional information and experience</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <h3 className="font-semibold mb-2">Current Position</h3>
+                      <div className="flex items-start gap-3">
+                        <Building2 className="w-5 h-5 text-muted-foreground mt-1" />
+                        <div>
+                          <p className="font-medium">{currentJobTitle}</p>
+                          <p className="text-sm text-muted-foreground">{currentEmployer}</p>
+                        </div>
+                      </div>
+                    </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Profile Tips</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="text-sm space-y-3">
-                  {skills.length === 0 && (
-                    <div className="p-3 bg-muted rounded-md">
-                      <p className="font-medium mb-1">Add Your Skills</p>
-                      <p className="text-xs text-muted-foreground">
-                        Showcase your expertise to attract opportunities
-                      </p>
+                    {skills.length > 0 && (
+                      <div>
+                        <h3 className="font-semibold mb-2">Skills & Expertise</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {skills.map((skill: string, idx: number) => (
+                            <Badge key={idx} variant="secondary" data-testid={`badge-skill-${idx}`}>{skill}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {certifications.length > 0 && (
+                      <div>
+                        <h3 className="font-semibold mb-2">Certifications</h3>
+                        <div className="space-y-2">
+                          {certifications.map((cert: string, idx: number) => (
+                            <div key={idx} className="flex items-center gap-2" data-testid={`cert-${idx}`}>
+                              <Award className="w-4 h-4 text-primary" />
+                              <span className="text-sm">{cert}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <Button onClick={() => setLocation("/edit-profile")} data-testid="button-edit-full-profile">
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit Full Profile
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Quick Actions</CardTitle>
+                    <CardDescription>Boost your professional presence</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <Button 
+                      className="w-full" 
+                      variant="outline" 
+                      onClick={() => setLocation("/edit-profile")} 
+                      data-testid="button-update-profile"
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Update Profile
+                    </Button>
+                    <Button 
+                      className="w-full" 
+                      variant="outline" 
+                      onClick={() => setActiveTab("opportunities")} 
+                      data-testid="button-browse-opportunities-action"
+                    >
+                      <TrendingUp className="w-4 h-4 mr-2" />
+                      Browse Jobs
+                    </Button>
+                    <Button 
+                      className="w-full" 
+                      variant="outline"
+                      onClick={() => setLocation("/edit-profile")}
+                      data-testid="button-showcase-skills"
+                    >
+                      <Award className="w-4 h-4 mr-2" />
+                      Showcase Skills
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Profile Tips</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="text-sm space-y-3">
+                      {skills.length === 0 && (
+                        <div className="p-3 bg-muted rounded-md">
+                          <p className="font-medium mb-1">Add Your Skills</p>
+                          <p className="text-xs text-muted-foreground">
+                            Showcase your expertise to attract opportunities
+                          </p>
+                        </div>
+                      )}
+                      {!userData?.headline && (
+                        <div className="p-3 bg-muted rounded-md">
+                          <p className="font-medium mb-1">Write a Headline</p>
+                          <p className="text-xs text-muted-foreground">
+                            Capture attention with a strong professional headline
+                          </p>
+                        </div>
+                      )}
+                      {completeness === 100 && (
+                        <div className="p-3 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-md">
+                          <p className="font-medium text-green-800 dark:text-green-100 mb-1">
+                            Profile Complete!
+                          </p>
+                          <p className="text-xs text-green-700 dark:text-green-200">
+                            Your profile is optimized for maximum visibility
+                          </p>
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {!userData?.headline && (
-                    <div className="p-3 bg-muted rounded-md">
-                      <p className="font-medium mb-1">Write a Headline</p>
-                      <p className="text-xs text-muted-foreground">
-                        Capture attention with a strong professional headline
-                      </p>
-                    </div>
-                  )}
-                  {!userData?.bio && (
-                    <div className="p-3 bg-muted rounded-md">
-                      <p className="font-medium mb-1">Add Your Bio</p>
-                      <p className="text-xs text-muted-foreground">
-                        Tell your professional story to stand out
-                      </p>
-                    </div>
-                  )}
-                  {!userData?.links?.linkedin && (
-                    <div className="p-3 bg-muted rounded-md">
-                      <p className="font-medium mb-1">Connect LinkedIn</p>
-                      <p className="text-xs text-muted-foreground">
-                        Link your LinkedIn profile for better visibility
-                      </p>
-                    </div>
-                  )}
-                  {completeness === 100 && (
-                    <div className="p-3 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-md">
-                      <p className="font-medium text-green-800 dark:text-green-100 mb-1">
-                        Profile Complete!
-                      </p>
-                      <p className="text-xs text-green-700 dark:text-green-200">
-                        Your profile is optimized for maximum visibility
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </main>
       <Footer />
     </div>

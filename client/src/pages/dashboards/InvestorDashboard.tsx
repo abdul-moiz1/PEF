@@ -1,13 +1,17 @@
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Target, DollarSign, Briefcase, Building2, Eye, BookmarkPlus } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TrendingUp, Target, DollarSign, Briefcase, Building2, Eye, BookmarkPlus, Users, Edit, Search } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { Input } from "@/components/ui/input";
+import { format } from "date-fns";
 
 interface BusinessOwnerProfile {
   user: {
@@ -32,8 +36,10 @@ interface Opportunity {
   type: string;
   title: string;
   description?: string;
-  industry?: string;
-  location?: string;
+  sector?: string;
+  country?: string;
+  city?: string;
+  budgetOrSalary?: string;
   status: string;
   approvalStatus: string;
   metadata?: {
@@ -49,14 +55,12 @@ export default function InvestorDashboard() {
   const { currentUser, userData, loading: authLoading } = useAuth();
   const { hasRole, isLoading: rolesLoading } = useUserRoles(currentUser?.uid);
   const [, setLocation] = useLocation();
+  const [activeTab, setActiveTab] = useState("opportunities");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // ✅ FIX: Safe fallback for investorData - never undefined
   const investorData = userData?.investorData || {};
-  
-  // ✅ FIX: Combined loading state - wait for both auth and roles
   const isLoading = authLoading || rolesLoading;
 
-  // ✅ FIX: Show loading spinner while Firestore is fetching data
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -68,7 +72,6 @@ export default function InvestorDashboard() {
     );
   }
 
-  // Check role access only after loading is complete
   if (!hasRole("investor")) {
     return (
       <div className="min-h-screen">
@@ -91,7 +94,6 @@ export default function InvestorDashboard() {
     );
   }
 
-  // Safe access to investorData fields with fallbacks
   const investmentRange = investorData.investmentRange || "Not specified";
   const preferredStage = investorData.preferredStage || "Not specified";
   const investmentFocus = investorData.investmentFocus || [];
@@ -119,6 +121,15 @@ export default function InvestorDashboard() {
     (opp) => opp.type === "investment" && opp.approvalStatus === "approved" && opp.status === "open"
   );
 
+  // Filter by search
+  const filteredOpportunities = investmentOpportunities.filter(opp => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return opp.title.toLowerCase().includes(query) || 
+           (opp.sector?.toLowerCase().includes(query)) ||
+           (opp.description?.toLowerCase().includes(query));
+  });
+
   // Fetch business owners
   const { data: businessOwners = [], isLoading: businessOwnersLoading } = useQuery<BusinessOwnerProfile[]>({
     queryKey: ["/api/business-owners", currentUser?.uid],
@@ -136,13 +147,31 @@ export default function InvestorDashboard() {
     enabled: !!currentUser && hasRole("investor"),
   });
 
+  // Filter business owners by search
+  const filteredBusinessOwners = businessOwners.filter(owner => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (owner.user.displayName?.toLowerCase().includes(query)) ||
+           (owner.user.email?.toLowerCase().includes(query)) ||
+           (owner.businessOwnerData?.businessName?.toLowerCase().includes(query)) ||
+           (owner.businessOwnerData?.industry?.toLowerCase().includes(query));
+  });
+
   return (
     <div className="min-h-screen">
       <Header />
       <main className="pt-24 md:pt-28 pb-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Investor Dashboard</h1>
-          <p className="text-muted-foreground">Discover and track investment opportunities</p>
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-2">
+            <div>
+              <h1 className="text-3xl font-bold">Investor Dashboard</h1>
+              <p className="text-muted-foreground">Discover and track investment opportunities</p>
+            </div>
+            <Button onClick={() => setLocation("/edit-profile")} data-testid="button-edit-profile">
+              <Edit className="w-4 h-4 mr-2" />
+              Edit Profile
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -152,7 +181,9 @@ export default function InvestorDashboard() {
               <Building2 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{businessOwnersLoading ? "..." : businessOwners.length}</div>
+              <div className="text-2xl font-bold" data-testid="text-business-owners-count">
+                {businessOwnersLoading ? "..." : businessOwners.length}
+              </div>
               <p className="text-xs text-muted-foreground">Registered on platform</p>
             </CardContent>
           </Card>
@@ -163,7 +194,9 @@ export default function InvestorDashboard() {
               <Target className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{opportunitiesLoading ? "..." : investmentOpportunities.length}</div>
+              <div className="text-2xl font-bold" data-testid="text-opportunities-count">
+                {opportunitiesLoading ? "..." : investmentOpportunities.length}
+              </div>
               <p className="text-xs text-muted-foreground">Investment opportunities</p>
             </CardContent>
           </Card>
@@ -174,7 +207,9 @@ export default function InvestorDashboard() {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{investmentRange.split(" - ")[0] || "N/A"}</div>
+              <div className="text-2xl font-bold" data-testid="text-investment-range">
+                {investmentRange.split(" - ")[0] || "N/A"}
+              </div>
               <p className="text-xs text-muted-foreground">{investmentRange}</p>
             </CardContent>
           </Card>
@@ -185,214 +220,299 @@ export default function InvestorDashboard() {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{preferredStage === "Not specified" ? "N/A" : preferredStage}</div>
+              <div className="text-2xl font-bold" data-testid="text-preferred-stage">
+                {preferredStage === "Not specified" ? "N/A" : preferredStage}
+              </div>
               <p className="text-xs text-muted-foreground">Investment stage</p>
             </CardContent>
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList data-testid="tabs-list">
+            <TabsTrigger value="opportunities" data-testid="tab-opportunities">
+              <Target className="w-4 h-4 mr-2" />
+              Investment Opportunities
+            </TabsTrigger>
+            <TabsTrigger value="business-owners" data-testid="tab-business-owners">
+              <Building2 className="w-4 h-4 mr-2" />
+              Business Owners
+            </TabsTrigger>
+            <TabsTrigger value="profile" data-testid="tab-profile">
+              <Users className="w-4 h-4 mr-2" />
+              Profile
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="opportunities" className="space-y-4">
             <Card>
               <CardHeader>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <CardTitle>Investment Opportunities</CardTitle>
-                  <Button variant="outline" size="sm" data-testid="button-browse-all">
-                    Browse All
-                  </Button>
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <CardTitle>Investment Opportunities</CardTitle>
+                    <CardDescription>Businesses seeking investment in your focus areas</CardDescription>
+                  </div>
+                  <div className="relative w-full md:w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search opportunities..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9"
+                      data-testid="input-search-opportunities"
+                    />
+                  </div>
                 </div>
-                <CardDescription>Businesses seeking investment in your focus areas</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent>
                 {opportunitiesLoading ? (
                   <div className="text-center py-8">
                     <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
                     <p className="text-sm text-muted-foreground">Loading opportunities...</p>
                   </div>
-                ) : investmentOpportunities.length === 0 ? (
+                ) : filteredOpportunities.length === 0 ? (
                   <div className="text-center py-8">
                     <Target className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-muted-foreground mb-2">No investment opportunities available yet</p>
-                    <p className="text-sm text-muted-foreground">Check back soon for new opportunities from business owners</p>
+                    <p className="text-muted-foreground mb-2">No investment opportunities available</p>
+                    <Button variant="outline" onClick={() => setLocation("/opportunities")} data-testid="button-browse-all">
+                      Browse All Opportunities
+                    </Button>
                   </div>
                 ) : (
-                  investmentOpportunities.map((opp) => (
-                    <div key={opp.id} className="p-4 rounded-md border hover-elevate">
-                      <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-lg mb-1">{opp.title}</h3>
-                          <p className="text-sm text-muted-foreground mb-2">{opp.industry || "Not specified"}</p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Badge variant="secondary">{opp.status}</Badge>
-                        </div>
-                      </div>
-                      {opp.description && (
-                        <p className="text-sm mb-3 line-clamp-2">{opp.description}</p>
-                      )}
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3 text-sm">
-                        {opp.metadata?.investmentAmount && (
-                          <div>
-                            <p className="text-muted-foreground">Amount Seeking</p>
-                            <p className="font-medium">{opp.metadata.investmentAmount}</p>
-                          </div>
-                        )}
-                        {opp.metadata?.equity && (
-                          <div>
-                            <p className="text-muted-foreground">Equity Offered</p>
-                            <p className="font-medium">{opp.metadata.equity}%</p>
-                          </div>
-                        )}
-                        {opp.location && (
-                          <div>
-                            <p className="text-muted-foreground">Location</p>
-                            <p className="font-medium">{opp.location}</p>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <Button size="sm" data-testid={`button-view-deal-${opp.id}`}>View Details</Button>
-                        <Button size="sm" variant="outline" data-testid={`button-save-deal-${opp.id}`}>
-                          <BookmarkPlus className="w-4 h-4 mr-2" />
-                          Save
-                        </Button>
-                        <Button size="sm" variant="ghost" data-testid={`button-contact-${opp.id}`}>
-                          Contact
-                        </Button>
-                      </div>
-                    </div>
-                  ))
+                  <div className="overflow-x-auto">
+                    <table className="w-full" data-testid="table-opportunities">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-3 px-4 font-medium">Title</th>
+                          <th className="text-left py-3 px-4 font-medium">Sector</th>
+                          <th className="text-left py-3 px-4 font-medium">Location</th>
+                          <th className="text-left py-3 px-4 font-medium">Amount</th>
+                          <th className="text-left py-3 px-4 font-medium">Posted</th>
+                          <th className="text-left py-3 px-4 font-medium">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredOpportunities.map((opp) => (
+                          <tr key={opp.id} className="border-b hover-elevate" data-testid={`row-opportunity-${opp.id}`}>
+                            <td className="py-3 px-4">
+                              <div className="font-medium">{opp.title}</div>
+                              {opp.description && (
+                                <div className="text-sm text-muted-foreground line-clamp-1">{opp.description}</div>
+                              )}
+                            </td>
+                            <td className="py-3 px-4">{opp.sector || "N/A"}</td>
+                            <td className="py-3 px-4">
+                              {[opp.city, opp.country].filter(Boolean).join(", ") || "N/A"}
+                            </td>
+                            <td className="py-3 px-4">
+                              {opp.metadata?.investmentAmount || opp.budgetOrSalary || "N/A"}
+                            </td>
+                            <td className="py-3 px-4 text-sm text-muted-foreground">
+                              {format(new Date(opp.createdAt), "MMM d, yyyy")}
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="flex flex-wrap gap-2">
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => setLocation(`/opportunities/${opp.id}`)}
+                                  data-testid={`button-view-opportunity-${opp.id}`}
+                                >
+                                  View
+                                </Button>
+                                <Button size="sm" variant="outline" data-testid={`button-save-${opp.id}`}>
+                                  <BookmarkPlus className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
 
+          <TabsContent value="business-owners" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Registered Business Owners</CardTitle>
-                <CardDescription>Connect with businesses seeking investment</CardDescription>
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <CardTitle>Registered Business Owners</CardTitle>
+                    <CardDescription>Connect with businesses seeking investment</CardDescription>
+                  </div>
+                  <div className="relative w-full md:w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search business owners..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9"
+                      data-testid="input-search-business-owners"
+                    />
+                  </div>
+                </div>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent>
                 {businessOwnersLoading ? (
                   <div className="text-center py-8">
                     <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
                     <p className="text-sm text-muted-foreground">Loading business owners...</p>
                   </div>
-                ) : businessOwners.length === 0 ? (
+                ) : filteredBusinessOwners.length === 0 ? (
                   <div className="text-center py-8">
                     <Building2 className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-muted-foreground mb-2">No business owners registered yet</p>
-                    <p className="text-sm text-muted-foreground">Check back soon for new businesses</p>
+                    <p className="text-muted-foreground mb-2">No business owners found</p>
                   </div>
                 ) : (
-                  businessOwners.slice(0, 5).map((owner, idx) => (
-                    <div key={owner.user.id} className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-md border">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium">{owner.user.displayName || owner.user.email}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {owner.businessOwnerData?.businessName || "Business Owner"}
-                        </p>
+                  <div className="overflow-x-auto">
+                    <table className="w-full" data-testid="table-business-owners">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-3 px-4 font-medium">Name</th>
+                          <th className="text-left py-3 px-4 font-medium">Business</th>
+                          <th className="text-left py-3 px-4 font-medium">Industry</th>
+                          <th className="text-left py-3 px-4 font-medium">Type</th>
+                          <th className="text-left py-3 px-4 font-medium">Revenue</th>
+                          <th className="text-left py-3 px-4 font-medium">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredBusinessOwners.map((owner, idx) => (
+                          <tr key={owner.user.id} className="border-b hover-elevate" data-testid={`row-business-owner-${idx}`}>
+                            <td className="py-3 px-4 font-medium">
+                              {owner.user.displayName || owner.user.email}
+                            </td>
+                            <td className="py-3 px-4">
+                              {owner.businessOwnerData?.businessName || "N/A"}
+                            </td>
+                            <td className="py-3 px-4">
+                              {owner.businessOwnerData?.industry || "N/A"}
+                            </td>
+                            <td className="py-3 px-4">
+                              {owner.businessOwnerData?.businessType || "N/A"}
+                            </td>
+                            <td className="py-3 px-4">
+                              {owner.businessOwnerData?.revenue || "N/A"}
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="flex flex-wrap gap-2">
+                                <Button size="sm" data-testid={`button-connect-${idx}`}>
+                                  Connect
+                                </Button>
+                                <Button size="sm" variant="outline" data-testid={`button-view-${idx}`}>
+                                  View
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="profile" className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Investment Profile</CardTitle>
+                    <CardDescription>Your investment preferences and focus areas</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm font-medium mb-1">Investment Range</p>
+                        <p className="text-sm text-muted-foreground">{investmentRange}</p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Button size="sm" variant="outline" data-testid={`button-view-business-${idx}`}>
-                          View Profile
-                        </Button>
+                      <div>
+                        <p className="text-sm font-medium mb-1">Preferred Stage</p>
+                        <p className="text-sm text-muted-foreground">{preferredStage}</p>
                       </div>
                     </div>
-                  ))
-                )}
-                {!businessOwnersLoading && businessOwners.length > 5 && (
-                  <Button variant="outline" className="w-full" size="sm" data-testid="button-view-all-businesses">
-                    View All {businessOwners.length} Business Owners
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                    
+                    {investmentFocus.length > 0 && (
+                      <div>
+                        <p className="text-sm font-medium mb-2">Investment Focus</p>
+                        <div className="flex flex-wrap gap-2">
+                          {investmentFocus.map((focus: string, idx: number) => (
+                            <Badge key={idx} variant="secondary" data-testid={`badge-focus-${idx}`}>{focus}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {industries.length > 0 && (
+                      <div>
+                        <p className="text-sm font-medium mb-2">Preferred Industries</p>
+                        <div className="flex flex-wrap gap-2">
+                          {industries.map((industry: string, idx: number) => (
+                            <Badge key={idx} variant="secondary" data-testid={`badge-industry-${idx}`}>{industry}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Investment Profile</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <p className="text-sm font-medium mb-1">Investment Range</p>
-                  <p className="text-sm text-muted-foreground">{investmentRange}</p>
-                </div>
-                {investmentFocus.length > 0 && (
-                  <div>
-                    <p className="text-sm font-medium mb-2">Investment Focus</p>
-                    <div className="flex flex-wrap gap-1">
-                      {investmentFocus.map((focus, idx) => (
-                        <Badge key={idx} variant="secondary">{focus}</Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {industries.length > 0 && (
-                  <div>
-                    <p className="text-sm font-medium mb-2">Preferred Industries</p>
-                    <div className="flex flex-wrap gap-1">
-                      {industries.map((industry, idx) => (
-                        <Badge key={idx} variant="secondary">{industry}</Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                <div>
-                  <p className="text-sm font-medium mb-1">Investment Stage</p>
-                  <p className="text-sm text-muted-foreground">{preferredStage}</p>
-                </div>
-                <Button className="w-full" variant="outline" size="sm" onClick={() => setLocation("/edit-profile")} data-testid="button-edit-investor-profile">
-                  Edit Profile
-                </Button>
-              </CardContent>
-            </Card>
+                    <Button onClick={() => setLocation("/edit-profile")} data-testid="button-edit-investor-profile">
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit Profile
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <Button className="w-full" variant="outline" data-testid="button-search-opportunities">
-                  <Target className="w-4 h-4 mr-2" />
-                  Search Opportunities
-                </Button>
-                <Button className="w-full" variant="outline" data-testid="button-view-portfolio">
-                  <Briefcase className="w-4 h-4 mr-2" />
-                  View Full Portfolio
-                </Button>
-                <Button className="w-full" variant="outline" data-testid="button-saved-deals">
-                  <BookmarkPlus className="w-4 h-4 mr-2" />
-                  Saved Deals
-                </Button>
-                <Button className="w-full" variant="outline" data-testid="button-analytics">
-                  <TrendingUp className="w-4 h-4 mr-2" />
-                  Analytics
-                </Button>
-              </CardContent>
-            </Card>
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Quick Actions</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <Button className="w-full" variant="outline" onClick={() => setActiveTab("opportunities")} data-testid="button-search-opportunities">
+                      <Target className="w-4 h-4 mr-2" />
+                      Search Opportunities
+                    </Button>
+                    <Button className="w-full" variant="outline" onClick={() => setActiveTab("business-owners")} data-testid="button-browse-businesses">
+                      <Building2 className="w-4 h-4 mr-2" />
+                      Browse Businesses
+                    </Button>
+                    <Button className="w-full" variant="outline" data-testid="button-saved-deals">
+                      <BookmarkPlus className="w-4 h-4 mr-2" />
+                      Saved Deals
+                    </Button>
+                    <Button className="w-full" variant="outline" data-testid="button-analytics">
+                      <TrendingUp className="w-4 h-4 mr-2" />
+                      Analytics
+                    </Button>
+                  </CardContent>
+                </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {[
-                  { action: "New deal matched", time: "1 hour ago" },
-                  { action: "Saved opportunity", time: "3 hours ago" },
-                  { action: "Portfolio update available", time: "1 day ago" },
-                  { action: "New sector report", time: "2 days ago" },
-                ].map((activity, idx) => (
-                  <div key={idx} className="text-sm">
-                    <p className="font-medium">{activity.action}</p>
-                    <p className="text-xs text-muted-foreground">{activity.time}</p>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Recent Activity</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {[
+                      { action: "New deal matched", time: "1 hour ago" },
+                      { action: "Saved opportunity", time: "3 hours ago" },
+                      { action: "Portfolio update available", time: "1 day ago" },
+                      { action: "New sector report", time: "2 days ago" },
+                    ].map((activity, idx) => (
+                      <div key={idx} className="text-sm" data-testid={`activity-${idx}`}>
+                        <p className="font-medium">{activity.action}</p>
+                        <p className="text-xs text-muted-foreground">{activity.time}</p>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </main>
       <Footer />
     </div>

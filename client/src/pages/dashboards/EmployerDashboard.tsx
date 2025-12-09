@@ -4,7 +4,8 @@ import { useUserRoles } from "@/hooks/useUserRoles";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Users, Briefcase, TrendingUp, Eye, FileText, Trash2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Users, Briefcase, Eye, FileText, Trash2, Search } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,7 +24,14 @@ import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
-import type { Opportunity } from "@shared/schema";
+import type { Opportunity, Application } from "@shared/schema";
+import { format } from "date-fns";
+
+type ApplicationWithDetails = Application & { 
+  opportunity?: Opportunity;
+  applicantName?: string;
+  applicantEmail?: string;
+};
 
 export default function EmployerDashboard() {
   const { currentUser, userData, loading: authLoading } = useAuth();
@@ -31,6 +39,7 @@ export default function EmployerDashboard() {
   const [, setLocation] = useLocation();
   const [showPostJobDialog, setShowPostJobDialog] = useState(false);
   const [deleteJobId, setDeleteJobId] = useState<string | null>(null);
+  const [jobFilter, setJobFilter] = useState<string>("all");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -39,11 +48,22 @@ export default function EmployerDashboard() {
     queryFn: async () => {
       const token = await auth.currentUser?.getIdToken(true);
       const response = await fetch("/api/opportunities?myOpportunities=true&type=job", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error("Failed to fetch jobs");
+      return response.json();
+    },
+    enabled: !!currentUser,
+  });
+
+  const { data: applications = [], isLoading: applicationsLoading } = useQuery<ApplicationWithDetails[]>({
+    queryKey: ["/api/applications/employer", currentUser?.uid],
+    queryFn: async () => {
+      const token = await auth.currentUser?.getIdToken(true);
+      const response = await fetch("/api/applications/employer", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error("Failed to fetch applications");
       return response.json();
     },
     enabled: !!currentUser,
@@ -54,9 +74,7 @@ export default function EmployerDashboard() {
       const token = await auth.currentUser?.getIdToken();
       const response = await fetch(`/api/opportunities/${jobId}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) {
         const error = await response.json();
@@ -65,19 +83,12 @@ export default function EmployerDashboard() {
       return response.json();
     },
     onSuccess: () => {
-      toast({
-        title: "Job Deleted",
-        description: "The job posting has been successfully removed.",
-      });
+      toast({ title: "Job Deleted", description: "The job posting has been successfully removed." });
       queryClient.invalidateQueries({ queryKey: ["/api/opportunities"] });
       setDeleteJobId(null);
     },
     onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete job posting.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message || "Failed to delete job posting.", variant: "destructive" });
       setDeleteJobId(null);
     },
   });
@@ -107,9 +118,7 @@ export default function EmployerDashboard() {
               <CardDescription>You need to be an Employer to access this dashboard.</CardDescription>
             </CardHeader>
             <CardContent>
-              <Button onClick={() => setLocation("/")} data-testid="button-go-home">
-                Go Home
-              </Button>
+              <Button onClick={() => setLocation("/")} data-testid="button-go-home">Go Home</Button>
             </CardContent>
           </Card>
         </main>
@@ -123,8 +132,22 @@ export default function EmployerDashboard() {
   const companySize = employerData.companySize || "Not specified";
 
   const activeJobs = myJobs.filter(job => job.approvalStatus === "approved" && job.status === "open");
-  const approvedJobs = myJobs.filter(job => job.approvalStatus === "approved" && job.status === "open");
   const pendingJobs = myJobs.filter(job => job.approvalStatus === "pending");
+  const rejectedJobs = myJobs.filter(job => job.approvalStatus === "rejected");
+
+  const filteredJobs = myJobs.filter(job => {
+    if (jobFilter === "all") return true;
+    if (jobFilter === "approved") return job.approvalStatus === "approved";
+    if (jobFilter === "pending") return job.approvalStatus === "pending";
+    if (jobFilter === "rejected") return job.approvalStatus === "rejected";
+    return true;
+  });
+
+  const getStatusBadge = (status: string) => {
+    if (status === "approved") return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100";
+    if (status === "rejected") return "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-100";
+    return "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-100";
+  };
 
   return (
     <div className="min-h-screen">
@@ -134,8 +157,7 @@ export default function EmployerDashboard() {
           <div className="flex flex-wrap items-center justify-between gap-4 mb-2">
             <h1 className="text-3xl font-bold">Employer Dashboard</h1>
             <Button onClick={() => setShowPostJobDialog(true)} data-testid="button-post-job">
-              <Plus className="w-4 h-4 mr-2" />
-              Post New Job
+              <Plus className="w-4 h-4 mr-2" />Post New Job
             </Button>
           </div>
           <p className="text-muted-foreground">Manage your job postings and find talent</p>
@@ -145,248 +167,165 @@ export default function EmployerDashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Active Jobs</CardTitle>
-              <Briefcase className="h-4 h-4 text-muted-foreground" />
+              <Briefcase className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{activeJobs.length}</div>
               <p className="text-xs text-muted-foreground">{pendingJobs.length} pending approval</p>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Approved Jobs</CardTitle>
-              <Eye className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Applications</CardTitle>
+              <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{approvedJobs.length}</div>
-              <p className="text-xs text-muted-foreground">Live on opportunities page</p>
+              <div className="text-2xl font-bold">{applications.length}</div>
+              <p className="text-xs text-muted-foreground">Total received</p>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Postings</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
+              <Eye className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{myJobs.length}</div>
               <p className="text-xs text-muted-foreground">All time</p>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Browse Talent</CardTitle>
+              <CardTitle className="text-sm font-medium">Company</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="w-full mt-1" 
-                onClick={() => {
-                  const talentSection = document.getElementById("talent-section");
-                  talentSection?.scrollIntoView({ behavior: "smooth" });
-                }}
-                data-testid="button-view-talent"
-              >
-                View Candidates
-              </Button>
+              <div className="text-lg font-bold truncate">{companyName}</div>
+              <p className="text-xs text-muted-foreground">{industry}</p>
             </CardContent>
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
+        <Tabs defaultValue="jobs" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
+            <TabsTrigger value="jobs" data-testid="tab-jobs">
+              <Briefcase className="w-4 h-4 mr-2" />Posted Jobs
+            </TabsTrigger>
+            <TabsTrigger value="applications" data-testid="tab-applications">
+              <FileText className="w-4 h-4 mr-2" />Applications
+            </TabsTrigger>
+            <TabsTrigger value="talent" data-testid="tab-talent">
+              <Users className="w-4 h-4 mr-2" />Browse Talent
+            </TabsTrigger>
+            <TabsTrigger value="profile" data-testid="tab-profile">
+              <Eye className="w-4 h-4 mr-2" />Company Profile
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="jobs" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Your Job Postings</CardTitle>
-                <CardDescription>
-                  {jobsLoading ? "Loading..." : `${myJobs.length} total jobs posted`}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {jobsLoading ? (
-                  <div className="text-center py-8">
-                    <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">Loading your jobs...</p>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <CardTitle>Your Job Postings</CardTitle>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant={jobFilter === "all" ? "default" : "outline"} size="sm" onClick={() => setJobFilter("all")} data-testid="filter-all">All ({myJobs.length})</Button>
+                    <Button variant={jobFilter === "approved" ? "default" : "outline"} size="sm" onClick={() => setJobFilter("approved")} data-testid="filter-approved">Approved ({activeJobs.length})</Button>
+                    <Button variant={jobFilter === "pending" ? "default" : "outline"} size="sm" onClick={() => setJobFilter("pending")} data-testid="filter-pending">Pending ({pendingJobs.length})</Button>
+                    <Button variant={jobFilter === "rejected" ? "default" : "outline"} size="sm" onClick={() => setJobFilter("rejected")} data-testid="filter-rejected">Rejected ({rejectedJobs.length})</Button>
                   </div>
-                ) : myJobs.length === 0 ? (
+                </div>
+              </CardHeader>
+              <CardContent>
+                {jobsLoading ? (
+                  <div className="text-center py-8"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" /><p className="text-sm text-muted-foreground">Loading jobs...</p></div>
+                ) : filteredJobs.length === 0 ? (
                   <div className="text-center py-12">
                     <Briefcase className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="font-semibold mb-2">No jobs posted yet</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Start by posting your first job opening
-                    </p>
-                    <Button onClick={() => setShowPostJobDialog(true)} data-testid="button-post-job-cta">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Post Job
-                    </Button>
+                    <h3 className="font-semibold mb-2">No jobs found</h3>
+                    <Button onClick={() => setShowPostJobDialog(true)} data-testid="button-post-job-cta"><Plus className="w-4 h-4 mr-2" />Post Job</Button>
                   </div>
                 ) : (
-                  <>
-                    {myJobs.map((job, idx) => (
-                      <div key={job.id} className="p-4 rounded-md border hover-elevate" data-testid={`job-card-${idx}`}>
-                        <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-lg mb-1" data-testid={`job-title-${idx}`}>{job.title}</h3>
-                            <p className="text-sm text-muted-foreground">
-                              {job.city ? `${job.city}, ` : ""}{job.country}
-                            </p>
-                          </div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Badge 
-                              className={
-                                job.approvalStatus === "approved" 
-                                  ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100"
-                                  : job.approvalStatus === "rejected"
-                                  ? "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-100"
-                                  : "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-100"
-                              }
-                              data-testid={`job-status-${idx}`}
-                            >
-                              {job.approvalStatus === "approved" 
-                                ? "Approved" 
-                                : job.approvalStatus === "rejected"
-                                ? "Rejected"
-                                : "Pending Approval"}
-                            </Badge>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => setDeleteJobId(job.id)}
-                              disabled={deleteJobMutation.isPending}
-                              data-testid={`button-delete-job-${idx}`}
-                            >
-                              <Trash2 className="w-4 h-4 text-destructive" />
-                            </Button>
-                          </div>
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                          {job.description}
-                        </p>
-                        {job.budgetOrSalary && (
-                          <p className="text-sm font-medium mb-2" data-testid={`job-salary-${idx}`}>{job.budgetOrSalary}</p>
-                        )}
-                        <div className="flex flex-wrap gap-2">
-                          <Badge variant="secondary" className="text-xs">
-                            {job.sector || "General"}
-                          </Badge>
-                          {job.status === "open" ? (
-                            <Badge variant="secondary" className="text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100">
-                              Open
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary" className="text-xs">
-                              Closed
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                    <div className="pt-4 border-t">
-                      <Button 
-                        onClick={() => setShowPostJobDialog(true)} 
-                        className="w-full"
-                        data-testid="button-post-job-cta"
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Post Job
-                      </Button>
-                    </div>
-                  </>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left p-3 font-medium">Job Title</th>
+                          <th className="text-left p-3 font-medium">Location</th>
+                          <th className="text-left p-3 font-medium">Status</th>
+                          <th className="text-left p-3 font-medium">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredJobs.map((job, idx) => (
+                          <tr key={job.id} className="border-b hover:bg-muted/50" data-testid={`row-job-${idx}`}>
+                            <td className="p-3"><p className="font-medium">{job.title}</p><p className="text-sm text-muted-foreground">{job.sector || "General"}</p></td>
+                            <td className="p-3 text-sm">{job.city ? `${job.city}, ` : ""}{job.country}</td>
+                            <td className="p-3"><Badge className={getStatusBadge(job.approvalStatus || "pending")}>{job.approvalStatus === "approved" ? "Approved" : job.approvalStatus === "rejected" ? "Rejected" : "Pending"}</Badge></td>
+                            <td className="p-3"><Button size="icon" variant="ghost" onClick={() => setDeleteJobId(job.id)} data-testid={`button-delete-${idx}`}><Trash2 className="w-4 h-4 text-destructive" /></Button></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </CardContent>
             </Card>
-          </div>
+          </TabsContent>
 
-          <div className="space-y-6">
+          <TabsContent value="applications" className="space-y-4">
             <Card>
-              <CardHeader>
-                <CardTitle>Company Profile</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <p className="text-sm font-medium mb-1">Company Name</p>
-                  <p className="text-sm text-muted-foreground">{companyName}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium mb-1">Industry</p>
-                  <p className="text-sm text-muted-foreground">{industry}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium mb-1">Company Size</p>
-                  <p className="text-sm text-muted-foreground">{companySize}</p>
-                </div>
-                <Button 
-                  className="w-full" 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setLocation("/edit-profile")} 
-                  data-testid="button-edit-company"
-                >
-                  Edit Profile
-                </Button>
+              <CardHeader><CardTitle>Applications Received</CardTitle><CardDescription>Job seekers who applied to your postings</CardDescription></CardHeader>
+              <CardContent>
+                {applicationsLoading ? (
+                  <div className="text-center py-8"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" /></div>
+                ) : applications.length === 0 ? (
+                  <div className="text-center py-8"><p className="text-muted-foreground">No applications received yet</p></div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead><tr className="border-b"><th className="text-left p-3 font-medium">Applicant</th><th className="text-left p-3 font-medium">Job</th><th className="text-left p-3 font-medium">Applied</th><th className="text-left p-3 font-medium">Status</th></tr></thead>
+                      <tbody>
+                        {applications.map((app, idx) => (
+                          <tr key={app.id} className="border-b hover:bg-muted/50" data-testid={`row-app-${idx}`}>
+                            <td className="p-3"><p className="font-medium">{app.applicantName || "Unknown"}</p><p className="text-sm text-muted-foreground">{app.applicantEmail}</p></td>
+                            <td className="p-3 text-sm">{app.opportunity?.title || "Unknown Job"}</td>
+                            <td className="p-3 text-sm">{format(new Date(app.appliedAt), "MMM d, yyyy")}</td>
+                            <td className="p-3"><Badge variant="secondary">{app.status}</Badge></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </CardContent>
             </Card>
+          </TabsContent>
 
+          <TabsContent value="talent"><TalentBrowser /></TabsContent>
+
+          <TabsContent value="profile" className="space-y-4">
             <Card>
-              <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <Button 
-                  className="w-full" 
-                  variant="outline" 
-                  onClick={() => setLocation("/opportunities")}
-                  data-testid="button-view-all-opportunities"
-                >
-                  <Eye className="w-4 h-4 mr-2" />
-                  View All Opportunities
-                </Button>
-                <Button 
-                  className="w-full" 
-                  variant="outline"
-                  onClick={() => {
-                    const talentSection = document.getElementById("talent-section");
-                    talentSection?.scrollIntoView({ behavior: "smooth" });
-                  }}
-                  data-testid="button-search-candidates"
-                >
-                  <Users className="w-4 h-4 mr-2" />
-                  Search Candidates
-                </Button>
+              <CardHeader><CardTitle>Company Profile</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div><p className="text-sm font-medium mb-1">Company Name</p><p className="text-sm text-muted-foreground">{companyName}</p></div>
+                  <div><p className="text-sm font-medium mb-1">Industry</p><p className="text-sm text-muted-foreground">{industry}</p></div>
+                  <div><p className="text-sm font-medium mb-1">Company Size</p><p className="text-sm text-muted-foreground">{companySize}</p></div>
+                </div>
+                <Button variant="outline" onClick={() => setLocation("/edit-profile")} data-testid="button-edit-profile"><FileText className="w-4 h-4 mr-2" />Edit Profile</Button>
               </CardContent>
             </Card>
-          </div>
-        </div>
-
-        <div id="talent-section" className="mt-8">
-          <TalentBrowser />
-        </div>
+          </TabsContent>
+        </Tabs>
       </main>
       <Footer />
-      
       <PostJobDialog open={showPostJobDialog} onOpenChange={setShowPostJobDialog} />
-      
       <AlertDialog open={!!deleteJobId} onOpenChange={(open) => !open && setDeleteJobId(null)}>
         <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Job Posting?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this job posting? This action cannot be undone and the job will be removed from the opportunities page.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
+          <AlertDialogHeader><AlertDialogTitle>Delete Job Posting?</AlertDialogTitle><AlertDialogDescription>This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel data-testid="button-cancel-delete">Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => deleteJobId && deleteJobMutation.mutate(deleteJobId)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              data-testid="button-confirm-delete"
-            >
-              {deleteJobMutation.isPending ? "Deleting..." : "Delete"}
-            </AlertDialogAction>
+            <AlertDialogAction onClick={() => deleteJobId && deleteJobMutation.mutate(deleteJobId)} className="bg-destructive text-destructive-foreground" data-testid="button-confirm-delete">{deleteJobMutation.isPending ? "Deleting..." : "Delete"}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
