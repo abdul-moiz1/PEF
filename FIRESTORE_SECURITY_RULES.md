@@ -16,7 +16,8 @@ service cloud.firestore {
     function isAdmin() {
       return isAuthenticated() && 
              (request.auth.token.email == 'admin@pef.com' || 
-              request.auth.token.email == 'administrator@pef.com');
+              request.auth.token.email == 'administrator@pef.com' ||
+              request.auth.token.email == 'admin@pef.world');
     }
     
     // Helper function to check if user owns the document
