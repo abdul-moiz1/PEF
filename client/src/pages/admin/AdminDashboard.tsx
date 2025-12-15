@@ -1337,7 +1337,6 @@ function UsersTable({
             <th className="text-left p-3 font-medium text-xs text-muted-foreground uppercase tracking-wider">User</th>
             <th className="text-left p-3 font-medium text-xs text-muted-foreground uppercase tracking-wider">Status</th>
             <th className="text-left p-3 font-medium text-xs text-muted-foreground uppercase tracking-wider">Roles</th>
-            <th className="text-left p-3 font-medium text-xs text-muted-foreground uppercase tracking-wider">Pending Requests</th>
           </tr>
         </thead>
         <tbody>
@@ -1400,24 +1399,6 @@ function UsersTable({
                     <Badge className="text-xs bg-primary">Admin</Badge>
                   )}
                 </div>
-              </td>
-              <td className="p-3">
-                {getUserPendingRequests(user.uid).length > 0 ? (
-                  <div className="flex flex-wrap gap-1">
-                    {getUserPendingRequests(user.uid).map((request) => (
-                      <Badge 
-                        key={request.id} 
-                        variant="outline" 
-                        className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 text-xs"
-                      >
-                        <Clock className="h-3 w-3 mr-1" />
-                        {ROLE_LABELS[request.requestedRole] || request.requestedRole}
-                      </Badge>
-                    ))}
-                  </div>
-                ) : (
-                  <span className="text-xs text-muted-foreground">—</span>
-                )}
               </td>
             </tr>
           ))}
