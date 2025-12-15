@@ -1,20 +1,5 @@
-import { 
-  collection, 
-  doc, 
-  getDoc, 
-  getDocs, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  where,
-  orderBy,
-  Timestamp,
-  addDoc,
-  serverTimestamp,
-  deleteField
-} from "firebase/firestore";
-import { db } from "./firebase-admin";
+import * as admin from 'firebase-admin';
+import { getAdminDb } from "./firebase-admin";
 import { db as pgDb } from "./db";
 import { leaders, galleryImages, membershipTiers, membershipApplications } from "@shared/schema";
 import { eq, desc, and, asc, count } from "drizzle-orm";
@@ -64,14 +49,12 @@ import {
 } from "@shared/schema";
 import { toFirestoreRoles } from "@shared/roleUtils";
 
-// Helper function to convert Firestore Timestamps to Date objects
 function normalizeDate(value: any): Date {
   if (value?.toDate) return value.toDate();
   if (value instanceof Date) return value;
   return new Date();
 }
 
-// Helper function to normalize document data with dates
 function normalizeDocData<T>(data: any): T {
   const normalized = { ...data };
   if (data.createdAt) normalized.createdAt = normalizeDate(data.createdAt);
@@ -83,10 +66,8 @@ function normalizeDocData<T>(data: any): T {
   return normalized as T;
 }
 
-// Helper function to normalize role upgrade request data (defaults missing status to "pending")
 function normalizeRoleUpgradeRequest(data: any): RoleUpgradeRequest {
   const normalized = normalizeDocData<RoleUpgradeRequest>(data);
-  // Default missing status to "pending" for backwards compatibility
   if (!normalized.status) {
     normalized.status = "pending";
   }
@@ -176,7 +157,6 @@ export interface IStorage {
   updateMembershipApplication(id: string, data: Partial<InsertMembershipApplication>): Promise<MembershipApplication | undefined>;
   deleteMembershipApplication(id: string): Promise<void>;
   
-  // Country/City management
   createCountry(country: InsertCountry): Promise<Country>;
   getAllCountries(): Promise<Country[]>;
   getEnabledCountries(): Promise<Country[]>;
@@ -193,7 +173,6 @@ export interface IStorage {
   deleteCity(id: string): Promise<void>;
   bulkCreateCities(citiesData: InsertCity[]): Promise<City[]>;
   
-  // Fields configuration (admin-managed dropdowns)
   createFieldConfig(field: InsertFieldsConfig): Promise<FieldsConfig>;
   getAllFieldsConfig(): Promise<FieldsConfig[]>;
   getMainFields(): Promise<FieldsConfig[]>;
@@ -202,7 +181,6 @@ export interface IStorage {
   updateFieldConfig(id: string, data: Partial<InsertFieldsConfig>): Promise<FieldsConfig | undefined>;
   deleteFieldConfig(id: string): Promise<void>;
   
-  // Role upgrade requests
   createRoleUpgradeRequest(request: InsertRoleUpgradeRequest): Promise<RoleUpgradeRequest>;
   getAllRoleUpgradeRequests(): Promise<RoleUpgradeRequest[]>;
   getPendingRoleUpgradeRequests(): Promise<RoleUpgradeRequest[]>;
@@ -212,7 +190,6 @@ export interface IStorage {
   approveRoleUpgradeRequest(id: string, adminId: string): Promise<RoleUpgradeRequest | undefined>;
   rejectRoleUpgradeRequest(id: string, adminId: string, notes?: string): Promise<RoleUpgradeRequest | undefined>;
   
-  // Chapter admins
   createChapterAdmin(chapterAdmin: InsertChapterAdmin): Promise<ChapterAdmin>;
   getAllChapterAdmins(): Promise<ChapterAdmin[]>;
   getChapterAdminById(id: string): Promise<ChapterAdmin | undefined>;
@@ -223,47 +200,43 @@ export interface IStorage {
 
 export class FirestoreStorage implements IStorage {
   private generateId(): string {
-    return doc(collection(db, "temp")).id;
+    return getAdminDb().collection("temp").doc().id;
   }
 
   async getUserById(id: string): Promise<User | undefined> {
-    const docRef = doc(db, "users", id);
-    const docSnap = await getDoc(docRef);
+    const docRef = getAdminDb().collection("users").doc(id);
+    const docSnap = await docRef.get();
     
-    if (docSnap.exists()) {
+    if (docSnap.exists) {
       return normalizeDocData<User>({ id: docSnap.id, ...docSnap.data() });
     }
     return undefined;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const q = query(collection(db, "users"), where("email", "==", email));
-    const querySnapshot = await getDocs(q);
+    const querySnapshot = await getAdminDb().collection("users").where("email", "==", email).get();
     
     if (!querySnapshot.empty) {
-      const doc = querySnapshot.docs[0];
-      return normalizeDocData<User>({ id: doc.id, ...doc.data() });
+      const docSnap = querySnapshot.docs[0];
+      return normalizeDocData<User>({ id: docSnap.id, ...docSnap.data() });
     }
     return undefined;
   }
 
   async getUserWithRoles(id: string): Promise<{ user: User; roles: UserRoles | null } | undefined> {
-    const userDocRef = doc(db, "users", id);
-    const userSnap = await getDoc(userDocRef);
+    const userDocRef = getAdminDb().collection("users").doc(id);
+    const userSnap = await userDocRef.get();
     
-    if (!userSnap.exists()) {
+    if (!userSnap.exists) {
       return undefined;
     }
     
-    const userData = userSnap.data();
+    const userData = userSnap.data()!;
     const user = normalizeDocData<User>({ id: userSnap.id, ...userData });
 
-    // Get roles from nested field in user document (consolidated structure)
     let roles: UserRoles | null = null;
     
     if (userData.roles) {
-      // Roles embedded in user document
-      // Support both new (professional, jobSeeker, admin) and legacy (isProfessional, isJobSeeker, isAdmin) naming conventions
       roles = {
         id,
         userId: id,
@@ -297,34 +270,30 @@ export class FirestoreStorage implements IStorage {
       registrationSource: insertUser.registrationSource || null,
     };
     
-    await setDoc(doc(db, "users", insertUser.id), userData);
+    await getAdminDb().collection("users").doc(insertUser.id).set(userData);
     return userData;
   }
 
   async updateUserLastLogin(id: string): Promise<void> {
-    const userRef = doc(db, "users", id);
-    await updateDoc(userRef, {
+    const userRef = getAdminDb().collection("users").doc(id);
+    await userRef.update({
       lastLogin: new Date(),
     });
   }
 
   async completeRegistration(data: RegistrationData): Promise<{ user: User; profile: UserProfile; roles: { professional: boolean; jobSeeker: boolean; employer: boolean; businessOwner: boolean; investor: boolean; admin: boolean } }> {
     try {
-      // Get existing user document to preserve fields like name, status, lastUpdated
-      const existingUserSnap = await getDoc(doc(db, "users", data.userId));
-      const existingUserData = existingUserSnap.exists() ? existingUserSnap.data() : {};
+      const existingUserSnap = await getAdminDb().collection("users").doc(data.userId).get();
+      const existingUserData = existingUserSnap.exists ? existingUserSnap.data()! : {};
       
-      // IMPORTANT: Preserve existing admin status - never remove admin role during registration
       const existingRoles = existingUserData.roles || {};
       const wasAdmin = existingRoles.isAdmin === true || existingRoles.admin === true;
       
-      // Build roles object, preserving admin status if user was already an admin
       const newRoles = toFirestoreRoles(data.roles);
       if (wasAdmin) {
         newRoles.isAdmin = true;
       }
       
-      // Build the actual roles to return (with admin preserved)
       const preservedRoles = {
         professional: data.roles.professional || false,
         jobSeeker: data.roles.jobSeeker || false,
@@ -334,22 +303,17 @@ export class FirestoreStorage implements IStorage {
         admin: wasAdmin || data.roles.admin || false,
       };
       
-      // IMPORTANT: Preserve rejection status - if a user was rejected by admin, don't auto-approve on re-login
       const existingApprovalStatus = existingUserData.approvalStatus;
       const existingStatus = existingUserData.status;
       const wasRejected = existingApprovalStatus === "rejected" || existingStatus === "rejected";
       
-      // Consolidated structure: everything in one users document
-      // Use merge to preserve existing fields set during registration
       const consolidatedUserData = {
         id: data.userId,
         email: data.email,
         displayName: data.displayName,
         createdAt: existingUserData.createdAt || new Date(),
         lastLogin: null,
-        // Preserve rejection status - only auto-approve if not previously rejected
         approvalStatus: wasRejected ? "rejected" : (existingApprovalStatus || "approved"),
-        // Preserve existing fields
         name: existingUserData.name || data.profile.fullName,
         status: wasRejected ? "rejected" : (existingStatus || "approved"),
         lastUpdated: new Date(),
@@ -373,8 +337,7 @@ export class FirestoreStorage implements IStorage {
         investorData: existingUserData.investorData || {},
       };
       
-      // Use merge to preserve any existing fields
-      await setDoc(doc(db, "users", data.userId), consolidatedUserData, { merge: true });
+      await getAdminDb().collection("users").doc(data.userId).set(consolidatedUserData, { merge: true });
 
       const user: User = {
         id: data.userId,
@@ -415,9 +378,8 @@ export class FirestoreStorage implements IStorage {
   }
 
   async createUserProfile(insertProfile: InsertUserProfile): Promise<UserProfile> {
-    // Update nested profile field in user document (consolidated structure)
-    const userRef = doc(db, "users", insertProfile.userId);
-    await updateDoc(userRef, {
+    const userRef = getAdminDb().collection("users").doc(insertProfile.userId);
+    await userRef.update({
       profile: {
         fullName: insertProfile.fullName,
         phone: insertProfile.phone || null,
@@ -455,9 +417,8 @@ export class FirestoreStorage implements IStorage {
   }
 
   async createUserRoles(insertRoles: InsertUserRoles): Promise<UserRoles> {
-    // Update nested roles field in user document (consolidated structure)
-    const userRef = doc(db, "users", insertRoles.userId);
-    await updateDoc(userRef, {
+    const userRef = getAdminDb().collection("users").doc(insertRoles.userId);
+    await userRef.update({
       "roles.isProfessional": insertRoles.professional || false,
       "roles.isJobSeeker": insertRoles.jobSeeker || false,
       "roles.isEmployer": insertRoles.employer || false,
@@ -484,32 +445,28 @@ export class FirestoreStorage implements IStorage {
   }
 
   async updateUserRoles(userId: string, roles: Omit<InsertUserRoles, "userId">): Promise<void> {
-    // Update nested roles field in user document (consolidated structure)
-    const userRef = doc(db, "users", userId);
-    await updateDoc(userRef, {
+    const userRef = getAdminDb().collection("users").doc(userId);
+    await userRef.update({
       "roles.isProfessional": roles.professional || false,
       "roles.isJobSeeker": roles.jobSeeker || false,
       "roles.isEmployer": roles.employer || false,
       "roles.isBusinessOwner": roles.businessOwner || false,
       "roles.isInvestor": roles.investor || false,
       "roles.isAdmin": roles.admin || false,
-      // Mark that role selection is complete
       needsRoleSelection: false,
       skipBackendSync: false,
-      // Clean up legacy non-prefixed field names if they exist
-      "roles.professional": deleteField(),
-      "roles.jobSeeker": deleteField(),
-      "roles.employer": deleteField(),
-      "roles.businessOwner": deleteField(),
-      "roles.investor": deleteField(),
-      "roles.admin": deleteField(),
+      "roles.professional": admin.firestore.FieldValue.delete(),
+      "roles.jobSeeker": admin.firestore.FieldValue.delete(),
+      "roles.employer": admin.firestore.FieldValue.delete(),
+      "roles.businessOwner": admin.firestore.FieldValue.delete(),
+      "roles.investor": admin.firestore.FieldValue.delete(),
+      "roles.admin": admin.firestore.FieldValue.delete(),
     });
   }
 
   async createProfessionalProfile(profile: InsertProfessionalProfile): Promise<void> {
-    // Store in nested field within user document (consolidated structure)
-    const userRef = doc(db, "users", profile.userId);
-    await updateDoc(userRef, {
+    const userRef = getAdminDb().collection("users").doc(profile.userId);
+    await userRef.update({
       professionalData: {
         ...profile,
         createdAt: new Date(),
@@ -519,9 +476,8 @@ export class FirestoreStorage implements IStorage {
   }
 
   async createJobSeekerProfile(profile: InsertJobSeekerProfile): Promise<void> {
-    // Store in nested field within user document (consolidated structure)
-    const userRef = doc(db, "users", profile.userId);
-    await updateDoc(userRef, {
+    const userRef = getAdminDb().collection("users").doc(profile.userId);
+    await userRef.update({
       jobSeekerData: {
         ...profile,
         createdAt: new Date(),
@@ -531,9 +487,8 @@ export class FirestoreStorage implements IStorage {
   }
 
   async createEmployerProfile(profile: InsertEmployerProfile): Promise<void> {
-    // Store in nested field within user document (consolidated structure)
-    const userRef = doc(db, "users", profile.userId);
-    await updateDoc(userRef, {
+    const userRef = getAdminDb().collection("users").doc(profile.userId);
+    await userRef.update({
       employerData: {
         ...profile,
         createdAt: new Date(),
@@ -543,9 +498,8 @@ export class FirestoreStorage implements IStorage {
   }
 
   async createBusinessOwnerProfile(profile: InsertBusinessOwnerProfile): Promise<void> {
-    // Store in nested field within user document (consolidated structure)
-    const userRef = doc(db, "users", profile.userId);
-    await updateDoc(userRef, {
+    const userRef = getAdminDb().collection("users").doc(profile.userId);
+    await userRef.update({
       businessOwnerData: {
         ...profile,
         createdAt: new Date(),
@@ -555,9 +509,8 @@ export class FirestoreStorage implements IStorage {
   }
 
   async createInvestorProfile(profile: InsertInvestorProfile): Promise<void> {
-    // Store in nested field within user document (consolidated structure)
-    const userRef = doc(db, "users", profile.userId);
-    await updateDoc(userRef, {
+    const userRef = getAdminDb().collection("users").doc(profile.userId);
+    await userRef.update({
       investorData: {
         ...profile,
         createdAt: new Date(),
@@ -587,49 +540,40 @@ export class FirestoreStorage implements IStorage {
     };
     
     console.log("Creating opportunity with approvalStatus:", newOpportunity.approvalStatus, "status:", newOpportunity.status);
-    await setDoc(doc(db, "opportunities", opportunityId), newOpportunity);
+    await getAdminDb().collection("opportunities").doc(opportunityId).set(newOpportunity);
     return newOpportunity;
   }
 
   async getOpportunityById(id: string): Promise<Opportunity | undefined> {
-    const docRef = doc(db, "opportunities", id);
-    const docSnap = await getDoc(docRef);
+    const docRef = getAdminDb().collection("opportunities").doc(id);
+    const docSnap = await docRef.get();
     
-    if (docSnap.exists()) {
+    if (docSnap.exists) {
       return normalizeDocData<Opportunity>({ id: docSnap.id, ...docSnap.data() });
     }
     return undefined;
   }
 
   async getOpportunitiesByUserId(userId: string): Promise<Opportunity[]> {
-    const q = query(collection(db, "opportunities"), where("userId", "==", userId));
-    const querySnapshot = await getDocs(q);
+    const querySnapshot = await getAdminDb().collection("opportunities").where("userId", "==", userId).get();
     
-    return querySnapshot.docs.map(doc => 
-      normalizeDocData<Opportunity>({ id: doc.id, ...doc.data() })
+    return querySnapshot.docs.map(docSnap => 
+      normalizeDocData<Opportunity>({ id: docSnap.id, ...docSnap.data() })
     );
   }
 
   async getPublicOpportunities(type?: string): Promise<Opportunity[]> {
-    let q;
+    let queryRef = getAdminDb().collection("opportunities")
+      .where("approvalStatus", "==", "approved")
+      .where("status", "==", "open");
+    
     if (type) {
-      q = query(
-        collection(db, "opportunities"),
-        where("approvalStatus", "==", "approved"),
-        where("status", "==", "open"),
-        where("type", "==", type)
-      );
-    } else {
-      q = query(
-        collection(db, "opportunities"),
-        where("approvalStatus", "==", "approved"),
-        where("status", "==", "open")
-      );
+      queryRef = queryRef.where("type", "==", type) as any;
     }
     
-    const querySnapshot = await getDocs(q);
-    const opportunities = querySnapshot.docs.map(doc => 
-      normalizeDocData<Opportunity>({ id: doc.id, ...doc.data() })
+    const querySnapshot = await queryRef.get();
+    const opportunities = querySnapshot.docs.map(docSnap => 
+      normalizeDocData<Opportunity>({ id: docSnap.id, ...docSnap.data() })
     );
     
     console.log(`Found ${opportunities.length} public opportunities (type: ${type || 'all'})`);
@@ -641,15 +585,15 @@ export class FirestoreStorage implements IStorage {
   }
 
   async getAllOpportunities(): Promise<Opportunity[]> {
-    const querySnapshot = await getDocs(collection(db, "opportunities"));
-    return querySnapshot.docs.map(doc => 
-      normalizeDocData<Opportunity>({ id: doc.id, ...doc.data() })
+    const querySnapshot = await getAdminDb().collection("opportunities").get();
+    return querySnapshot.docs.map(docSnap => 
+      normalizeDocData<Opportunity>({ id: docSnap.id, ...docSnap.data() })
     );
   }
 
   async updateOpportunity(id: string, data: Partial<InsertOpportunity>): Promise<Opportunity | undefined> {
-    const docRef = doc(db, "opportunities", id);
-    await updateDoc(docRef, {
+    const docRef = getAdminDb().collection("opportunities").doc(id);
+    await docRef.update({
       ...data,
       updatedAt: new Date(),
     });
@@ -658,16 +602,15 @@ export class FirestoreStorage implements IStorage {
   }
 
   async deleteOpportunity(id: string): Promise<void> {
-    const docRef = doc(db, "opportunities", id);
-    await deleteDoc(docRef);
+    const docRef = getAdminDb().collection("opportunities").doc(id);
+    await docRef.delete();
   }
 
   async bulkUpdateOpportunityApprovalStatus(opportunityIds: string[], status: "pending" | "approved" | "rejected"): Promise<void> {
-    const { writeBatch } = await import("firebase/firestore");
-    const batch = writeBatch(db);
+    const batch = getAdminDb().batch();
     
     for (const id of opportunityIds) {
-      const docRef = doc(db, "opportunities", id);
+      const docRef = getAdminDb().collection("opportunities").doc(id);
       batch.update(docRef, {
         approvalStatus: status,
         updatedAt: new Date(),
@@ -678,11 +621,10 @@ export class FirestoreStorage implements IStorage {
   }
 
   async bulkUpdateOpportunityStatus(opportunityIds: string[], status: "open" | "closed"): Promise<void> {
-    const { writeBatch } = await import("firebase/firestore");
-    const batch = writeBatch(db);
+    const batch = getAdminDb().batch();
     
     for (const id of opportunityIds) {
-      const docRef = doc(db, "opportunities", id);
+      const docRef = getAdminDb().collection("opportunities").doc(id);
       batch.update(docRef, {
         status: status,
         updatedAt: new Date(),
@@ -693,11 +635,10 @@ export class FirestoreStorage implements IStorage {
   }
 
   async bulkDeleteOpportunities(opportunityIds: string[]): Promise<void> {
-    const { writeBatch } = await import("firebase/firestore");
-    const batch = writeBatch(db);
+    const batch = getAdminDb().batch();
     
     for (const id of opportunityIds) {
-      const docRef = doc(db, "opportunities", id);
+      const docRef = getAdminDb().collection("opportunities").doc(id);
       batch.delete(docRef);
     }
     
@@ -716,13 +657,12 @@ export class FirestoreStorage implements IStorage {
       updatedAt: new Date(),
     };
     
-    await setDoc(doc(db, "applications", applicationId), newApplication);
+    await getAdminDb().collection("applications").doc(applicationId).set(newApplication);
     return newApplication;
   }
 
   async getApplicationsByUser(userId: string): Promise<Array<Application & { opportunity: Opportunity }>> {
-    const q = query(collection(db, "applications"), where("userId", "==", userId));
-    const querySnapshot = await getDocs(q);
+    const querySnapshot = await getAdminDb().collection("applications").where("userId", "==", userId).get();
     
     const results: Array<Application & { opportunity: Opportunity }> = [];
     
@@ -739,8 +679,7 @@ export class FirestoreStorage implements IStorage {
   }
 
   async getApplicationsByOpportunity(opportunityId: string): Promise<Array<Application & { user: User }>> {
-    const q = query(collection(db, "applications"), where("opportunityId", "==", opportunityId));
-    const querySnapshot = await getDocs(q);
+    const querySnapshot = await getAdminDb().collection("applications").where("opportunityId", "==", opportunityId).get();
     
     const results: Array<Application & { user: User }> = [];
     
@@ -757,36 +696,34 @@ export class FirestoreStorage implements IStorage {
   }
 
   async updateApplicationStatus(id: string, status: Application['status']): Promise<Application | undefined> {
-    const docRef = doc(db, "applications", id);
-    await updateDoc(docRef, {
+    const docRef = getAdminDb().collection("applications").doc(id);
+    await docRef.update({
       status,
       updatedAt: new Date(),
     });
     
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
+    const docSnap = await docRef.get();
+    if (docSnap.exists) {
       return normalizeDocData<Application>({ id: docSnap.id, ...docSnap.data() });
     }
     return undefined;
   }
 
   async checkExistingApplication(userId: string, opportunityId: string): Promise<Application | undefined> {
-    const q = query(
-      collection(db, "applications"),
-      where("userId", "==", userId),
-      where("opportunityId", "==", opportunityId)
-    );
-    const querySnapshot = await getDocs(q);
+    const querySnapshot = await getAdminDb().collection("applications")
+      .where("userId", "==", userId)
+      .where("opportunityId", "==", opportunityId)
+      .get();
     
     if (!querySnapshot.empty) {
-      const doc = querySnapshot.docs[0];
-      return normalizeDocData<Application>({ id: doc.id, ...doc.data() });
+      const docSnap = querySnapshot.docs[0];
+      return normalizeDocData<Application>({ id: docSnap.id, ...docSnap.data() });
     }
     return undefined;
   }
 
   async getTalentByRole(role: "professional" | "jobSeeker"): Promise<TalentProfile[]> {
-    const usersSnapshot = await getDocs(collection(db, "users"));
+    const usersSnapshot = await getAdminDb().collection("users").get();
     const results: TalentProfile[] = [];
     
     console.log(`🔍 getTalentByRole called for role: ${role}`);
@@ -802,7 +739,6 @@ export class FirestoreStorage implements IStorage {
         hasJobSeekerRole: userData.roles?.jobSeeker,
       });
       
-      // Check if user has the requested role
       const hasRole = role === "professional" 
         ? userData.roles?.professional 
         : userData.roles?.jobSeeker;
@@ -812,7 +748,6 @@ export class FirestoreStorage implements IStorage {
         continue;
       }
       
-      // Only include approved users
       if (userData.approvalStatus !== "approved") {
         console.log(`  ⚠️  User ${userData.email} has ${role} role but approvalStatus is ${userData.approvalStatus}`);
         continue;
@@ -820,7 +755,6 @@ export class FirestoreStorage implements IStorage {
       
       console.log(`  ✅ User ${userData.email} matches criteria!`);
       
-      // Debug logging to see what fields are available
       console.log(`📊 Talent user ${userData.email}:`, {
         hasProfessionalData: !!userData.professionalData,
         hasJobSeekerData: !!userData.jobSeekerData,
@@ -830,7 +764,6 @@ export class FirestoreStorage implements IStorage {
       
       const user = normalizeDocData<User>({ id: userDoc.id, ...userData });
       
-      // Create profile from user data
       const profile: UserProfile = {
         id: userDoc.id,
         userId: userDoc.id,
@@ -849,19 +782,18 @@ export class FirestoreStorage implements IStorage {
         updatedAt: userData.lastUpdated?.toDate?.() || new Date(),
       };
       
-      // Get role-specific profile data
       let roleSpecificProfile = null;
       
       if (role === "professional" && userData.professionalData) {
         roleSpecificProfile = {
           id: userDoc.id,
           userId: userDoc.id,
-          yearsOfExperience: userData.professionalData.yearsOfExperience || null,
+          currentTitle: userData.professionalData.currentTitle || null,
+          company: userData.professionalData.company || null,
           industry: userData.professionalData.industry || null,
-          skills: userData.professionalData.skills || null,
-          certifications: userData.professionalData.certifications || null,
-          currentJobTitle: userData.professionalData.currentJobTitle || null,
-          currentEmployer: userData.professionalData.currentEmployer || null,
+          yearsExperience: userData.professionalData.yearsExperience || null,
+          expertise: userData.professionalData.expertise || null,
+          availability: userData.professionalData.availability || null,
           createdAt: userData.professionalData.createdAt?.toDate?.() || new Date(),
           updatedAt: userData.professionalData.updatedAt?.toDate?.() || new Date(),
         } as ProfessionalProfile;
@@ -869,119 +801,40 @@ export class FirestoreStorage implements IStorage {
         roleSpecificProfile = {
           id: userDoc.id,
           userId: userDoc.id,
-          targetJobTitles: userData.jobSeekerData.targetJobTitles || null,
-          preferredIndustries: userData.jobSeekerData.preferredIndustries || null,
-          employmentType: userData.jobSeekerData.employmentType || null,
-          salaryExpectationMin: userData.jobSeekerData.salaryExpectationMin || null,
-          salaryExpectationMax: userData.jobSeekerData.salaryExpectationMax || null,
+          currentTitle: userData.jobSeekerData.currentTitle || null,
+          desiredTitle: userData.jobSeekerData.desiredTitle || null,
+          skills: userData.jobSeekerData.skills || null,
+          experienceLevel: userData.jobSeekerData.experienceLevel || null,
           availability: userData.jobSeekerData.availability || null,
-          willingToRelocate: userData.jobSeekerData.willingToRelocate || null,
-          targetCountries: userData.jobSeekerData.targetCountries || null,
+          resumeUrl: userData.jobSeekerData.resumeUrl || null,
           createdAt: userData.jobSeekerData.createdAt?.toDate?.() || new Date(),
           updatedAt: userData.jobSeekerData.updatedAt?.toDate?.() || new Date(),
         } as JobSeekerProfile;
       }
       
-      results.push({
-        user,
-        profile,
-        roleSpecificProfile
-      });
+      results.push({ user, profile, roleSpecificProfile });
     }
     
+    console.log(`✅ Total matching talent: ${results.length}`);
     return results;
   }
 
-  async getInvestors(): Promise<Array<{user: User; investorData: any}>> {
-    const usersSnapshot = await getDocs(collection(db, "users"));
-    const results: Array<{user: User; investorData: any}> = [];
+  async getAllUsers(): Promise<User[]> {
+    const usersSnapshot = await getAdminDb().collection("users").get();
+    const users: User[] = [];
     
     for (const userDoc of usersSnapshot.docs) {
       const userData = userDoc.data();
-      
-      // Check if user has investor role
-      if (userData.roles?.investor || userData.roles?.investor) {
-        const user = normalizeDocData<User>({ id: userDoc.id, ...userData });
-        
-        // Only include approved users
-        if (user.approvalStatus === "approved") {
-          results.push({
-            user: {
-              id: user.id,
-              email: user.email,
-              displayName: user.displayName,
-              approvalStatus: user.approvalStatus,
-              createdAt: user.createdAt,
-              lastLogin: user.lastLogin,
-              preRegistered: user.preRegistered,
-              preRegisteredAt: user.preRegisteredAt,
-              registrationSource: user.registrationSource,
-            },
-            investorData: userData.investorData || {}
-          });
-        }
-      }
-    }
-    
-    return results;
-  }
-
-  async getBusinessOwners(): Promise<Array<{user: User; businessOwnerData: any}>> {
-    const usersSnapshot = await getDocs(collection(db, "users"));
-    const results: Array<{user: User; businessOwnerData: any}> = [];
-    
-    for (const userDoc of usersSnapshot.docs) {
-      const userData = userDoc.data();
-      
-      // Check if user has business owner role
-      if (userData.roles?.businessOwner || userData.roles?.businessOwner) {
-        const user = normalizeDocData<User>({ id: userDoc.id, ...userData });
-        
-        // Only include approved users
-        if (user.approvalStatus === "approved") {
-          results.push({
-            user: {
-              id: user.id,
-              email: user.email,
-              displayName: user.displayName,
-              approvalStatus: user.approvalStatus,
-              createdAt: user.createdAt,
-              lastLogin: user.lastLogin,
-              preRegistered: user.preRegistered,
-              preRegisteredAt: user.preRegisteredAt,
-              registrationSource: user.registrationSource,
-            },
-            businessOwnerData: userData.businessOwnerData || {}
-          });
-        }
-      }
-    }
-    
-    return results;
-  }
-
-  async getAllUsers(): Promise<Array<any>> {
-    const usersSnapshot = await getDocs(collection(db, "users"));
-    const users: Array<any> = [];
-    
-    for (const userDoc of usersSnapshot.docs) {
-      const userData = userDoc.data();
-      users.push({
-        uid: userDoc.id,
-        ...userData,
-        createdAt: normalizeDate(userData.createdAt),
-        lastUpdated: normalizeDate(userData.lastUpdated),
-      });
+      users.push(normalizeDocData<User>({ id: userDoc.id, ...userData }));
     }
     
     return users;
   }
 
   async getAdminStats(): Promise<any> {
-    const usersSnapshot = await getDocs(collection(db, "users"));
+    const usersSnapshot = await getAdminDb().collection("users").get();
     
-    // Count membership applications from Firestore 'registrations' collection
-    const registrationsSnapshot = await getDocs(collection(db, "registrations"));
+    const registrationsSnapshot = await getAdminDb().collection("registrations").get();
     
     const stats = {
       totalUsers: 0,
@@ -1018,8 +871,8 @@ export class FirestoreStorage implements IStorage {
   }
 
   async updateUserStatus(userId: string, status: string): Promise<void> {
-    const userRef = doc(db, "users", userId);
-    await updateDoc(userRef, {
+    const userRef = getAdminDb().collection("users").doc(userId);
+    await userRef.update({
       status,
       approvalStatus: status,
       lastUpdated: new Date(),
@@ -1039,7 +892,7 @@ export class FirestoreStorage implements IStorage {
       updatedAt: new Date(),
     };
     
-    const docRef = await addDoc(collection(db, "videos"), videoData);
+    const docRef = await getAdminDb().collection("videos").add(videoData);
     
     return {
       id: docRef.id,
@@ -1048,7 +901,7 @@ export class FirestoreStorage implements IStorage {
   }
 
   async getAllVideos(): Promise<Video[]> {
-    const videosSnapshot = await getDocs(collection(db, "videos"));
+    const videosSnapshot = await getAdminDb().collection("videos").get();
     const videos: Video[] = [];
     
     for (const videoDoc of videosSnapshot.docs) {
@@ -1067,20 +920,20 @@ export class FirestoreStorage implements IStorage {
   }
 
   async getVideoById(id: string): Promise<Video | undefined> {
-    const docRef = doc(db, "videos", id);
-    const docSnap = await getDoc(docRef);
+    const docRef = getAdminDb().collection("videos").doc(id);
+    const docSnap = await docRef.get();
     
-    if (docSnap.exists()) {
+    if (docSnap.exists) {
       return normalizeDocData<Video>({ id: docSnap.id, ...docSnap.data() });
     }
     return undefined;
   }
 
   async updateVideo(id: string, data: Partial<InsertVideo>): Promise<Video | undefined> {
-    const docRef = doc(db, "videos", id);
+    const docRef = getAdminDb().collection("videos").doc(id);
     
     const updateData: any = {
-      updatedAt: Timestamp.now(),
+      updatedAt: admin.firestore.Timestamp.now(),
     };
     
     if (data.title !== undefined) updateData.title = data.title;
@@ -1094,18 +947,18 @@ export class FirestoreStorage implements IStorage {
       updateData.publishedAt = data.publishedAt || null;
     }
     
-    await updateDoc(docRef, updateData);
+    await docRef.update(updateData);
     
-    const updatedDoc = await getDoc(docRef);
-    if (updatedDoc.exists()) {
+    const updatedDoc = await docRef.get();
+    if (updatedDoc.exists) {
       return normalizeDocData<Video>({ id: updatedDoc.id, ...updatedDoc.data() });
     }
     return undefined;
   }
 
   async deleteVideo(id: string): Promise<void> {
-    const docRef = doc(db, "videos", id);
-    await deleteDoc(docRef);
+    const docRef = getAdminDb().collection("videos").doc(id);
+    await docRef.delete();
   }
 
   async createLeader(leader: InsertLeader): Promise<Leader> {
@@ -1117,14 +970,14 @@ export class FirestoreStorage implements IStorage {
       linkedinUrl: leader.linkedinUrl ?? null,
       order: leader.order ?? null,
       visible: leader.visible ?? true,
-      createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now(),
+      createdAt: admin.firestore.Timestamp.now(),
+      updatedAt: admin.firestore.Timestamp.now(),
     };
     
-    const docRef = await addDoc(collection(db, "leaders"), leaderData);
+    const docRef = await getAdminDb().collection("leaders").add(leaderData);
     
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
+    const docSnap = await docRef.get();
+    if (docSnap.exists) {
       return normalizeDocData<Leader>({ id: docSnap.id, ...docSnap.data() });
     }
     
@@ -1135,7 +988,7 @@ export class FirestoreStorage implements IStorage {
   }
 
   async getAllLeaders(): Promise<Leader[]> {
-    const leadersSnapshot = await getDocs(collection(db, "leaders"));
+    const leadersSnapshot = await getAdminDb().collection("leaders").get();
     const leadersList: Leader[] = [];
     
     for (const leaderDoc of leadersSnapshot.docs) {
@@ -1159,20 +1012,20 @@ export class FirestoreStorage implements IStorage {
   }
 
   async getLeaderById(id: string): Promise<Leader | undefined> {
-    const docRef = doc(db, "leaders", id);
-    const docSnap = await getDoc(docRef);
+    const docRef = getAdminDb().collection("leaders").doc(id);
+    const docSnap = await docRef.get();
     
-    if (docSnap.exists()) {
+    if (docSnap.exists) {
       return normalizeDocData<Leader>({ id: docSnap.id, ...docSnap.data() });
     }
     return undefined;
   }
 
   async updateLeader(id: string, data: Partial<InsertLeader>): Promise<Leader | undefined> {
-    const docRef = doc(db, "leaders", id);
+    const docRef = getAdminDb().collection("leaders").doc(id);
     
     const updateData: any = {
-      updatedAt: Timestamp.now(),
+      updatedAt: admin.firestore.Timestamp.now(),
     };
     
     if (data.name !== undefined) updateData.name = data.name;
@@ -1183,18 +1036,18 @@ export class FirestoreStorage implements IStorage {
     if (data.order !== undefined) updateData.order = data.order;
     if (data.visible !== undefined) updateData.visible = data.visible;
     
-    await updateDoc(docRef, updateData);
+    await docRef.update(updateData);
     
-    const updatedDoc = await getDoc(docRef);
-    if (updatedDoc.exists()) {
+    const updatedDoc = await docRef.get();
+    if (updatedDoc.exists) {
       return normalizeDocData<Leader>({ id: updatedDoc.id, ...updatedDoc.data() });
     }
     return undefined;
   }
 
   async deleteLeader(id: string): Promise<void> {
-    const docRef = doc(db, "leaders", id);
-    await deleteDoc(docRef);
+    const docRef = getAdminDb().collection("leaders").doc(id);
+    await docRef.delete();
   }
 
   async createGalleryImage(image: InsertGalleryImage): Promise<GalleryImage> {
@@ -1205,14 +1058,14 @@ export class FirestoreStorage implements IStorage {
       category: image.category ?? null,
       eventDate: image.eventDate ?? null,
       visible: image.visible ?? true,
-      createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now(),
+      createdAt: admin.firestore.Timestamp.now(),
+      updatedAt: admin.firestore.Timestamp.now(),
     };
     
-    const docRef = await addDoc(collection(db, "gallery"), imageData);
+    const docRef = await getAdminDb().collection("gallery").add(imageData);
     
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
+    const docSnap = await docRef.get();
+    if (docSnap.exists) {
       return normalizeDocData<GalleryImage>({ id: docSnap.id, ...docSnap.data() });
     }
     
@@ -1223,7 +1076,7 @@ export class FirestoreStorage implements IStorage {
   }
 
   async getAllGalleryImages(): Promise<GalleryImage[]> {
-    const gallerySnapshot = await getDocs(collection(db, "gallery"));
+    const gallerySnapshot = await getAdminDb().collection("gallery").get();
     const galleryList: GalleryImage[] = [];
     
     for (const galleryDoc of gallerySnapshot.docs) {
@@ -1244,20 +1097,20 @@ export class FirestoreStorage implements IStorage {
   }
 
   async getGalleryImageById(id: string): Promise<GalleryImage | undefined> {
-    const docRef = doc(db, "gallery", id);
-    const docSnap = await getDoc(docRef);
+    const docRef = getAdminDb().collection("gallery").doc(id);
+    const docSnap = await docRef.get();
     
-    if (docSnap.exists()) {
+    if (docSnap.exists) {
       return normalizeDocData<GalleryImage>({ id: docSnap.id, ...docSnap.data() });
     }
     return undefined;
   }
 
   async updateGalleryImage(id: string, data: Partial<InsertGalleryImage>): Promise<GalleryImage | undefined> {
-    const docRef = doc(db, "gallery", id);
+    const docRef = getAdminDb().collection("gallery").doc(id);
     
     const updateData: any = {
-      updatedAt: Timestamp.now(),
+      updatedAt: admin.firestore.Timestamp.now(),
     };
     
     if (data.title !== undefined) updateData.title = data.title;
@@ -1267,18 +1120,18 @@ export class FirestoreStorage implements IStorage {
     if (data.eventDate !== undefined) updateData.eventDate = data.eventDate;
     if (data.visible !== undefined) updateData.visible = data.visible;
     
-    await updateDoc(docRef, updateData);
+    await docRef.update(updateData);
     
-    const updatedDoc = await getDoc(docRef);
-    if (updatedDoc.exists()) {
+    const updatedDoc = await docRef.get();
+    if (updatedDoc.exists) {
       return normalizeDocData<GalleryImage>({ id: updatedDoc.id, ...updatedDoc.data() });
     }
     return undefined;
   }
 
   async deleteGalleryImage(id: string): Promise<void> {
-    const docRef = doc(db, "gallery", id);
-    await deleteDoc(docRef);
+    const docRef = getAdminDb().collection("gallery").doc(id);
+    await docRef.delete();
   }
 
   async createMembershipTier(tier: InsertMembershipTier): Promise<MembershipTier> {
@@ -1311,17 +1164,14 @@ export class FirestoreStorage implements IStorage {
   }
 
   async getAllMembershipApplications(): Promise<MembershipApplication[]> {
-    // Fetch from Firestore 'registrations' collection (Join Now form submissions)
-    const registrationsRef = collection(db, "registrations");
-    const q = query(registrationsRef, orderBy("createdAt", "desc"));
-    const querySnapshot = await getDocs(q);
+    const registrationsRef = getAdminDb().collection("registrations");
+    const querySnapshot = await registrationsRef.orderBy("createdAt", "desc").get();
     
-    // Transform Firestore data to match MembershipApplication format
-    const applications: MembershipApplication[] = querySnapshot.docs.map(doc => {
-      const data = doc.data();
+    const applications: MembershipApplication[] = querySnapshot.docs.map(docSnap => {
+      const data = docSnap.data();
       
       return {
-        id: doc.id,
+        id: docSnap.id,
         fullName: data.fullName || "",
         email: data.email || "",
         phone: data.phone || null,
@@ -1344,15 +1194,14 @@ export class FirestoreStorage implements IStorage {
   }
 
   async getMembershipApplicationById(id: string): Promise<MembershipApplication | undefined> {
-    // Fetch from Firestore 'registrations' collection
-    const docRef = doc(db, "registrations", id);
-    const docSnap = await getDoc(docRef);
+    const docRef = getAdminDb().collection("registrations").doc(id);
+    const docSnap = await docRef.get();
     
-    if (!docSnap.exists()) {
+    if (!docSnap.exists) {
       return undefined;
     }
     
-    const data = docSnap.data();
+    const data = docSnap.data()!;
     return {
       id: docSnap.id,
       fullName: data.fullName || "",
@@ -1374,50 +1223,38 @@ export class FirestoreStorage implements IStorage {
   }
 
   async updateMembershipApplication(id: string, data: Partial<InsertMembershipApplication>): Promise<MembershipApplication | undefined> {
-    // Update in Firestore 'registrations' collection
-    const docRef = doc(db, "registrations", id);
-    const docSnap = await getDoc(docRef);
+    const docRef = getAdminDb().collection("registrations").doc(id);
+    const docSnap = await docRef.get();
     
-    if (!docSnap.exists()) {
+    if (!docSnap.exists) {
       return undefined;
     }
     
-    // Validate the update data using the schema (partial)
-    // This ensures enum constraints (like status) are enforced
     const validatedData = insertMembershipApplicationSchema.partial().parse(data);
     
-    // Filter out undefined values and prepare update payload
     const updatePayload: Record<string, any> = {};
     Object.entries(validatedData).forEach(([key, value]) => {
       if (value !== undefined) {
-        // Convert Date objects to Firestore Timestamps
         if (value instanceof Date) {
-          updatePayload[key] = Timestamp.fromDate(value);
+          updatePayload[key] = admin.firestore.Timestamp.fromDate(value);
         } else {
           updatePayload[key] = value;
         }
       }
     });
     
-    // Always update the updatedAt timestamp
-    updatePayload.updatedAt = Timestamp.now();
+    updatePayload.updatedAt = admin.firestore.Timestamp.now();
     
-    // Update the document
-    await updateDoc(docRef, updatePayload);
+    await docRef.update(updatePayload);
     
-    // Fetch and return the updated document using the getter for consistency
     return this.getMembershipApplicationById(id);
   }
 
   async deleteMembershipApplication(id: string): Promise<void> {
-    // Delete from Firestore 'registrations' collection
-    const docRef = doc(db, "registrations", id);
-    await deleteDoc(docRef);
+    const docRef = getAdminDb().collection("registrations").doc(id);
+    await docRef.delete();
   }
 
-  // Country/City management methods using Firestore
-  // Structure: countries collection with cities as embedded array in each country document
-  
   async createCountry(country: InsertCountry): Promise<Country> {
     const countryId = this.generateId();
     const now = new Date();
@@ -1436,7 +1273,7 @@ export class FirestoreStorage implements IStorage {
       updatedAt: now,
     };
     
-    await setDoc(doc(db, "countries", countryId), newCountry);
+    await getAdminDb().collection("countries").doc(countryId).set(newCountry);
     
     return {
       id: countryId,
@@ -1454,7 +1291,7 @@ export class FirestoreStorage implements IStorage {
   }
 
   async getAllCountries(): Promise<Country[]> {
-    const querySnapshot = await getDocs(collection(db, "countries"));
+    const querySnapshot = await getAdminDb().collection("countries").get();
     const countriesList = querySnapshot.docs.map(docSnap => {
       const data = docSnap.data();
       return normalizeDocData<Country>({
@@ -1479,8 +1316,7 @@ export class FirestoreStorage implements IStorage {
   }
 
   async getEnabledCountries(): Promise<Country[]> {
-    const q = query(collection(db, "countries"), where("enabled", "==", true));
-    const querySnapshot = await getDocs(q);
+    const querySnapshot = await getAdminDb().collection("countries").where("enabled", "==", true).get();
     const countriesList = querySnapshot.docs.map(docSnap => {
       const data = docSnap.data();
       return normalizeDocData<Country>({
@@ -1505,12 +1341,12 @@ export class FirestoreStorage implements IStorage {
   }
 
   async getCountryById(id: string): Promise<Country | undefined> {
-    const docRef = doc(db, "countries", id);
-    const docSnap = await getDoc(docRef);
+    const docRef = getAdminDb().collection("countries").doc(id);
+    const docSnap = await docRef.get();
     
-    if (!docSnap.exists()) return undefined;
+    if (!docSnap.exists) return undefined;
     
-    const data = docSnap.data();
+    const data = docSnap.data()!;
     return normalizeDocData<Country>({
       id: docSnap.id,
       code: data.code,
@@ -1527,27 +1363,26 @@ export class FirestoreStorage implements IStorage {
   }
 
   async updateCountry(id: string, data: Partial<InsertCountry>): Promise<Country | undefined> {
-    const docRef = doc(db, "countries", id);
-    const docSnap = await getDoc(docRef);
+    const docRef = getAdminDb().collection("countries").doc(id);
+    const docSnap = await docRef.get();
     
-    if (!docSnap.exists()) return undefined;
+    if (!docSnap.exists) return undefined;
     
     const updateData: Record<string, any> = { ...data, updatedAt: new Date() };
-    await updateDoc(docRef, updateData);
+    await docRef.update(updateData);
     
     return this.getCountryById(id);
   }
 
   async deleteCountry(id: string): Promise<void> {
-    const docRef = doc(db, "countries", id);
-    await deleteDoc(docRef);
+    const docRef = getAdminDb().collection("countries").doc(id);
+    await docRef.delete();
   }
 
   async bulkCreateCountries(countriesData: InsertCountry[]): Promise<Country[]> {
     if (countriesData.length === 0) return [];
     
-    const { writeBatch } = await import("firebase/firestore");
-    const batch = writeBatch(db);
+    const batch = getAdminDb().batch();
     const createdCountries: Country[] = [];
     const now = new Date();
     
@@ -1568,7 +1403,7 @@ export class FirestoreStorage implements IStorage {
         updatedAt: now,
       };
       
-      batch.set(doc(db, "countries", countryId), newCountry);
+      batch.set(getAdminDb().collection("countries").doc(countryId), newCountry);
       
       createdCountries.push({
         id: countryId,
@@ -1590,11 +1425,10 @@ export class FirestoreStorage implements IStorage {
   }
 
   async createCity(city: InsertCity): Promise<City> {
-    const { arrayUnion } = await import("firebase/firestore");
-    const countryRef = doc(db, "countries", city.countryId);
-    const countrySnap = await getDoc(countryRef);
+    const countryRef = getAdminDb().collection("countries").doc(city.countryId);
+    const countrySnap = await countryRef.get();
     
-    if (!countrySnap.exists()) {
+    if (!countrySnap.exists) {
       throw new Error(`Country with id ${city.countryId} not found`);
     }
     
@@ -1610,8 +1444,8 @@ export class FirestoreStorage implements IStorage {
       updatedAt: now,
     };
     
-    await updateDoc(countryRef, { 
-      cities: arrayUnion(newCity),
+    await countryRef.update({ 
+      cities: admin.firestore.FieldValue.arrayUnion(newCity),
       updatedAt: now
     });
     
@@ -1628,12 +1462,12 @@ export class FirestoreStorage implements IStorage {
   }
 
   async getCitiesByCountryId(countryId: string): Promise<City[]> {
-    const countryRef = doc(db, "countries", countryId);
-    const countrySnap = await getDoc(countryRef);
+    const countryRef = getAdminDb().collection("countries").doc(countryId);
+    const countrySnap = await countryRef.get();
     
-    if (!countrySnap.exists()) return [];
+    if (!countrySnap.exists) return [];
     
-    const countryData = countrySnap.data();
+    const countryData = countrySnap.data()!;
     const cities = (countryData.cities || []).map((city: FirestoreCity) => ({
       id: city.id,
       countryId: countryId,
@@ -1652,14 +1486,14 @@ export class FirestoreStorage implements IStorage {
   }
 
   async getEnabledCitiesByCountryId(countryId: string): Promise<City[]> {
-    const allCities = await this.getCitiesByCountryId(countryId);
-    return allCities.filter(city => city.enabled);
+    const cities = await this.getCitiesByCountryId(countryId);
+    return cities.filter(city => city.enabled);
   }
 
   async getCityById(id: string): Promise<City | undefined> {
-    const querySnapshot = await getDocs(collection(db, "countries"));
+    const countriesSnapshot = await getAdminDb().collection("countries").get();
     
-    for (const countryDoc of querySnapshot.docs) {
+    for (const countryDoc of countriesSnapshot.docs) {
       const countryData = countryDoc.data();
       const cities = countryData.cities || [];
       const city = cities.find((c: FirestoreCity) => c.id === id);
@@ -1682,27 +1516,24 @@ export class FirestoreStorage implements IStorage {
   }
 
   async updateCity(id: string, data: Partial<InsertCity>): Promise<City | undefined> {
-    const querySnapshot = await getDocs(collection(db, "countries"));
+    const countriesSnapshot = await getAdminDb().collection("countries").get();
     
-    for (const countryDoc of querySnapshot.docs) {
+    for (const countryDoc of countriesSnapshot.docs) {
       const countryData = countryDoc.data();
       const cities = countryData.cities || [];
       const cityIndex = cities.findIndex((c: FirestoreCity) => c.id === id);
       
       if (cityIndex !== -1) {
-        const now = new Date();
         const updatedCity = {
           ...cities[cityIndex],
           ...data,
-          updatedAt: now,
+          updatedAt: new Date(),
         };
-        delete (updatedCity as any).countryId;
-        
         cities[cityIndex] = updatedCity;
         
-        await updateDoc(doc(db, "countries", countryDoc.id), {
-          cities: cities,
-          updatedAt: now,
+        await getAdminDb().collection("countries").doc(countryDoc.id).update({
+          cities,
+          updatedAt: new Date(),
         });
         
         return {
@@ -1722,9 +1553,9 @@ export class FirestoreStorage implements IStorage {
   }
 
   async deleteCity(id: string): Promise<void> {
-    const querySnapshot = await getDocs(collection(db, "countries"));
+    const countriesSnapshot = await getAdminDb().collection("countries").get();
     
-    for (const countryDoc of querySnapshot.docs) {
+    for (const countryDoc of countriesSnapshot.docs) {
       const countryData = countryDoc.data();
       const cities = countryData.cities || [];
       const cityIndex = cities.findIndex((c: FirestoreCity) => c.id === id);
@@ -1732,8 +1563,8 @@ export class FirestoreStorage implements IStorage {
       if (cityIndex !== -1) {
         cities.splice(cityIndex, 1);
         
-        await updateDoc(doc(db, "countries", countryDoc.id), {
-          cities: cities,
+        await getAdminDb().collection("countries").doc(countryDoc.id).update({
+          cities,
           updatedAt: new Date(),
         });
         
@@ -1745,9 +1576,6 @@ export class FirestoreStorage implements IStorage {
   async bulkCreateCities(citiesData: InsertCity[]): Promise<City[]> {
     if (citiesData.length === 0) return [];
     
-    const now = new Date();
-    const createdCities: City[] = [];
-    
     const citiesByCountry = new Map<string, InsertCity[]>();
     for (const city of citiesData) {
       const existing = citiesByCountry.get(city.countryId) || [];
@@ -1755,174 +1583,195 @@ export class FirestoreStorage implements IStorage {
       citiesByCountry.set(city.countryId, existing);
     }
     
-    for (const [countryId, cities] of Array.from(citiesByCountry)) {
-      const countryRef = doc(db, "countries", countryId);
-      const countrySnap = await getDoc(countryRef);
+    const createdCities: City[] = [];
+    const now = new Date();
+    
+    for (const [countryId, cities] of citiesByCountry) {
+      const countryRef = getAdminDb().collection("countries").doc(countryId);
+      const countrySnap = await countryRef.get();
       
-      if (!countrySnap.exists()) continue;
+      if (!countrySnap.exists) continue;
       
-      const countryData = countrySnap.data();
-      const existingCities = countryData.cities || [];
+      const newCities: FirestoreCity[] = cities.map(city => ({
+        id: this.generateId(),
+        name: city.name,
+        displayName: city.displayName || null,
+        enabled: city.enabled ?? false,
+        sortOrder: city.sortOrder ?? 0,
+        createdAt: now,
+        updatedAt: now,
+      }));
       
-      for (const city of cities) {
-        const cityId = this.generateId();
-        const newCity: FirestoreCity = {
-          id: cityId,
-          name: city.name,
-          displayName: city.displayName || null,
-          enabled: city.enabled ?? false,
-          sortOrder: city.sortOrder ?? 0,
-          createdAt: now,
-          updatedAt: now,
-        };
-        
-        existingCities.push(newCity);
-        
+      await countryRef.update({
+        cities: admin.firestore.FieldValue.arrayUnion(...newCities),
+        updatedAt: now,
+      });
+      
+      for (const newCity of newCities) {
         createdCities.push({
-          id: cityId,
-          countryId: countryId,
-          name: city.name,
-          displayName: city.displayName || null,
-          enabled: city.enabled ?? false,
-          sortOrder: city.sortOrder ?? 0,
+          id: newCity.id,
+          countryId,
+          name: newCity.name,
+          displayName: newCity.displayName || null,
+          enabled: newCity.enabled ?? false,
+          sortOrder: newCity.sortOrder ?? 0,
           createdAt: now,
           updatedAt: now,
         });
       }
-      
-      await updateDoc(countryRef, {
-        cities: existingCities,
-        updatedAt: now,
-      });
     }
     
     return createdCities;
   }
 
-  // Fields configuration methods
   async createFieldConfig(field: InsertFieldsConfig): Promise<FieldsConfig> {
     const fieldId = this.generateId();
     const now = new Date();
     const newField: FieldsConfig = {
       id: fieldId,
+      fieldType: field.fieldType,
       name: field.name,
+      displayName: field.displayName || null,
       parentId: field.parentId || null,
-      isMainField: field.isMainField ?? true,
-      sortOrder: field.sortOrder ?? 0,
       enabled: field.enabled ?? true,
+      sortOrder: field.sortOrder ?? 0,
       createdAt: now,
       updatedAt: now,
     };
     
-    await setDoc(doc(db, "fieldsConfig", fieldId), newField);
+    await getAdminDb().collection("fieldsConfig").doc(fieldId).set(newField);
     return newField;
   }
 
   async getAllFieldsConfig(): Promise<FieldsConfig[]> {
-    const querySnapshot = await getDocs(collection(db, "fieldsConfig"));
-    return querySnapshot.docs.map(doc => normalizeDocData<FieldsConfig>({ id: doc.id, ...doc.data() }));
+    const querySnapshot = await getAdminDb().collection("fieldsConfig").get();
+    return querySnapshot.docs.map(docSnap => 
+      normalizeDocData<FieldsConfig>({ id: docSnap.id, ...docSnap.data() })
+    );
   }
 
   async getMainFields(): Promise<FieldsConfig[]> {
-    const q = query(collection(db, "fieldsConfig"), where("isMainField", "==", true), where("enabled", "==", true));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => normalizeDocData<FieldsConfig>({ id: doc.id, ...doc.data() }));
+    const querySnapshot = await getAdminDb().collection("fieldsConfig")
+      .where("parentId", "==", null)
+      .get();
+    
+    const fields = querySnapshot.docs.map(docSnap => 
+      normalizeDocData<FieldsConfig>({ id: docSnap.id, ...docSnap.data() })
+    );
+    
+    return fields.sort((a, b) => a.sortOrder - b.sortOrder);
   }
 
   async getSubFieldsByParentId(parentId: string): Promise<FieldsConfig[]> {
-    const q = query(collection(db, "fieldsConfig"), where("parentId", "==", parentId), where("enabled", "==", true));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => normalizeDocData<FieldsConfig>({ id: doc.id, ...doc.data() }));
+    const querySnapshot = await getAdminDb().collection("fieldsConfig")
+      .where("parentId", "==", parentId)
+      .get();
+    
+    const fields = querySnapshot.docs.map(docSnap => 
+      normalizeDocData<FieldsConfig>({ id: docSnap.id, ...docSnap.data() })
+    );
+    
+    return fields.sort((a, b) => a.sortOrder - b.sortOrder);
   }
 
   async getFieldConfigById(id: string): Promise<FieldsConfig | undefined> {
-    const docRef = doc(db, "fieldsConfig", id);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
+    const docRef = getAdminDb().collection("fieldsConfig").doc(id);
+    const docSnap = await docRef.get();
+    
+    if (docSnap.exists) {
       return normalizeDocData<FieldsConfig>({ id: docSnap.id, ...docSnap.data() });
     }
     return undefined;
   }
 
   async updateFieldConfig(id: string, data: Partial<InsertFieldsConfig>): Promise<FieldsConfig | undefined> {
-    const docRef = doc(db, "fieldsConfig", id);
-    const docSnap = await getDoc(docRef);
-    if (!docSnap.exists()) return undefined;
+    const docRef = getAdminDb().collection("fieldsConfig").doc(id);
+    const docSnap = await docRef.get();
     
-    await updateDoc(docRef, {
+    if (!docSnap.exists) return undefined;
+    
+    await docRef.update({
       ...data,
       updatedAt: new Date(),
     });
     
-    const updatedSnap = await getDoc(docRef);
-    return normalizeDocData<FieldsConfig>({ id: updatedSnap.id, ...updatedSnap.data() });
+    return this.getFieldConfigById(id);
   }
 
   async deleteFieldConfig(id: string): Promise<void> {
-    await deleteDoc(doc(db, "fieldsConfig", id));
+    const docRef = getAdminDb().collection("fieldsConfig").doc(id);
+    await docRef.delete();
   }
 
-  // Role upgrade request methods
   async createRoleUpgradeRequest(request: InsertRoleUpgradeRequest): Promise<RoleUpgradeRequest> {
     const requestId = this.generateId();
     const now = new Date();
     const newRequest: RoleUpgradeRequest = {
       id: requestId,
       userId: request.userId,
-      requestedRole: request.requestedRole,
-      currentRoles: request.currentRoles || null,
-      proofUrl: request.proofUrl || null,
-      proofDescription: request.proofDescription || null,
+      requestedRoles: request.requestedRoles,
+      reason: request.reason || null,
       status: request.status || "pending",
-      adminNotes: request.adminNotes || null,
       reviewedBy: request.reviewedBy || null,
-      reviewedAt: null,
+      reviewedAt: request.reviewedAt || null,
+      adminNotes: request.adminNotes || null,
       createdAt: now,
       updatedAt: now,
     };
     
-    await setDoc(doc(db, "roleUpgradeRequests", requestId), newRequest);
+    await getAdminDb().collection("roleUpgradeRequests").doc(requestId).set(newRequest);
     return newRequest;
   }
 
   async getAllRoleUpgradeRequests(): Promise<RoleUpgradeRequest[]> {
-    const querySnapshot = await getDocs(collection(db, "roleUpgradeRequests"));
-    return querySnapshot.docs.map(doc => normalizeRoleUpgradeRequest({ id: doc.id, ...doc.data() }));
+    const querySnapshot = await getAdminDb().collection("roleUpgradeRequests").get();
+    return querySnapshot.docs.map(docSnap => 
+      normalizeRoleUpgradeRequest({ id: docSnap.id, ...docSnap.data() })
+    );
   }
 
   async getPendingRoleUpgradeRequests(): Promise<RoleUpgradeRequest[]> {
-    // Also fetch requests with no status (legacy data) and treat them as pending
-    const allRequests = await this.getAllRoleUpgradeRequests();
-    return allRequests.filter(r => r.status === "pending");
+    const querySnapshot = await getAdminDb().collection("roleUpgradeRequests")
+      .where("status", "==", "pending")
+      .get();
+    
+    return querySnapshot.docs.map(docSnap => 
+      normalizeRoleUpgradeRequest({ id: docSnap.id, ...docSnap.data() })
+    );
   }
 
   async getRoleUpgradeRequestById(id: string): Promise<RoleUpgradeRequest | undefined> {
-    const docRef = doc(db, "roleUpgradeRequests", id);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
+    const docRef = getAdminDb().collection("roleUpgradeRequests").doc(id);
+    const docSnap = await docRef.get();
+    
+    if (docSnap.exists) {
       return normalizeRoleUpgradeRequest({ id: docSnap.id, ...docSnap.data() });
     }
     return undefined;
   }
 
   async getRoleUpgradeRequestsByUserId(userId: string): Promise<RoleUpgradeRequest[]> {
-    const q = query(collection(db, "roleUpgradeRequests"), where("userId", "==", userId));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => normalizeRoleUpgradeRequest({ id: doc.id, ...doc.data() }));
+    const querySnapshot = await getAdminDb().collection("roleUpgradeRequests")
+      .where("userId", "==", userId)
+      .get();
+    
+    return querySnapshot.docs.map(docSnap => 
+      normalizeRoleUpgradeRequest({ id: docSnap.id, ...docSnap.data() })
+    );
   }
 
   async updateRoleUpgradeRequest(id: string, data: Partial<InsertRoleUpgradeRequest>): Promise<RoleUpgradeRequest | undefined> {
-    const docRef = doc(db, "roleUpgradeRequests", id);
-    const docSnap = await getDoc(docRef);
-    if (!docSnap.exists()) return undefined;
+    const docRef = getAdminDb().collection("roleUpgradeRequests").doc(id);
+    const docSnap = await docRef.get();
     
-    await updateDoc(docRef, {
+    if (!docSnap.exists) return undefined;
+    
+    await docRef.update({
       ...data,
       updatedAt: new Date(),
     });
     
-    const updatedSnap = await getDoc(docRef);
-    return normalizeRoleUpgradeRequest({ id: updatedSnap.id, ...updatedSnap.data() });
+    return this.getRoleUpgradeRequestById(id);
   }
 
   async approveRoleUpgradeRequest(id: string, adminId: string): Promise<RoleUpgradeRequest | undefined> {
@@ -1930,20 +1779,28 @@ export class FirestoreStorage implements IStorage {
     if (!request) return undefined;
     
     const now = new Date();
-    await updateDoc(doc(db, "roleUpgradeRequests", id), {
+    await getAdminDb().collection("roleUpgradeRequests").doc(id).update({
       status: "approved",
       reviewedBy: adminId,
       reviewedAt: now,
       updatedAt: now,
     });
     
-    // Update user roles
-    const roleKey = `roles.is${request.requestedRole.charAt(0).toUpperCase() + request.requestedRole.slice(1)}`;
-    await updateDoc(doc(db, "users", request.userId), {
-      [roleKey]: true,
-    });
+    const requestedRoles = request.requestedRoles as Record<string, boolean>;
+    const userRef = getAdminDb().collection("users").doc(request.userId);
+    const updatePayload: Record<string, boolean> = {};
     
-    const updatedSnap = await getDoc(doc(db, "roleUpgradeRequests", id));
+    if (requestedRoles.professional) updatePayload["roles.isProfessional"] = true;
+    if (requestedRoles.jobSeeker) updatePayload["roles.isJobSeeker"] = true;
+    if (requestedRoles.employer) updatePayload["roles.isEmployer"] = true;
+    if (requestedRoles.businessOwner) updatePayload["roles.isBusinessOwner"] = true;
+    if (requestedRoles.investor) updatePayload["roles.isInvestor"] = true;
+    
+    if (Object.keys(updatePayload).length > 0) {
+      await userRef.update(updatePayload);
+    }
+    
+    const updatedSnap = await getAdminDb().collection("roleUpgradeRequests").doc(id).get();
     return normalizeRoleUpgradeRequest({ id: updatedSnap.id, ...updatedSnap.data() });
   }
 
@@ -1952,7 +1809,7 @@ export class FirestoreStorage implements IStorage {
     if (!request) return undefined;
     
     const now = new Date();
-    await updateDoc(doc(db, "roleUpgradeRequests", id), {
+    await getAdminDb().collection("roleUpgradeRequests").doc(id).update({
       status: "rejected",
       reviewedBy: adminId,
       reviewedAt: now,
@@ -1960,11 +1817,10 @@ export class FirestoreStorage implements IStorage {
       updatedAt: now,
     });
     
-    const updatedSnap = await getDoc(doc(db, "roleUpgradeRequests", id));
+    const updatedSnap = await getAdminDb().collection("roleUpgradeRequests").doc(id).get();
     return normalizeRoleUpgradeRequest({ id: updatedSnap.id, ...updatedSnap.data() });
   }
 
-  // Chapter admin methods
   async createChapterAdmin(chapterAdmin: InsertChapterAdmin): Promise<ChapterAdmin> {
     const adminId = this.generateId();
     const now = new Date();
@@ -1978,10 +1834,9 @@ export class FirestoreStorage implements IStorage {
       updatedAt: now,
     };
     
-    await setDoc(doc(db, "chapterAdmins", adminId), newAdmin);
+    await getAdminDb().collection("chapterAdmins").doc(adminId).set(newAdmin);
     
-    // Update user roles to mark them as chapter admin
-    await updateDoc(doc(db, "users", chapterAdmin.userId), {
+    await getAdminDb().collection("users").doc(chapterAdmin.userId).update({
       "roles.isChapterAdmin": true,
     });
     
@@ -1989,52 +1844,50 @@ export class FirestoreStorage implements IStorage {
   }
 
   async getAllChapterAdmins(): Promise<ChapterAdmin[]> {
-    const querySnapshot = await getDocs(collection(db, "chapterAdmins"));
-    return querySnapshot.docs.map(doc => normalizeDocData<ChapterAdmin>({ id: doc.id, ...doc.data() }));
+    const querySnapshot = await getAdminDb().collection("chapterAdmins").get();
+    return querySnapshot.docs.map(docSnap => normalizeDocData<ChapterAdmin>({ id: docSnap.id, ...docSnap.data() }));
   }
 
   async getChapterAdminById(id: string): Promise<ChapterAdmin | undefined> {
-    const docRef = doc(db, "chapterAdmins", id);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
+    const docRef = getAdminDb().collection("chapterAdmins").doc(id);
+    const docSnap = await docRef.get();
+    if (docSnap.exists) {
       return normalizeDocData<ChapterAdmin>({ id: docSnap.id, ...docSnap.data() });
     }
     return undefined;
   }
 
   async getChapterAdminByUserId(userId: string): Promise<ChapterAdmin | undefined> {
-    const q = query(collection(db, "chapterAdmins"), where("userId", "==", userId));
-    const querySnapshot = await getDocs(q);
+    const querySnapshot = await getAdminDb().collection("chapterAdmins").where("userId", "==", userId).get();
     if (!querySnapshot.empty) {
-      const doc = querySnapshot.docs[0];
-      return normalizeDocData<ChapterAdmin>({ id: doc.id, ...doc.data() });
+      const docSnap = querySnapshot.docs[0];
+      return normalizeDocData<ChapterAdmin>({ id: docSnap.id, ...docSnap.data() });
     }
     return undefined;
   }
 
   async updateChapterAdmin(id: string, data: Partial<InsertChapterAdmin>): Promise<ChapterAdmin | undefined> {
-    const docRef = doc(db, "chapterAdmins", id);
-    const docSnap = await getDoc(docRef);
-    if (!docSnap.exists()) return undefined;
+    const docRef = getAdminDb().collection("chapterAdmins").doc(id);
+    const docSnap = await docRef.get();
+    if (!docSnap.exists) return undefined;
     
-    await updateDoc(docRef, {
+    await docRef.update({
       ...data,
       updatedAt: new Date(),
     });
     
-    const updatedSnap = await getDoc(docRef);
+    const updatedSnap = await docRef.get();
     return normalizeDocData<ChapterAdmin>({ id: updatedSnap.id, ...updatedSnap.data() });
   }
 
   async deleteChapterAdmin(id: string): Promise<void> {
     const chapterAdmin = await this.getChapterAdminById(id);
     if (chapterAdmin) {
-      // Remove chapter admin role from user
-      await updateDoc(doc(db, "users", chapterAdmin.userId), {
+      await getAdminDb().collection("users").doc(chapterAdmin.userId).update({
         "roles.isChapterAdmin": false,
       });
     }
-    await deleteDoc(doc(db, "chapterAdmins", id));
+    await getAdminDb().collection("chapterAdmins").doc(id).delete();
   }
 }
 
