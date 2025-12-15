@@ -42,7 +42,10 @@ async function getResendClient() {
 }
 
 async function verifyAuthToken(token: string): Promise<string> {
-  if (process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT) {
+  const hasFirebaseConfig = process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT || 
+    (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY);
+  
+  if (hasFirebaseConfig) {
     const decodedToken = await verifyIdToken(token);
     if (!decodedToken) {
       throw new Error("Invalid or expired token");
