@@ -102,7 +102,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(401).json({ error: "Invalid token format" });
         }
       } else {
-        return res.status(500).json({ error: "Firebase Admin SDK not implemented yet. Please contact support." });
+        try {
+          const decodedToken = await verifyIdToken(token);
+          if (!decodedToken) {
+            return res.status(401).json({ error: "Invalid or expired token" });
+          }
+          uid = decodedToken.uid;
+          email = decodedToken.email || '';
+          displayName = profile.fullName;
+        } catch (verifyError) {
+          console.error("Token verification error:", verifyError);
+          return res.status(401).json({ error: "Token verification failed" });
+        }
       }
 
       // Allow registration to proceed even if user exists - completeRegistration will merge data
@@ -152,7 +163,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
         uid = decodedToken.user_id;
       } else {
-        return res.status(500).json({ error: "Firebase Admin SDK not configured yet" });
+        try {
+          const decodedToken = await verifyIdToken(token);
+          if (!decodedToken) {
+            return res.status(401).json({ error: "Invalid or expired token" });
+          }
+          uid = decodedToken.uid;
+        } catch (verifyError) {
+          console.error("Token verification error:", verifyError);
+          return res.status(401).json({ error: "Token verification failed" });
+        }
       }
 
       const result = await storage.getUserWithRoles(uid);
@@ -283,7 +303,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
         uid = decodedToken.user_id;
       } else {
-        return res.status(500).json({ error: "Firebase Admin SDK not configured yet" });
+        try {
+          const decodedToken = await verifyIdToken(token);
+          if (!decodedToken) {
+            return res.status(401).json({ error: "Invalid or expired token" });
+          }
+          uid = decodedToken.uid;
+        } catch (verifyError) {
+          console.error("Token verification error:", verifyError);
+          return res.status(401).json({ error: "Token verification failed" });
+        }
       }
 
       const userWithRoles = await storage.getUserWithRoles(uid);
@@ -356,7 +385,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
           uid = decodedToken.user_id;
         } else {
-          return res.status(500).json({ error: "Firebase Admin SDK not configured yet" });
+          try {
+          const decodedToken = await verifyIdToken(token);
+          if (!decodedToken) {
+            return res.status(401).json({ error: "Invalid or expired token" });
+          }
+          uid = decodedToken.uid;
+        } catch (verifyError) {
+          console.error("Token verification error:", verifyError);
+          return res.status(401).json({ error: "Token verification failed" });
+        }
         }
 
         const userWithRoles = await storage.getUserWithRoles(uid);
@@ -390,7 +428,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
         uid = decodedToken.user_id;
       } else {
-        return res.status(500).json({ error: "Firebase Admin SDK not configured yet" });
+        try {
+          const decodedToken = await verifyIdToken(token);
+          if (!decodedToken) {
+            return res.status(401).json({ error: "Invalid or expired token" });
+          }
+          uid = decodedToken.uid;
+        } catch (verifyError) {
+          console.error("Token verification error:", verifyError);
+          return res.status(401).json({ error: "Token verification failed" });
+        }
       }
 
       const { id } = req.params;
@@ -441,7 +488,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
         uid = decodedToken.user_id;
       } else {
-        return res.status(500).json({ error: "Firebase Admin SDK not configured yet" });
+        try {
+          const decodedToken = await verifyIdToken(token);
+          if (!decodedToken) {
+            return res.status(401).json({ error: "Invalid or expired token" });
+          }
+          uid = decodedToken.uid;
+        } catch (verifyError) {
+          console.error("Token verification error:", verifyError);
+          return res.status(401).json({ error: "Token verification failed" });
+        }
       }
 
       const { id } = req.params;
@@ -740,7 +796,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
         uid = decodedToken.user_id;
       } else {
-        return res.status(500).json({ error: "Firebase Admin SDK not configured yet" });
+        try {
+          const decodedToken = await verifyIdToken(token);
+          if (!decodedToken) {
+            return res.status(401).json({ error: "Invalid or expired token" });
+          }
+          uid = decodedToken.uid;
+        } catch (verifyError) {
+          console.error("Token verification error:", verifyError);
+          return res.status(401).json({ error: "Token verification failed" });
+        }
       }
 
       const validationResult = insertApplicationSchema.safeParse({
@@ -811,7 +876,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
         uid = decodedToken.user_id;
       } else {
-        return res.status(500).json({ error: "Firebase Admin SDK not configured yet" });
+        try {
+          const decodedToken = await verifyIdToken(token);
+          if (!decodedToken) {
+            return res.status(401).json({ error: "Invalid or expired token" });
+          }
+          uid = decodedToken.uid;
+        } catch (verifyError) {
+          console.error("Token verification error:", verifyError);
+          return res.status(401).json({ error: "Token verification failed" });
+        }
       }
 
       const applications = await storage.getApplicationsByUser(uid);
@@ -845,7 +919,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(401).json({ error: "Invalid token" });
         }
       } else {
-        return res.status(500).json({ error: "Firebase Admin SDK not configured yet" });
+        try {
+          const decodedToken = await verifyIdToken(token);
+          if (!decodedToken) {
+            return res.status(401).json({ error: "Invalid or expired token" });
+          }
+          uid = decodedToken.uid;
+        } catch (verifyError) {
+          console.error("Token verification error:", verifyError);
+          return res.status(401).json({ error: "Token verification failed" });
+        }
       }
 
       const userWithRoles = await storage.getUserWithRoles(uid);
@@ -880,7 +963,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
         uid = decodedToken.user_id;
       } else {
-        return res.status(500).json({ error: "Firebase Admin SDK not configured yet" });
+        try {
+          const decodedToken = await verifyIdToken(token);
+          if (!decodedToken) {
+            return res.status(401).json({ error: "Invalid or expired token" });
+          }
+          uid = decodedToken.uid;
+        } catch (verifyError) {
+          console.error("Token verification error:", verifyError);
+          return res.status(401).json({ error: "Token verification failed" });
+        }
       }
 
       const userWithRoles = await storage.getUserWithRoles(uid);
@@ -910,7 +1002,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
         uid = decodedToken.user_id;
       } else {
-        return res.status(500).json({ error: "Firebase Admin SDK not configured yet" });
+        try {
+          const decodedToken = await verifyIdToken(token);
+          if (!decodedToken) {
+            return res.status(401).json({ error: "Invalid or expired token" });
+          }
+          uid = decodedToken.uid;
+        } catch (verifyError) {
+          console.error("Token verification error:", verifyError);
+          return res.status(401).json({ error: "Token verification failed" });
+        }
       }
 
       const userWithRoles = await storage.getUserWithRoles(uid);
@@ -940,7 +1041,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
         uid = decodedToken.user_id;
       } else {
-        return res.status(500).json({ error: "Firebase Admin SDK not configured yet" });
+        try {
+          const decodedToken = await verifyIdToken(token);
+          if (!decodedToken) {
+            return res.status(401).json({ error: "Invalid or expired token" });
+          }
+          uid = decodedToken.uid;
+        } catch (verifyError) {
+          console.error("Token verification error:", verifyError);
+          return res.status(401).json({ error: "Token verification failed" });
+        }
       }
 
       const { roles } = req.body;
@@ -981,7 +1091,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
         uid = decodedToken.user_id;
       } else {
-        return res.status(500).json({ error: "Firebase Admin SDK not configured yet" });
+        try {
+          const decodedToken = await verifyIdToken(token);
+          if (!decodedToken) {
+            return res.status(401).json({ error: "Invalid or expired token" });
+          }
+          uid = decodedToken.uid;
+        } catch (verifyError) {
+          console.error("Token verification error:", verifyError);
+          return res.status(401).json({ error: "Token verification failed" });
+        }
       }
 
       const userWithRoles = await storage.getUserWithRoles(uid);
@@ -1042,7 +1161,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
         uid = decodedToken.user_id;
       } else {
-        return res.status(500).json({ error: "Firebase Admin SDK not configured yet" });
+        try {
+          const decodedToken = await verifyIdToken(token);
+          if (!decodedToken) {
+            return res.status(401).json({ error: "Invalid or expired token" });
+          }
+          uid = decodedToken.uid;
+        } catch (verifyError) {
+          console.error("Token verification error:", verifyError);
+          return res.status(401).json({ error: "Token verification failed" });
+        }
       }
 
       const userWithRoles = await storage.getUserWithRoles(uid);
@@ -1272,7 +1400,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
         uid = decodedToken.user_id;
       } else {
-        return res.status(500).json({ error: "Firebase Admin SDK not configured yet" });
+        try {
+          const decodedToken = await verifyIdToken(token);
+          if (!decodedToken) {
+            return res.status(401).json({ error: "Invalid or expired token" });
+          }
+          uid = decodedToken.uid;
+        } catch (verifyError) {
+          console.error("Token verification error:", verifyError);
+          return res.status(401).json({ error: "Token verification failed" });
+        }
       }
 
       const userWithRoles = await storage.getUserWithRoles(uid);
@@ -1682,7 +1819,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(401).json({ error: "Invalid token format" });
         }
       } else {
-        return res.status(500).json({ error: "Firebase Admin SDK not implemented yet" });
+        try {
+          const decodedToken = await verifyIdToken(token);
+          if (!decodedToken) {
+            return res.status(401).json({ error: "Invalid or expired token" });
+          }
+          uid = decodedToken.uid;
+        } catch (verifyError) {
+          console.error("Token verification error:", verifyError);
+          return res.status(401).json({ error: "Token verification failed" });
+        }
       }
 
       const userWithRoles = await storage.getUserWithRoles(uid);
@@ -1724,7 +1870,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(401).json({ error: "Invalid token format" });
         }
       } else {
-        return res.status(500).json({ error: "Firebase Admin SDK not implemented yet" });
+        try {
+          const decodedToken = await verifyIdToken(token);
+          if (!decodedToken) {
+            return res.status(401).json({ error: "Invalid or expired token" });
+          }
+          uid = decodedToken.uid;
+        } catch (verifyError) {
+          console.error("Token verification error:", verifyError);
+          return res.status(401).json({ error: "Token verification failed" });
+        }
       }
 
       const userWithRoles = await storage.getUserWithRoles(uid);
@@ -1770,7 +1925,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(401).json({ error: "Invalid token format" });
         }
       } else {
-        return res.status(500).json({ error: "Firebase Admin SDK not implemented yet" });
+        try {
+          const decodedToken = await verifyIdToken(token);
+          if (!decodedToken) {
+            return res.status(401).json({ error: "Invalid or expired token" });
+          }
+          uid = decodedToken.uid;
+        } catch (verifyError) {
+          console.error("Token verification error:", verifyError);
+          return res.status(401).json({ error: "Token verification failed" });
+        }
       }
 
       const userWithRoles = await storage.getUserWithRoles(uid);
@@ -1828,7 +1992,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(401).json({ error: "Invalid token format" });
         }
       } else {
-        return res.status(500).json({ error: "Firebase Admin SDK not implemented yet" });
+        try {
+          const decodedToken = await verifyIdToken(token);
+          if (!decodedToken) {
+            return res.status(401).json({ error: "Invalid or expired token" });
+          }
+          uid = decodedToken.uid;
+        } catch (verifyError) {
+          console.error("Token verification error:", verifyError);
+          return res.status(401).json({ error: "Token verification failed" });
+        }
       }
 
       const userWithRoles = await storage.getUserWithRoles(uid);
@@ -1870,7 +2043,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(401).json({ error: "Invalid token format" });
         }
       } else {
-        return res.status(500).json({ error: "Firebase Admin SDK not implemented yet" });
+        try {
+          const decodedToken = await verifyIdToken(token);
+          if (!decodedToken) {
+            return res.status(401).json({ error: "Invalid or expired token" });
+          }
+          uid = decodedToken.uid;
+        } catch (verifyError) {
+          console.error("Token verification error:", verifyError);
+          return res.status(401).json({ error: "Token verification failed" });
+        }
       }
 
       const userWithRoles = await storage.getUserWithRoles(uid);
@@ -1916,7 +2098,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(401).json({ error: "Invalid token format" });
         }
       } else {
-        return res.status(500).json({ error: "Firebase Admin SDK not implemented yet" });
+        try {
+          const decodedToken = await verifyIdToken(token);
+          if (!decodedToken) {
+            return res.status(401).json({ error: "Invalid or expired token" });
+          }
+          uid = decodedToken.uid;
+        } catch (verifyError) {
+          console.error("Token verification error:", verifyError);
+          return res.status(401).json({ error: "Token verification failed" });
+        }
       }
 
       const userWithRoles = await storage.getUserWithRoles(uid);
@@ -1974,7 +2165,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(401).json({ error: "Invalid token format" });
         }
       } else {
-        return res.status(500).json({ error: "Firebase Admin SDK not implemented yet" });
+        try {
+          const decodedToken = await verifyIdToken(token);
+          if (!decodedToken) {
+            return res.status(401).json({ error: "Invalid or expired token" });
+          }
+          uid = decodedToken.uid;
+        } catch (verifyError) {
+          console.error("Token verification error:", verifyError);
+          return res.status(401).json({ error: "Token verification failed" });
+        }
       }
 
       const userWithRoles = await storage.getUserWithRoles(uid);
@@ -2016,7 +2216,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(401).json({ error: "Invalid token format" });
         }
       } else {
-        return res.status(500).json({ error: "Firebase Admin SDK not implemented yet" });
+        try {
+          const decodedToken = await verifyIdToken(token);
+          if (!decodedToken) {
+            return res.status(401).json({ error: "Invalid or expired token" });
+          }
+          uid = decodedToken.uid;
+        } catch (verifyError) {
+          console.error("Token verification error:", verifyError);
+          return res.status(401).json({ error: "Token verification failed" });
+        }
       }
 
       const userWithRoles = await storage.getUserWithRoles(uid);
@@ -2062,7 +2271,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(401).json({ error: "Invalid token format" });
         }
       } else {
-        return res.status(500).json({ error: "Firebase Admin SDK not implemented yet" });
+        try {
+          const decodedToken = await verifyIdToken(token);
+          if (!decodedToken) {
+            return res.status(401).json({ error: "Invalid or expired token" });
+          }
+          uid = decodedToken.uid;
+        } catch (verifyError) {
+          console.error("Token verification error:", verifyError);
+          return res.status(401).json({ error: "Token verification failed" });
+        }
       }
 
       const userWithRoles = await storage.getUserWithRoles(uid);
@@ -2097,7 +2315,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(401).json({ error: "Invalid token format" });
         }
       } else {
-        return res.status(500).json({ error: "Firebase Admin SDK not implemented yet" });
+        try {
+          const decodedToken = await verifyIdToken(token);
+          if (!decodedToken) {
+            return res.status(401).json({ error: "Invalid or expired token" });
+          }
+          uid = decodedToken.uid;
+        } catch (verifyError) {
+          console.error("Token verification error:", verifyError);
+          return res.status(401).json({ error: "Token verification failed" });
+        }
       }
 
       const userWithRoles = await storage.getUserWithRoles(uid);
@@ -2131,7 +2358,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(401).json({ error: "Invalid token format" });
         }
       } else {
-        return res.status(500).json({ error: "Firebase Admin SDK not implemented yet" });
+        try {
+          const decodedToken = await verifyIdToken(token);
+          if (!decodedToken) {
+            return res.status(401).json({ error: "Invalid or expired token" });
+          }
+          uid = decodedToken.uid;
+        } catch (verifyError) {
+          console.error("Token verification error:", verifyError);
+          return res.status(401).json({ error: "Token verification failed" });
+        }
       }
 
       const userWithRoles = await storage.getUserWithRoles(uid);
@@ -2186,7 +2422,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(401).json({ error: "Invalid token format" });
         }
       } else {
-        return res.status(500).json({ error: "Firebase Admin SDK not implemented yet" });
+        try {
+          const decodedToken = await verifyIdToken(token);
+          if (!decodedToken) {
+            return res.status(401).json({ error: "Invalid or expired token" });
+          }
+          uid = decodedToken.uid;
+        } catch (verifyError) {
+          console.error("Token verification error:", verifyError);
+          return res.status(401).json({ error: "Token verification failed" });
+        }
       }
 
       const userWithRoles = await storage.getUserWithRoles(uid);
@@ -2251,7 +2496,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(401).json({ error: "Invalid token format" });
         }
       } else {
-        return res.status(500).json({ error: "Firebase Admin SDK not implemented yet" });
+        try {
+          const decodedToken = await verifyIdToken(token);
+          if (!decodedToken) {
+            return res.status(401).json({ error: "Invalid or expired token" });
+          }
+          uid = decodedToken.uid;
+        } catch (verifyError) {
+          console.error("Token verification error:", verifyError);
+          return res.status(401).json({ error: "Token verification failed" });
+        }
       }
 
       const userWithRoles = await storage.getUserWithRoles(uid);
