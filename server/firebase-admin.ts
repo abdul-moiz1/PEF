@@ -1,5 +1,5 @@
 import { initializeApp, cert, getApps, App, ServiceAccount } from 'firebase-admin/app';
-import { getFirestore, Firestore } from 'firebase-admin/firestore';
+import { getFirestore, Firestore, Timestamp, FieldValue } from 'firebase-admin/firestore';
 import { getAuth, DecodedIdToken } from 'firebase-admin/auth';
 
 let adminApp: App | null = null;
@@ -102,3 +102,5 @@ export async function verifyIdToken(token: string): Promise<DecodedIdToken | nul
     return null;
   }
 }
+
+export { Timestamp, FieldValue };

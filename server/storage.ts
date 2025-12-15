@@ -1,5 +1,4 @@
-import * as admin from 'firebase-admin';
-import { getAdminDb } from "./firebase-admin";
+import { getAdminDb, Timestamp, FieldValue } from "./firebase-admin";
 import { db as pgDb } from "./db";
 import { leaders, galleryImages, membershipTiers, membershipApplications } from "@shared/schema";
 import { eq, desc, and, asc, count } from "drizzle-orm";
@@ -933,7 +932,7 @@ export class FirestoreStorage implements IStorage {
     const docRef = getAdminDb().collection("videos").doc(id);
     
     const updateData: any = {
-      updatedAt: admin.firestore.Timestamp.now(),
+      updatedAt: Timestamp.now(),
     };
     
     if (data.title !== undefined) updateData.title = data.title;
@@ -970,8 +969,8 @@ export class FirestoreStorage implements IStorage {
       linkedinUrl: leader.linkedinUrl ?? null,
       order: leader.order ?? null,
       visible: leader.visible ?? true,
-      createdAt: admin.firestore.Timestamp.now(),
-      updatedAt: admin.firestore.Timestamp.now(),
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
     };
     
     const docRef = await getAdminDb().collection("leaders").add(leaderData);
@@ -1025,7 +1024,7 @@ export class FirestoreStorage implements IStorage {
     const docRef = getAdminDb().collection("leaders").doc(id);
     
     const updateData: any = {
-      updatedAt: admin.firestore.Timestamp.now(),
+      updatedAt: Timestamp.now(),
     };
     
     if (data.name !== undefined) updateData.name = data.name;
@@ -1058,8 +1057,8 @@ export class FirestoreStorage implements IStorage {
       category: image.category ?? null,
       eventDate: image.eventDate ?? null,
       visible: image.visible ?? true,
-      createdAt: admin.firestore.Timestamp.now(),
-      updatedAt: admin.firestore.Timestamp.now(),
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
     };
     
     const docRef = await getAdminDb().collection("gallery").add(imageData);
@@ -1110,7 +1109,7 @@ export class FirestoreStorage implements IStorage {
     const docRef = getAdminDb().collection("gallery").doc(id);
     
     const updateData: any = {
-      updatedAt: admin.firestore.Timestamp.now(),
+      updatedAt: Timestamp.now(),
     };
     
     if (data.title !== undefined) updateData.title = data.title;
@@ -1236,14 +1235,14 @@ export class FirestoreStorage implements IStorage {
     Object.entries(validatedData).forEach(([key, value]) => {
       if (value !== undefined) {
         if (value instanceof Date) {
-          updatePayload[key] = admin.firestore.Timestamp.fromDate(value);
+          updatePayload[key] = Timestamp.fromDate(value);
         } else {
           updatePayload[key] = value;
         }
       }
     });
     
-    updatePayload.updatedAt = admin.firestore.Timestamp.now();
+    updatePayload.updatedAt = Timestamp.now();
     
     await docRef.update(updatePayload);
     

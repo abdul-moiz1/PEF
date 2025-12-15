@@ -5,8 +5,8 @@ import { z } from "zod";
 import { insertUserProfileSchema, insertUserRolesSchema, insertOpportunitySchema, insertApplicationSchema, jobDetailsSchema, insertVideoSchema, insertLeaderSchema, insertGalleryImageSchema, insertMembershipTierSchema, insertMembershipApplicationSchema, type InsertOpportunity } from "@shared/schema";
 import { Resend } from "resend";
 import { verifyIdToken } from "./firebase-admin";
-import { db } from "./firebase-admin";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { db, Timestamp, FieldValue } from "./firebase-admin";
+import { getAdminDb } from "./firebase-admin";
 import { linkedInService } from "./linkedin-service";
 import crypto from "crypto";
 import multer from "multer";
@@ -1560,7 +1560,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (partnershipType) details.partnershipType = partnershipType;
       }
 
-      const opportunitiesRef = collection(db, "opportunities");
+      const opportunitiesRef = getAdminDb().collection("opportunities");
       const newOpportunity = {
         submitterName: name,
         submitterEmail: email,
@@ -1577,11 +1577,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         approvalStatus: AUTO_APPROVE_JOBS ? "approved" : "pending",
         views: 0,
         interested: 0,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
       };
 
-      const docRef = await addDoc(opportunitiesRef, newOpportunity);
+      const docRef = await opportunitiesRef.add(newOpportunity);
 
       console.log("=== OPPORTUNITY SUBMISSION ===");
       console.log("Submitter:", name, "-", email);
@@ -1685,15 +1685,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // TEMPORARY ADMIN ENDPOINT - Delete all opportunities
   app.delete("/api/admin/delete-all-opportunities", async (req, res) => {
     try {
-      const { getDocs, query, collection, deleteDoc, doc } = await import("firebase/firestore");
-      const q = query(collection(db, "opportunities"));
-      const querySnapshot = await getDocs(q);
+      const opportunitiesRef = getAdminDb().collection("opportunities");
+      const querySnapshot = await opportunitiesRef.get();
       
       let deleteCount = 0;
-      for (const document of querySnapshot.docs) {
-        await deleteDoc(doc(db, "opportunities", document.id));
+      const batch = getAdminDb().batch();
+      querySnapshot.docs.forEach((document) => {
+        batch.delete(document.ref);
         deleteCount++;
-      }
+      });
+      await batch.commit();
       
       console.log(`Deleted ${deleteCount} opportunities`);
       return res.json({ success: true, message: `Deleted ${deleteCount} opportunities` });
