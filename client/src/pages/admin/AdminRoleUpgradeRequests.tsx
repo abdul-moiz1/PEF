@@ -95,7 +95,7 @@ export default function AdminRoleUpgradeRequests() {
     enabled: !!currentUser && !!userData?.roles?.admin,
   });
 
-  const { data: allUsers = [] } = useQuery<Array<{ uid: string; email: string; displayName?: string; profile?: { fullName?: string } }>>({
+  const { data: allUsers = [] } = useQuery<Array<{ id: string; uid?: string; email: string; displayName?: string; profile?: { fullName?: string }; fullName?: string }>>({
     queryKey: ["/api/admin/users"],
     enabled: !!currentUser && !!userData?.roles?.admin,
   });
@@ -116,8 +116,9 @@ export default function AdminRoleUpgradeRequests() {
   });
 
   const getUserDisplayName = (userId: string) => {
-    const user = allUsers.find(u => u.uid === userId);
+    const user = allUsers.find(u => u.id === userId || u.uid === userId);
     if (user?.profile?.fullName) return user.profile.fullName;
+    if (user?.fullName) return user.fullName;
     if (user?.displayName) return user.displayName;
     if (user?.email) return user.email.split('@')[0];
     return userId.substring(0, 8) + "...";
