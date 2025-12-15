@@ -1,10 +1,20 @@
-import * as admin from 'firebase-admin';
+import { initializeApp, cert, getApps, App, ServiceAccount } from 'firebase-admin/app';
+import { getFirestore, Firestore } from 'firebase-admin/firestore';
+import { getAuth, DecodedIdToken } from 'firebase-admin/auth';
 
-let adminApp: admin.app.App | null = null;
-let adminDb: admin.firestore.Firestore | null = null;
+let adminApp: App | null = null;
+let adminDb: Firestore | null = null;
 
 export function initializeFirebaseAdmin() {
   if (adminApp) {
+    return adminApp;
+  }
+
+  // Check if already initialized
+  const apps = getApps();
+  if (apps.length > 0) {
+    adminApp = apps[0];
+    adminDb = getFirestore(adminApp);
     return adminApp;
   }
 
@@ -20,16 +30,16 @@ export function initializeFirebaseAdmin() {
       // Replace escaped newlines with actual newlines in private key
       const formattedPrivateKey = privateKey.replace(/\\n/g, '\n');
       
-      adminApp = admin.initializeApp({
-        credential: admin.credential.cert({
+      adminApp = initializeApp({
+        credential: cert({
           projectId,
           clientEmail,
           privateKey: formattedPrivateKey,
-        } as admin.ServiceAccount),
+        } as ServiceAccount),
         projectId,
       });
       
-      adminDb = admin.firestore();
+      adminDb = getFirestore(adminApp);
       console.log('✓ Firebase Admin SDK initialized successfully (using individual secrets)');
       return adminApp;
     } catch (error) {
@@ -43,12 +53,12 @@ export function initializeFirebaseAdmin() {
     try {
       const serviceAccount = JSON.parse(serviceAccountJson);
       
-      adminApp = admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+      adminApp = initializeApp({
+        credential: cert(serviceAccount as ServiceAccount),
         projectId: serviceAccount.project_id,
       });
       
-      adminDb = admin.firestore();
+      adminDb = getFirestore(adminApp);
       console.log('✓ Firebase Admin SDK initialized successfully (using JSON)');
       return adminApp;
     } catch (error) {
@@ -61,7 +71,7 @@ export function initializeFirebaseAdmin() {
   return null;
 }
 
-export function getAdminDb(): admin.firestore.Firestore {
+export function getAdminDb(): Firestore {
   if (!adminDb) {
     initializeFirebaseAdmin();
   }
@@ -77,7 +87,7 @@ export const db = {
   }
 };
 
-export async function verifyIdToken(token: string): Promise<admin.auth.DecodedIdToken | null> {
+export async function verifyIdToken(token: string): Promise<DecodedIdToken | null> {
   const app = initializeFirebaseAdmin();
   
   if (!app) {
@@ -85,7 +95,7 @@ export async function verifyIdToken(token: string): Promise<admin.auth.DecodedId
   }
 
   try {
-    const decodedToken = await admin.auth().verifyIdToken(token);
+    const decodedToken = await getAuth(app).verifyIdToken(token);
     return decodedToken;
   } catch (error) {
     console.error('Token verification error:', error);
