@@ -8,29 +8,57 @@ export function initializeFirebaseAdmin() {
     return adminApp;
   }
 
+  // Support individual secrets (preferred) or legacy JSON format
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY;
   const serviceAccountJson = process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT;
   
-  if (!serviceAccountJson) {
-    console.warn('⚠️ WARNING: Firebase Admin SDK not configured. Token verification is DISABLED. This is INSECURE for production!');
-    return null;
+  // Try individual secrets first
+  if (projectId && clientEmail && privateKey) {
+    try {
+      // Replace escaped newlines with actual newlines in private key
+      const formattedPrivateKey = privateKey.replace(/\\n/g, '\n');
+      
+      adminApp = admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId,
+          clientEmail,
+          privateKey: formattedPrivateKey,
+        } as admin.ServiceAccount),
+        projectId,
+      });
+      
+      adminDb = admin.firestore();
+      console.log('✓ Firebase Admin SDK initialized successfully (using individual secrets)');
+      return adminApp;
+    } catch (error) {
+      console.error('Failed to initialize Firebase Admin SDK with individual secrets:', error);
+      return null;
+    }
+  }
+  
+  // Fallback to JSON format
+  if (serviceAccountJson) {
+    try {
+      const serviceAccount = JSON.parse(serviceAccountJson);
+      
+      adminApp = admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+        projectId: serviceAccount.project_id,
+      });
+      
+      adminDb = admin.firestore();
+      console.log('✓ Firebase Admin SDK initialized successfully (using JSON)');
+      return adminApp;
+    } catch (error) {
+      console.error('Failed to initialize Firebase Admin SDK with JSON:', error);
+      return null;
+    }
   }
 
-  try {
-    const serviceAccount = JSON.parse(serviceAccountJson);
-    
-    adminApp = admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
-      projectId: serviceAccount.project_id,
-    });
-    
-    adminDb = admin.firestore();
-
-    console.log('✓ Firebase Admin SDK initialized successfully');
-    return adminApp;
-  } catch (error) {
-    console.error('Failed to initialize Firebase Admin SDK:', error);
-    return null;
-  }
+  console.warn('⚠️ WARNING: Firebase Admin SDK not configured. Set FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY secrets.');
+  return null;
 }
 
 export function getAdminDb(): admin.firestore.Firestore {
