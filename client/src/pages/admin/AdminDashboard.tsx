@@ -283,8 +283,11 @@ export default function AdminDashboard() {
   const rejectedRoleRequests = roleRequests.filter((r) => r.status === "rejected");
 
   const getUserDisplayName = (userId: string) => {
-    const user = users.find(u => u.uid === userId);
+    const user = users.find(u => u.uid === userId || (u as any).id === userId);
     if (user?.name) return user.name;
+    if (user?.profile?.fullName) return user.profile.fullName;
+    if ((user as any)?.fullName) return (user as any).fullName;
+    if ((user as any)?.displayName) return (user as any).displayName;
     if (user?.email) return user.email.split('@')[0];
     return userId.substring(0, 8) + "...";
   };
