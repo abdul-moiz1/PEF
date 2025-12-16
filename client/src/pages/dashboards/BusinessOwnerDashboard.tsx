@@ -27,7 +27,6 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -640,14 +639,14 @@ export default function BusinessOwnerDashboard() {
                 <DialogTitle className="text-xl" data-testid="text-opportunity-title">
                   {selectedOpportunity.title}
                 </DialogTitle>
-                <DialogDescription className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 mt-1">
                   <Badge variant="secondary" data-testid="badge-opportunity-type">
                     {selectedOpportunity.type}
                   </Badge>
                   <Badge variant={selectedOpportunity.status === "open" ? "default" : "secondary"} data-testid="badge-opportunity-status">
                     {selectedOpportunity.status}
                   </Badge>
-                </DialogDescription>
+                </div>
               </DialogHeader>
               
               <div className="space-y-4 mt-4">

@@ -833,6 +833,8 @@ export class FirestoreStorage implements IStorage {
       if (!hasInvestorRole) continue;
       if (userData.approvalStatus !== "approved") continue;
       
+      const investorData = userData.investorData || {};
+      
       results.push({
         user: {
           id: userDoc.id,
@@ -841,10 +843,16 @@ export class FirestoreStorage implements IStorage {
           approvalStatus: userData.approvalStatus || "pending",
           createdAt: userData.createdAt?.toDate?.() || new Date(),
         },
-        investorData: userData.investorData || {},
+        investorData: {
+          investmentRange: investorData.investmentRange || null,
+          preferredStage: investorData.preferredStage || null,
+          investmentFocus: investorData.investmentFocus || [],
+          industries: investorData.industries || [],
+        },
       });
     }
     
+    console.log(`Found ${results.length} approved investors`);
     return results;
   }
 
@@ -860,6 +868,8 @@ export class FirestoreStorage implements IStorage {
       if (!hasBusinessOwnerRole) continue;
       if (userData.approvalStatus !== "approved") continue;
       
+      const businessOwnerData = userData.businessOwnerData || {};
+      
       results.push({
         user: {
           id: userDoc.id,
@@ -868,10 +878,17 @@ export class FirestoreStorage implements IStorage {
           approvalStatus: userData.approvalStatus || "pending",
           createdAt: userData.createdAt?.toDate?.() || new Date(),
         },
-        businessOwnerData: userData.businessOwnerData || {},
+        businessOwnerData: {
+          businessName: businessOwnerData.businessName || null,
+          businessType: businessOwnerData.businessType || null,
+          industry: businessOwnerData.industry || null,
+          revenue: businessOwnerData.revenue || null,
+          employees: businessOwnerData.employees || null,
+        },
       });
     }
     
+    console.log(`Found ${results.length} approved business owners`);
     return results;
   }
 
