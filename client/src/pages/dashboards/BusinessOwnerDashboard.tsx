@@ -5,7 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Handshake, DollarSign, Target, Users, Edit, MapPin, Calendar, Briefcase, Mail, Eye, Building2, TrendingUp, Globe } from "lucide-react";
+import { Handshake, DollarSign, Target, Users, Edit, MapPin, Calendar, Briefcase, Mail, Eye, Building2, TrendingUp, Globe, MoreHorizontal, Trash2, XCircle, RotateCcw } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
