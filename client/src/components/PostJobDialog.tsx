@@ -19,6 +19,12 @@ interface Country {
   name: string;
 }
 
+interface City {
+  id: number;
+  name: string;
+  countryId: string;
+}
+
 interface PostJobDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -81,6 +87,19 @@ export default function PostJobDialog({ open, onOpenChange, editJob }: PostJobDi
 
   const { data: countries = [] } = useQuery<Country[]>({
     queryKey: ["/api/locations/countries"],
+  });
+
+  const selectedCountryId = countries.find(c => c.name === formData.country)?.id;
+
+  const { data: cities = [] } = useQuery<City[]>({
+    queryKey: ["/api/locations/countries", selectedCountryId, "cities"],
+    queryFn: async () => {
+      if (!selectedCountryId) return [];
+      const response = await fetch(`/api/locations/countries/${selectedCountryId}/cities`);
+      if (!response.ok) return [];
+      return response.json();
+    },
+    enabled: !!selectedCountryId,
   });
 
   useEffect(() => {
@@ -353,7 +372,7 @@ export default function PostJobDialog({ open, onOpenChange, editJob }: PostJobDi
                 <Label htmlFor="country">Country *</Label>
                 <Select
                   value={formData.country}
-                  onValueChange={(value) => setFormData({ ...formData, country: value })}
+                  onValueChange={(value) => setFormData({ ...formData, country: value, city: "" })}
                 >
                   <SelectTrigger id="country" data-testid="select-country">
                     <SelectValue placeholder="Select a country" />
@@ -370,13 +389,22 @@ export default function PostJobDialog({ open, onOpenChange, editJob }: PostJobDi
 
               <div className="space-y-2">
                 <Label htmlFor="city">City</Label>
-                <Input
-                  id="city"
+                <Select
                   value={formData.city}
-                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  placeholder="e.g. New York"
-                  data-testid="input-city"
-                />
+                  onValueChange={(value) => setFormData({ ...formData, city: value })}
+                  disabled={!formData.country || cities.length === 0}
+                >
+                  <SelectTrigger id="city" data-testid="select-city">
+                    <SelectValue placeholder={!formData.country ? "Select a country first" : cities.length === 0 ? "No cities available" : "Select a city"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cities.map((city) => (
+                      <SelectItem key={city.id} value={city.name}>
+                        {city.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
