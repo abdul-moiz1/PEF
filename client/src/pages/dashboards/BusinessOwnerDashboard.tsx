@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Handshake, TrendingUp, DollarSign, Globe, Building2, Target, MapPin, Calendar, CheckCircle, Clock, XCircle, Users, Edit, Search } from "lucide-react";
+import { Handshake, DollarSign, Target, Users, Edit } from "lucide-react";
 import { format } from "date-fns";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -14,7 +14,6 @@ import PostOpportunityDialog from "@/components/PostOpportunityDialog";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -84,10 +83,7 @@ export default function BusinessOwnerDashboard() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [opportunityToDelete, setOpportunityToDelete] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("opportunities");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
 
-  const businessOwnerData = userData?.businessOwnerData || {};
   const isLoading = authLoading || rolesLoading;
 
   // Fetch user's posted opportunities
@@ -264,30 +260,6 @@ export default function BusinessOwnerDashboard() {
     );
   }
 
-  const businessName = businessOwnerData.businessName || "Not specified";
-  const businessType = businessOwnerData.businessType || "Not specified";
-  const industry = businessOwnerData.industry || "Not specified";
-  const revenue = businessOwnerData.revenue || "Not disclosed";
-  const employees = businessOwnerData.employees || "Not specified";
-
-  // Filter my opportunities by status
-  const filteredMyOpportunities = myOpportunities.filter(opp => {
-    if (statusFilter === "all") return true;
-    return opp.approvalStatus.toLowerCase() === statusFilter.toLowerCase();
-  });
-
-  // Filter by search
-  const searchFilteredOpportunities = filteredMyOpportunities.filter(opp => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    return opp.title.toLowerCase().includes(query) || 
-           (opp.description?.toLowerCase().includes(query)) ||
-           (opp.sector?.toLowerCase().includes(query));
-  });
-
-  const activeOpportunities = myOpportunities.filter(opp => opp.status === "open").length;
-  const investmentCount = myOpportunities.filter(opp => opp.type === "investment").length;
-  const partnershipCount = myOpportunities.filter(opp => opp.type === "partnership").length;
 
   const getApprovalBadgeVariant = (status: string) => {
     switch (status.toLowerCase()) {
@@ -336,34 +308,13 @@ export default function BusinessOwnerDashboard() {
               <Handshake className="w-4 h-4 mr-2" />
               Opportunities
             </TabsTrigger>
-            <TabsTrigger value="profile" data-testid="tab-profile">
-              <Building2 className="w-4 h-4 mr-2" />
-              Profile
-            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="opportunities" className="space-y-4">
             <Card>
               <CardHeader>
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div>
-                    <CardTitle>My Posted Opportunities</CardTitle>
-                    <CardDescription>Investment, partnership, and collaboration opportunities you've posted</CardDescription>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {["all", "approved", "pending", "rejected"].map((status) => (
-                      <Button
-                        key={status}
-                        variant={statusFilter === status ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setStatusFilter(status)}
-                        data-testid={`filter-${status}`}
-                      >
-                        {status.charAt(0).toUpperCase() + status.slice(1)}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
+                <CardTitle>My Posted Opportunities</CardTitle>
+                <CardDescription>Investment, partnership, and collaboration opportunities you've posted</CardDescription>
               </CardHeader>
               <CardContent>
                 {myOpportunitiesLoading ? (
@@ -371,11 +322,11 @@ export default function BusinessOwnerDashboard() {
                     <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
                     <p className="text-sm text-muted-foreground">Loading opportunities...</p>
                   </div>
-                ) : searchFilteredOpportunities.length === 0 ? (
+                ) : myOpportunities.length === 0 ? (
                   <div className="text-center py-8">
                     <Target className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
                     <p className="text-sm text-muted-foreground mb-4">
-                      {statusFilter === "all" ? "No opportunities posted yet" : `No ${statusFilter} opportunities`}
+                      No opportunities posted yet
                     </p>
                     <PostOpportunityDialog />
                   </div>
@@ -394,7 +345,7 @@ export default function BusinessOwnerDashboard() {
                         </tr>
                       </thead>
                       <tbody>
-                        {searchFilteredOpportunities.map((opp) => (
+                        {myOpportunities.map((opp) => (
                           <tr key={opp.id} className="border-b hover-elevate" data-testid={`row-opportunity-${opp.id}`}>
                             <td className="py-3 px-4 font-medium">{opp.title}</td>
                             <td className="py-3 px-4">
@@ -642,69 +593,6 @@ export default function BusinessOwnerDashboard() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="profile" className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Business Profile</CardTitle>
-                    <CardDescription>Your business information and goals</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm font-medium mb-1">Business Name</p>
-                        <p className="text-sm text-muted-foreground">{businessName}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium mb-1">Business Type</p>
-                        <p className="text-sm text-muted-foreground">{businessType}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium mb-1">Industry</p>
-                        <p className="text-sm text-muted-foreground">{industry}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium mb-1">Revenue Range</p>
-                        <p className="text-sm text-muted-foreground">{revenue}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium mb-1">Employees</p>
-                        <p className="text-sm text-muted-foreground">{employees}</p>
-                      </div>
-                    </div>
-                    <Button variant="outline" onClick={() => setLocation("/edit-profile")} data-testid="button-edit-business-profile">
-                      <Edit className="w-4 h-4 mr-2" />
-                      Edit Business Profile
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <div className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Quick Actions</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <PostOpportunityDialog />
-                    <Button className="w-full" variant="outline" onClick={() => setActiveTab("investors")} data-testid="button-find-investors">
-                      <DollarSign className="w-4 h-4 mr-2" />
-                      Find Investors
-                    </Button>
-                    <Button className="w-full" variant="outline" onClick={() => setActiveTab("business-owners")} data-testid="button-network">
-                      <Users className="w-4 h-4 mr-2" />
-                      Network
-                    </Button>
-                    <Button className="w-full" variant="outline" onClick={() => setActiveTab("partnerships")} data-testid="button-explore-partnerships">
-                      <Handshake className="w-4 h-4 mr-2" />
-                      Explore Partnerships
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </TabsContent>
         </Tabs>
       </main>
       <Footer />
