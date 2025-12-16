@@ -126,6 +126,9 @@ export interface IStorage {
   
   getTalentByRole(role: "professional" | "jobSeeker"): Promise<TalentProfile[]>;
   
+  getInvestors(): Promise<Array<{ user: { id: string; email: string; displayName: string | null; approvalStatus: string; createdAt: Date | string }; investorData: any }>>;
+  getBusinessOwners(): Promise<Array<{ user: { id: string; email: string; displayName: string | null; approvalStatus: string; createdAt: Date | string }; businessOwnerData: any }>>;
+  
   createVideo(video: InsertVideo): Promise<Video>;
   getAllVideos(): Promise<Video[]>;
   getVideoById(id: string): Promise<Video | undefined>;
@@ -815,6 +818,60 @@ export class FirestoreStorage implements IStorage {
     }
     
     console.log(`✅ Total matching talent: ${results.length}`);
+    return results;
+  }
+
+  async getInvestors(): Promise<Array<{ user: { id: string; email: string; displayName: string | null; approvalStatus: string; createdAt: Date | string }; investorData: any }>> {
+    const usersSnapshot = await getAdminDb().collection("users").get();
+    const results: Array<{ user: { id: string; email: string; displayName: string | null; approvalStatus: string; createdAt: Date | string }; investorData: any }> = [];
+    
+    for (const userDoc of usersSnapshot.docs) {
+      const userData = userDoc.data();
+      
+      const hasInvestorRole = userData.roles?.isInvestor ?? userData.roles?.investor;
+      
+      if (!hasInvestorRole) continue;
+      if (userData.approvalStatus !== "approved") continue;
+      
+      results.push({
+        user: {
+          id: userDoc.id,
+          email: userData.email || "",
+          displayName: userData.displayName || userData.profile?.fullName || null,
+          approvalStatus: userData.approvalStatus || "pending",
+          createdAt: userData.createdAt?.toDate?.() || new Date(),
+        },
+        investorData: userData.investorData || {},
+      });
+    }
+    
+    return results;
+  }
+
+  async getBusinessOwners(): Promise<Array<{ user: { id: string; email: string; displayName: string | null; approvalStatus: string; createdAt: Date | string }; businessOwnerData: any }>> {
+    const usersSnapshot = await getAdminDb().collection("users").get();
+    const results: Array<{ user: { id: string; email: string; displayName: string | null; approvalStatus: string; createdAt: Date | string }; businessOwnerData: any }> = [];
+    
+    for (const userDoc of usersSnapshot.docs) {
+      const userData = userDoc.data();
+      
+      const hasBusinessOwnerRole = userData.roles?.isBusinessOwner ?? userData.roles?.businessOwner;
+      
+      if (!hasBusinessOwnerRole) continue;
+      if (userData.approvalStatus !== "approved") continue;
+      
+      results.push({
+        user: {
+          id: userDoc.id,
+          email: userData.email || "",
+          displayName: userData.displayName || userData.profile?.fullName || null,
+          approvalStatus: userData.approvalStatus || "pending",
+          createdAt: userData.createdAt?.toDate?.() || new Date(),
+        },
+        businessOwnerData: userData.businessOwnerData || {},
+      });
+    }
+    
     return results;
   }
 
