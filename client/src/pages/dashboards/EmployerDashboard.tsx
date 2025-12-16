@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Users, Briefcase, Eye, FileText, Trash2, Search, Edit } from "lucide-react";
+import { Plus, Users, Briefcase, Trash2, Edit } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,14 +24,8 @@ import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
-import type { Opportunity, Application } from "@shared/schema";
-import { format } from "date-fns";
+import type { Opportunity } from "@shared/schema";
 
-type ApplicationWithDetails = Application & { 
-  opportunity?: Opportunity;
-  applicantName?: string;
-  applicantEmail?: string;
-};
 
 export default function EmployerDashboard() {
   const { currentUser, userData, loading: authLoading } = useAuth();
@@ -39,7 +33,6 @@ export default function EmployerDashboard() {
   const [, setLocation] = useLocation();
   const [showPostJobDialog, setShowPostJobDialog] = useState(false);
   const [deleteJobId, setDeleteJobId] = useState<string | null>(null);
-  const [jobFilter, setJobFilter] = useState<string>("all");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -56,18 +49,6 @@ export default function EmployerDashboard() {
     enabled: !!currentUser,
   });
 
-  const { data: applications = [], isLoading: applicationsLoading } = useQuery<ApplicationWithDetails[]>({
-    queryKey: ["/api/applications/employer", currentUser?.uid],
-    queryFn: async () => {
-      const token = await auth.currentUser?.getIdToken(true);
-      const response = await fetch("/api/applications/employer", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error("Failed to fetch applications");
-      return response.json();
-    },
-    enabled: !!currentUser,
-  });
 
   const deleteJobMutation = useMutation({
     mutationFn: async (jobId: string) => {
@@ -128,20 +109,7 @@ export default function EmployerDashboard() {
   }
 
   const companyName = employerData.companyName || "Not specified";
-  const industry = employerData.industry || "Not specified";
-  const companySize = employerData.companySize || "Not specified";
 
-  const activeJobs = myJobs.filter(job => job.approvalStatus === "approved" && job.status === "open");
-  const pendingJobs = myJobs.filter(job => job.approvalStatus === "pending");
-  const rejectedJobs = myJobs.filter(job => job.approvalStatus === "rejected");
-
-  const filteredJobs = myJobs.filter(job => {
-    if (jobFilter === "all") return true;
-    if (jobFilter === "approved") return job.approvalStatus === "approved";
-    if (jobFilter === "pending") return job.approvalStatus === "pending";
-    if (jobFilter === "rejected") return job.approvalStatus === "rejected";
-    return true;
-  });
 
   const getStatusBadge = (status: string) => {
     if (status === "approved") return "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100";
@@ -157,7 +125,7 @@ export default function EmployerDashboard() {
           <div className="flex flex-wrap items-center justify-between gap-4 mb-2">
             <div>
               <h1 className="text-3xl font-bold">Employer Dashboard</h1>
-              <p className="text-muted-foreground">Manage your job postings and find talent</p>
+              <p className="text-muted-foreground">{companyName !== "Not specified" ? companyName : "Manage your job postings and find talent"}</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Button variant="outline" onClick={() => setLocation("/edit-profile")} data-testid="button-edit-profile">
@@ -171,38 +139,24 @@ export default function EmployerDashboard() {
         </div>
 
         <Tabs defaultValue="jobs" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
+          <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:inline-grid">
             <TabsTrigger value="jobs" data-testid="tab-jobs">
               <Briefcase className="w-4 h-4 mr-2" />Posted Jobs
             </TabsTrigger>
-            <TabsTrigger value="applications" data-testid="tab-applications">
-              <FileText className="w-4 h-4 mr-2" />Applications
-            </TabsTrigger>
             <TabsTrigger value="talent" data-testid="tab-talent">
               <Users className="w-4 h-4 mr-2" />Browse Talent
-            </TabsTrigger>
-            <TabsTrigger value="profile" data-testid="tab-profile">
-              <Eye className="w-4 h-4 mr-2" />Company
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="jobs" className="space-y-4">
             <Card>
               <CardHeader>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <CardTitle>Your Job Postings</CardTitle>
-                  <div className="flex flex-wrap gap-2">
-                    <Button variant={jobFilter === "all" ? "default" : "outline"} size="sm" onClick={() => setJobFilter("all")} data-testid="filter-all">All ({myJobs.length})</Button>
-                    <Button variant={jobFilter === "approved" ? "default" : "outline"} size="sm" onClick={() => setJobFilter("approved")} data-testid="filter-approved">Approved ({activeJobs.length})</Button>
-                    <Button variant={jobFilter === "pending" ? "default" : "outline"} size="sm" onClick={() => setJobFilter("pending")} data-testid="filter-pending">Pending ({pendingJobs.length})</Button>
-                    <Button variant={jobFilter === "rejected" ? "default" : "outline"} size="sm" onClick={() => setJobFilter("rejected")} data-testid="filter-rejected">Rejected ({rejectedJobs.length})</Button>
-                  </div>
-                </div>
+                <CardTitle>Your Job Postings</CardTitle>
               </CardHeader>
               <CardContent>
                 {jobsLoading ? (
                   <div className="text-center py-8"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" /><p className="text-sm text-muted-foreground">Loading jobs...</p></div>
-                ) : filteredJobs.length === 0 ? (
+                ) : myJobs.length === 0 ? (
                   <div className="text-center py-12">
                     <Briefcase className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="font-semibold mb-2">No jobs found</h3>
@@ -220,7 +174,7 @@ export default function EmployerDashboard() {
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredJobs.map((job, idx) => (
+                        {myJobs.map((job, idx) => (
                           <tr key={job.id} className="border-b hover:bg-muted/50" data-testid={`row-job-${idx}`}>
                             <td className="p-3"><p className="font-medium">{job.title}</p><p className="text-sm text-muted-foreground">{job.sector || "General"}</p></td>
                             <td className="p-3 text-sm">{job.city ? `${job.city}, ` : ""}{job.country}</td>
@@ -236,50 +190,7 @@ export default function EmployerDashboard() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="applications" className="space-y-4">
-            <Card>
-              <CardHeader><CardTitle>Applications Received</CardTitle><CardDescription>Job seekers who applied to your postings</CardDescription></CardHeader>
-              <CardContent>
-                {applicationsLoading ? (
-                  <div className="text-center py-8"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" /></div>
-                ) : applications.length === 0 ? (
-                  <div className="text-center py-8"><p className="text-muted-foreground">No applications received yet</p></div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead><tr className="border-b"><th className="text-left p-3 font-medium">Applicant</th><th className="text-left p-3 font-medium">Job</th><th className="text-left p-3 font-medium">Applied</th><th className="text-left p-3 font-medium">Status</th></tr></thead>
-                      <tbody>
-                        {applications.map((app, idx) => (
-                          <tr key={app.id} className="border-b hover:bg-muted/50" data-testid={`row-app-${idx}`}>
-                            <td className="p-3"><p className="font-medium">{app.applicantName || "Unknown"}</p><p className="text-sm text-muted-foreground">{app.applicantEmail}</p></td>
-                            <td className="p-3 text-sm">{app.opportunity?.title || "Unknown Job"}</td>
-                            <td className="p-3 text-sm">{format(new Date(app.appliedAt), "MMM d, yyyy")}</td>
-                            <td className="p-3"><Badge variant="secondary">{app.status}</Badge></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
           <TabsContent value="talent"><TalentBrowser /></TabsContent>
-
-          <TabsContent value="profile" className="space-y-4">
-            <Card>
-              <CardHeader><CardTitle>Company Profile</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div><p className="text-sm font-medium mb-1">Company Name</p><p className="text-sm text-muted-foreground">{companyName}</p></div>
-                  <div><p className="text-sm font-medium mb-1">Industry</p><p className="text-sm text-muted-foreground">{industry}</p></div>
-                  <div><p className="text-sm font-medium mb-1">Company Size</p><p className="text-sm text-muted-foreground">{companySize}</p></div>
-                </div>
-                <Button variant="outline" onClick={() => setLocation("/edit-profile")} data-testid="button-edit-profile"><FileText className="w-4 h-4 mr-2" />Edit Profile</Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
       </main>
       <Footer />
