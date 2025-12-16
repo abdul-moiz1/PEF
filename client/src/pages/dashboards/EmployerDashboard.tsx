@@ -32,9 +32,22 @@ export default function EmployerDashboard() {
   const { hasRole, isLoading: rolesLoading } = useUserRoles(currentUser?.uid);
   const [, setLocation] = useLocation();
   const [showPostJobDialog, setShowPostJobDialog] = useState(false);
+  const [editingJob, setEditingJob] = useState<Opportunity | null>(null);
   const [deleteJobId, setDeleteJobId] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const handleEditJob = (job: Opportunity) => {
+    setEditingJob(job);
+    setShowPostJobDialog(true);
+  };
+
+  const handleCloseDialog = (open: boolean) => {
+    setShowPostJobDialog(open);
+    if (!open) {
+      setEditingJob(null);
+    }
+  };
 
   const { data: myJobs = [], isLoading: jobsLoading } = useQuery<Opportunity[]>({
     queryKey: ["/api/opportunities", "my-jobs", currentUser?.uid],
@@ -179,7 +192,12 @@ export default function EmployerDashboard() {
                             <td className="p-3"><p className="font-medium">{job.title}</p><p className="text-sm text-muted-foreground">{job.sector || "General"}</p></td>
                             <td className="p-3 text-sm">{job.city ? `${job.city}, ` : ""}{job.country}</td>
                             <td className="p-3"><Badge className={getStatusBadge(job.approvalStatus || "pending")}>{job.approvalStatus === "approved" ? "Approved" : job.approvalStatus === "rejected" ? "Rejected" : "Pending"}</Badge></td>
-                            <td className="p-3"><Button size="icon" variant="ghost" onClick={() => setDeleteJobId(job.id)} data-testid={`button-delete-${idx}`}><Trash2 className="w-4 h-4 text-destructive" /></Button></td>
+                            <td className="p-3">
+                              <div className="flex items-center gap-1">
+                                <Button size="icon" variant="ghost" onClick={() => handleEditJob(job)} data-testid={`button-edit-job-${idx}`}><Edit className="w-4 h-4" /></Button>
+                                <Button size="icon" variant="ghost" onClick={() => setDeleteJobId(job.id)} data-testid={`button-delete-${idx}`}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                              </div>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -194,7 +212,21 @@ export default function EmployerDashboard() {
         </Tabs>
       </main>
       <Footer />
-      <PostJobDialog open={showPostJobDialog} onOpenChange={setShowPostJobDialog} />
+      <PostJobDialog 
+        open={showPostJobDialog} 
+        onOpenChange={handleCloseDialog} 
+        editJob={editingJob ? {
+          id: editingJob.id,
+          title: editingJob.title,
+          description: editingJob.description || "",
+          sector: editingJob.sector || "",
+          country: editingJob.country || "",
+          city: editingJob.city || "",
+          budgetOrSalary: editingJob.budgetOrSalary || "",
+          contactPreference: editingJob.contactPreference || "",
+          details: editingJob.details as any,
+        } : null}
+      />
       <AlertDialog open={!!deleteJobId} onOpenChange={(open) => !open && setDeleteJobId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>Delete Job Posting?</AlertDialogTitle><AlertDialogDescription>This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>

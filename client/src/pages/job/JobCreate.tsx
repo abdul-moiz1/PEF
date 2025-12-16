@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +13,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { createJobPost } from "@/lib/firestoreUtils";
-import { Briefcase, MapPin, DollarSign, Clock } from "lucide-react";
+import { Briefcase } from "lucide-react";
+
+interface Country {
+  id: number;
+  code: string;
+  name: string;
+}
 
 export default function JobCreate() {
   const { currentUser } = useAuth();
@@ -20,6 +27,10 @@ export default function JobCreate() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+
+  const { data: countries = [] } = useQuery<Country[]>({
+    queryKey: ["/api/locations/countries"],
+  });
 
   const [formData, setFormData] = useState({
     title: "",
@@ -168,13 +179,21 @@ export default function JobCreate() {
 
                     <div className="space-y-2">
                       <Label htmlFor="country">Country</Label>
-                      <Input
-                        id="country"
+                      <Select
                         value={formData.country}
-                        onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                        placeholder="e.g., USA"
-                        data-testid="input-job-country"
-                      />
+                        onValueChange={(value) => setFormData({ ...formData, country: value })}
+                      >
+                        <SelectTrigger id="country" data-testid="select-job-country">
+                          <SelectValue placeholder="Select a country" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {countries.map((country) => (
+                            <SelectItem key={country.code} value={country.name}>
+                              {country.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     <div className="space-y-2">
