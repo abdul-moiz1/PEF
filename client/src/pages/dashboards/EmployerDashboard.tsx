@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Users, Briefcase, Eye, FileText, Trash2, Search } from "lucide-react";
+import { Plus, Users, Briefcase, Eye, FileText, Trash2, Search, Edit } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -155,55 +155,19 @@ export default function EmployerDashboard() {
       <main className="pt-24 md:pt-28 pb-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="mb-8">
           <div className="flex flex-wrap items-center justify-between gap-4 mb-2">
-            <h1 className="text-3xl font-bold">Employer Dashboard</h1>
-            <Button onClick={() => setShowPostJobDialog(true)} data-testid="button-post-job">
-              <Plus className="w-4 h-4 mr-2" />Post New Job
-            </Button>
+            <div>
+              <h1 className="text-3xl font-bold">Employer Dashboard</h1>
+              <p className="text-muted-foreground">Manage your job postings and find talent</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="outline" onClick={() => setLocation("/edit-profile")} data-testid="button-edit-profile">
+                <Edit className="w-4 h-4 mr-2" />Edit Profile
+              </Button>
+              <Button onClick={() => setShowPostJobDialog(true)} data-testid="button-post-job">
+                <Plus className="w-4 h-4 mr-2" />Post New Job
+              </Button>
+            </div>
           </div>
-          <p className="text-muted-foreground">Manage your job postings and find talent</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Jobs</CardTitle>
-              <Briefcase className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{activeJobs.length}</div>
-              <p className="text-xs text-muted-foreground">{pendingJobs.length} pending approval</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Applications</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{applications.length}</div>
-              <p className="text-xs text-muted-foreground">Total received</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Postings</CardTitle>
-              <Eye className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{myJobs.length}</div>
-              <p className="text-xs text-muted-foreground">All time</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Company</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-lg font-bold truncate">{companyName}</div>
-              <p className="text-xs text-muted-foreground">{industry}</p>
-            </CardContent>
-          </Card>
         </div>
 
         <Tabs defaultValue="jobs" className="space-y-6">
@@ -218,7 +182,7 @@ export default function EmployerDashboard() {
               <Users className="w-4 h-4 mr-2" />Browse Talent
             </TabsTrigger>
             <TabsTrigger value="profile" data-testid="tab-profile">
-              <Eye className="w-4 h-4 mr-2" />Company Profile
+              <Eye className="w-4 h-4 mr-2" />Company
             </TabsTrigger>
           </TabsList>
 
