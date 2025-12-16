@@ -84,8 +84,13 @@ export default function Login() {
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     try {
-      await signInWithGoogle();
-      // Redirect handled by useEffect based on needsRoleSelection
+      const result = await signInWithGoogle();
+      // If this is a new user (first time signing in with Google), redirect to role selection immediately
+      if (result.isNewUser) {
+        setLocation("/role-selection");
+        return;
+      }
+      // For existing users, redirect will be handled by useEffect based on userData
     } catch (error: any) {
       let errorMessage = "Failed to sign in with Google";
       if (error.code === "auth/popup-closed-by-user") {
