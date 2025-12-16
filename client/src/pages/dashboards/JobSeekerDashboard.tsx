@@ -28,7 +28,6 @@ export default function JobSeekerDashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
-  const [applicationFilter, setApplicationFilter] = useState<string>("all");
   const [expandedJob, setExpandedJob] = useState<string | null>(null);
   const [selectedJob, setSelectedJob] = useState<Opportunity | null>(null);
   const [employerData, setEmployerData] = useState<FirestoreUser | null>(null);
@@ -141,15 +140,6 @@ export default function JobSeekerDashboard() {
     );
   });
 
-  const filteredApplications = applications.filter(app => {
-    if (applicationFilter === "all") return true;
-    return app.status === applicationFilter;
-  });
-
-  const statusCounts = applications.reduce((acc, app) => {
-    acc[app.status] = (acc[app.status] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
@@ -402,59 +392,7 @@ export default function JobSeekerDashboard() {
           <TabsContent value="applications" className="space-y-4">
             <Card>
               <CardHeader>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <CardTitle>My Applications</CardTitle>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      variant={applicationFilter === "all" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setApplicationFilter("all")}
-                      data-testid="filter-all"
-                    >
-                      All ({applications.length})
-                    </Button>
-                    <Button
-                      variant={applicationFilter === "applied" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setApplicationFilter("applied")}
-                      data-testid="filter-applied"
-                    >
-                      Applied ({statusCounts.applied || 0})
-                    </Button>
-                    <Button
-                      variant={applicationFilter === "under_review" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setApplicationFilter("under_review")}
-                      data-testid="filter-pending"
-                    >
-                      Pending ({statusCounts.under_review || 0})
-                    </Button>
-                    <Button
-                      variant={applicationFilter === "interview" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setApplicationFilter("interview")}
-                      data-testid="filter-interview"
-                    >
-                      Interview ({statusCounts.interview || 0})
-                    </Button>
-                    <Button
-                      variant={applicationFilter === "offer" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setApplicationFilter("offer")}
-                      data-testid="filter-approved"
-                    >
-                      Approved ({statusCounts.offer || 0})
-                    </Button>
-                    <Button
-                      variant={applicationFilter === "rejected" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setApplicationFilter("rejected")}
-                      data-testid="filter-rejected"
-                    >
-                      Rejected ({statusCounts.rejected || 0})
-                    </Button>
-                  </div>
-                </div>
+                <CardTitle>My Applications</CardTitle>
               </CardHeader>
               <CardContent>
                 {applicationsLoading ? (
@@ -462,11 +400,9 @@ export default function JobSeekerDashboard() {
                     <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
                     <p className="text-sm text-muted-foreground">Loading applications...</p>
                   </div>
-                ) : filteredApplications.length === 0 ? (
+                ) : applications.length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-muted-foreground">
-                      {applicationFilter === "all" ? "No applications yet. Start applying to jobs!" : `No ${applicationFilter.replace("_", " ")} applications`}
-                    </p>
+                    <p className="text-muted-foreground">No applications yet. Start applying to jobs!</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -481,7 +417,7 @@ export default function JobSeekerDashboard() {
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredApplications.map((app) => (
+                        {applications.map((app) => (
                           <tr key={app.id} className="border-b hover:bg-muted/50" data-testid={`row-application-${app.id}`}>
                             <td className="p-3">
                               <p className="font-medium">{app.opportunity?.title || "Unknown Job"}</p>
