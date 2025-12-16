@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Handshake, DollarSign, Target, Users, Edit } from "lucide-react";
+import { Handshake, DollarSign, Target, Users, Edit, MapPin, Calendar, Briefcase, Mail } from "lucide-react";
 import { format } from "date-fns";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -24,6 +24,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 
 interface Opportunity {
   id: string;
@@ -83,6 +91,13 @@ export default function BusinessOwnerDashboard() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [opportunityToDelete, setOpportunityToDelete] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("opportunities");
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
+
+  const handleViewOpportunity = (opportunity: Opportunity) => {
+    setSelectedOpportunity(opportunity);
+    setViewDialogOpen(true);
+  };
 
   const isLoading = authLoading || rolesLoading;
 
@@ -577,7 +592,7 @@ export default function BusinessOwnerDashboard() {
                             <td className="py-3 px-4">
                               <Button 
                                 size="sm" 
-                                onClick={() => setLocation(`/opportunities/${opp.id}`)}
+                                onClick={() => handleViewOpportunity(opp)}
                                 data-testid={`button-view-partnership-${opp.id}`}
                               >
                                 View
@@ -616,6 +631,109 @@ export default function BusinessOwnerDashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="dialog-view-opportunity">
+          {selectedOpportunity && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-xl" data-testid="text-opportunity-title">
+                  {selectedOpportunity.title}
+                </DialogTitle>
+                <DialogDescription className="flex flex-wrap items-center gap-2">
+                  <Badge variant="secondary" data-testid="badge-opportunity-type">
+                    {selectedOpportunity.type}
+                  </Badge>
+                  <Badge variant={selectedOpportunity.status === "open" ? "default" : "secondary"} data-testid="badge-opportunity-status">
+                    {selectedOpportunity.status}
+                  </Badge>
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4 mt-4">
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-2">Description</h4>
+                  <p className="text-sm" data-testid="text-opportunity-description">
+                    {selectedOpportunity.description}
+                  </p>
+                </div>
+                
+                <Separator />
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {selectedOpportunity.sector && (
+                    <div className="flex items-start gap-2">
+                      <Briefcase className="w-4 h-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium">Sector</p>
+                        <p className="text-sm text-muted-foreground" data-testid="text-opportunity-sector">
+                          {selectedOpportunity.sector}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {(selectedOpportunity.city || selectedOpportunity.country) && (
+                    <div className="flex items-start gap-2">
+                      <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium">Location</p>
+                        <p className="text-sm text-muted-foreground" data-testid="text-opportunity-location">
+                          {[selectedOpportunity.city, selectedOpportunity.country].filter(Boolean).join(", ")}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {selectedOpportunity.budgetOrSalary && (
+                    <div className="flex items-start gap-2">
+                      <DollarSign className="w-4 h-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium">Budget</p>
+                        <p className="text-sm text-muted-foreground" data-testid="text-opportunity-budget">
+                          {selectedOpportunity.budgetOrSalary}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {selectedOpportunity.contactPreference && (
+                    <div className="flex items-start gap-2">
+                      <Mail className="w-4 h-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium">Contact Preference</p>
+                        <p className="text-sm text-muted-foreground" data-testid="text-opportunity-contact">
+                          {selectedOpportunity.contactPreference}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-start gap-2">
+                    <Calendar className="w-4 h-4 text-muted-foreground mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium">Posted</p>
+                      <p className="text-sm text-muted-foreground" data-testid="text-opportunity-date">
+                        {format(new Date(selectedOpportunity.createdAt), "MMMM d, yyyy")}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-2 mt-6">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setViewDialogOpen(false)}
+                  data-testid="button-close-dialog"
+                >
+                  Close
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
