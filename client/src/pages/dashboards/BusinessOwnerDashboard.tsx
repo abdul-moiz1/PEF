@@ -5,14 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Handshake, DollarSign, Target, Users, Edit, MapPin, Calendar, Briefcase, Mail, Eye, Building2, TrendingUp, Globe, MoreHorizontal, Trash2, XCircle, RotateCcw } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Handshake, DollarSign, Target, Users, Edit, MapPin, Calendar, Briefcase, Mail, Eye, Building2, TrendingUp, Globe, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -464,24 +457,15 @@ export default function BusinessOwnerDashboard() {
                               {format(new Date(opp.createdAt), "MMM d, yyyy")}
                             </td>
                             <td className="py-3 px-4">
-                              <div className="flex flex-wrap gap-2">
-                                <Button 
-                                  size="sm" 
-                                  variant="outline"
-                                  onClick={() => handleViewOpportunity(opp)}
-                                  data-testid={`button-preview-${opp.id}`}
-                                >
-                                  <Eye className="w-4 h-4 mr-1" />
-                                  Preview
-                                </Button>
+                              <div className="flex items-center gap-2">
                                 <Button 
                                   size="sm" 
                                   variant="outline"
                                   onClick={() => handleEditOpportunity(opp)}
                                   data-testid={`button-edit-${opp.id}`}
                                 >
-                                  <Edit className="w-4 h-4 mr-1" />
-                                  Edit
+                                  <Eye className="w-4 h-4 mr-1" />
+                                  View
                                 </Button>
                                 <Button 
                                   size="sm" 
@@ -493,13 +477,14 @@ export default function BusinessOwnerDashboard() {
                                   {opp.status === "open" ? "Close" : "Reopen"}
                                 </Button>
                                 <Button 
-                                  size="sm" 
-                                  variant="destructive"
+                                  size="icon" 
+                                  variant="ghost"
                                   onClick={() => handleDeleteClick(opp.id)}
                                   disabled={deleteOpportunityMutation.isPending}
                                   data-testid={`button-delete-${opp.id}`}
+                                  className="text-destructive"
                                 >
-                                  Delete
+                                  <Trash2 className="w-4 h-4" />
                                 </Button>
                               </div>
                             </td>

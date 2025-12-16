@@ -9,6 +9,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Eye, Edit, MapPin, Calendar, Briefcase, DollarSign, Mail } from "lucide-react";
+import { format } from "date-fns";
 import {
   Form,
   FormControl,
@@ -196,17 +201,96 @@ export default function EditOpportunityDialog({
     setSelectedCountryId(country?.id || "");
   };
 
+  const [activeTab, setActiveTab] = useState<string>("preview");
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit Opportunity</DialogTitle>
+          <DialogTitle>Manage Opportunity</DialogTitle>
           <DialogDescription>
-            Update your business opportunity details
+            Preview or edit your opportunity details
           </DialogDescription>
         </DialogHeader>
 
-        <Form {...form}>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="preview" data-testid="tab-preview">
+              <Eye className="w-4 h-4 mr-2" />
+              Preview
+            </TabsTrigger>
+            <TabsTrigger value="edit" data-testid="tab-edit">
+              <Edit className="w-4 h-4 mr-2" />
+              Edit
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="preview" className="mt-4 space-y-4">
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="secondary">{opportunity.type}</Badge>
+                <Badge variant={opportunity.status === "open" ? "default" : "secondary"}>
+                  {opportunity.status}
+                </Badge>
+                <Badge variant={opportunity.approvalStatus === "approved" ? "default" : opportunity.approvalStatus === "rejected" ? "destructive" : "secondary"}>
+                  {opportunity.approvalStatus}
+                </Badge>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold">{opportunity.title}</h3>
+              </div>
+
+              <Separator />
+
+              <div>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{opportunity.description}</p>
+              </div>
+
+              <Separator />
+
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                {opportunity.sector && (
+                  <div className="flex items-center gap-2">
+                    <Briefcase className="w-4 h-4 text-muted-foreground" />
+                    <span>{opportunity.sector}</span>
+                  </div>
+                )}
+                {(opportunity.country || opportunity.city) && (
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-muted-foreground" />
+                    <span>{[opportunity.city, opportunity.country].filter(Boolean).join(", ")}</span>
+                  </div>
+                )}
+                {opportunity.budgetOrSalary && (
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-muted-foreground" />
+                    <span>{opportunity.budgetOrSalary}</span>
+                  </div>
+                )}
+                {opportunity.contactPreference && (
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-muted-foreground" />
+                    <span>{opportunity.contactPreference}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-muted-foreground" />
+                  <span>Posted {format(new Date(opportunity.createdAt), "MMM d, yyyy")}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4">
+              <Button onClick={() => setActiveTab("edit")} data-testid="button-go-to-edit">
+                <Edit className="w-4 h-4 mr-2" />
+                Edit Opportunity
+              </Button>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="edit" className="mt-4">
+            <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
@@ -415,6 +499,8 @@ export default function EditOpportunityDialog({
             </div>
           </form>
         </Form>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
