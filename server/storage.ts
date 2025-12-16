@@ -464,12 +464,12 @@ export class FirestoreStorage implements IStorage {
       "roles.isAdmin": roles.admin || false,
       needsRoleSelection: false,
       skipBackendSync: false,
-      "roles.professional": admin.firestore.FieldValue.delete(),
-      "roles.jobSeeker": admin.firestore.FieldValue.delete(),
-      "roles.employer": admin.firestore.FieldValue.delete(),
-      "roles.businessOwner": admin.firestore.FieldValue.delete(),
-      "roles.investor": admin.firestore.FieldValue.delete(),
-      "roles.admin": admin.firestore.FieldValue.delete(),
+      "roles.professional": FieldValue.delete(),
+      "roles.jobSeeker": FieldValue.delete(),
+      "roles.employer": FieldValue.delete(),
+      "roles.businessOwner": FieldValue.delete(),
+      "roles.investor": FieldValue.delete(),
+      "roles.admin": FieldValue.delete(),
     });
   }
 
@@ -1525,7 +1525,7 @@ export class FirestoreStorage implements IStorage {
     };
     
     await countryRef.update({ 
-      cities: admin.firestore.FieldValue.arrayUnion(newCity),
+      cities: FieldValue.arrayUnion(newCity),
       updatedAt: now
     });
     
@@ -1683,7 +1683,7 @@ export class FirestoreStorage implements IStorage {
       }));
       
       await countryRef.update({
-        cities: admin.firestore.FieldValue.arrayUnion(...newCities),
+        cities: FieldValue.arrayUnion(...newCities),
         updatedAt: now,
       });
       
@@ -1789,11 +1789,13 @@ export class FirestoreStorage implements IStorage {
     const newRequest: RoleUpgradeRequest = {
       id: requestId,
       userId: request.userId,
-      requestedRoles: request.requestedRoles,
-      reason: request.reason || null,
+      requestedRole: request.requestedRole,
+      currentRoles: request.currentRoles || null,
+      proofUrl: request.proofUrl || null,
+      proofDescription: request.proofDescription || null,
       status: request.status || "pending",
       reviewedBy: request.reviewedBy || null,
-      reviewedAt: request.reviewedAt || null,
+      reviewedAt: null,
       adminNotes: request.adminNotes || null,
       createdAt: now,
       updatedAt: now,
@@ -1866,15 +1868,15 @@ export class FirestoreStorage implements IStorage {
       updatedAt: now,
     });
     
-    const requestedRoles = request.requestedRoles as Record<string, boolean>;
+    const requestedRole = request.requestedRole;
     const userRef = getAdminDb().collection("users").doc(request.userId);
     const updatePayload: Record<string, boolean> = {};
     
-    if (requestedRoles.professional) updatePayload["roles.isProfessional"] = true;
-    if (requestedRoles.jobSeeker) updatePayload["roles.isJobSeeker"] = true;
-    if (requestedRoles.employer) updatePayload["roles.isEmployer"] = true;
-    if (requestedRoles.businessOwner) updatePayload["roles.isBusinessOwner"] = true;
-    if (requestedRoles.investor) updatePayload["roles.isInvestor"] = true;
+    if (requestedRole === "professional") updatePayload["roles.isProfessional"] = true;
+    if (requestedRole === "jobSeeker") updatePayload["roles.isJobSeeker"] = true;
+    if (requestedRole === "employer") updatePayload["roles.isEmployer"] = true;
+    if (requestedRole === "businessOwner") updatePayload["roles.isBusinessOwner"] = true;
+    if (requestedRole === "investor") updatePayload["roles.isInvestor"] = true;
     
     if (Object.keys(updatePayload).length > 0) {
       await userRef.update(updatePayload);

@@ -56,7 +56,7 @@ import type { Opportunity, Country, RoleUpgradeRequest } from "@shared/schema";
 import { format, isValid } from "date-fns";
 
 interface UserData {
-  uid: string;
+  id: string;
   name: string;
   email: string;
   status: string;
@@ -70,10 +70,32 @@ interface UserData {
     isAdmin?: boolean;
   };
   profile?: {
+    fullName?: string;
     country?: string;
     city?: string;
     headline?: string;
   };
+}
+
+interface VideoFormData {
+  title: string;
+  description: string;
+  youtubeId: string;
+  thumbnailUrl: string;
+  publishedAt: string;
+  featured: boolean;
+  visible: boolean;
+}
+
+interface VideoType {
+  id: string;
+  title: string;
+  description?: string | null;
+  youtubeId: string;
+  thumbnailUrl?: string | null;
+  publishedAt?: string | Date | null;
+  featured?: boolean;
+  visible?: boolean;
 }
 
 interface Stats {
@@ -84,6 +106,7 @@ interface Stats {
   businessOwners: number;
   investors: number;
   admins: number;
+  totalApplications?: number;
 }
 
 function safeFormatDate(dateValue: string | Date | null | undefined, formatString: string): string | null {
@@ -283,7 +306,7 @@ export default function AdminDashboard() {
   const rejectedRoleRequests = roleRequests.filter((r) => r.status === "rejected");
 
   const getUserDisplayName = (userId: string) => {
-    const user = users.find(u => u.uid === userId || (u as any).id === userId);
+    const user = users.find(u => u.id === userId);
     if (user?.name) return user.name;
     if (user?.profile?.fullName) return user.profile.fullName;
     if ((user as any)?.fullName) return (user as any).fullName;
@@ -450,7 +473,7 @@ export default function AdminDashboard() {
 
   const handleSelectAllUsers = (userList: UserData[], selectAll: boolean) => {
     if (selectAll) {
-      setSelectedUsers(new Set(userList.map((u) => u.uid)));
+      setSelectedUsers(new Set(userList.map((u) => u.id)));
     } else {
       setSelectedUsers(new Set());
     }
@@ -806,7 +829,7 @@ export default function AdminDashboard() {
                             {selectedUsers.size} selected
                           </span>
                           {(() => {
-                            const selectedUsersList = users.filter(u => selectedUsers.has(u.uid));
+                            const selectedUsersList = users.filter(u => selectedUsers.has(u.id));
                             const allApproved = selectedUsersList.every(u => u.status === "approved");
                             const allRejected = selectedUsersList.every(u => u.status === "rejected");
                             return (
@@ -1106,7 +1129,7 @@ export default function AdminDashboard() {
         <UserManagementDialog
           user={selectedUser}
           onClose={() => setSelectedUser(null)}
-          onUpdateRoles={(roles) => handleUpdateRoles(selectedUser.uid, roles)}
+          onUpdateRoles={(roles) => handleUpdateRoles(selectedUser.id, roles)}
           roleRequests={roleRequests}
           onApproveRoleRequest={handleApproveRoleRequest}
           onRejectRoleRequest={handleOpenRejectDialog}
@@ -1302,7 +1325,7 @@ function UsersTable({
   onApproveRoleRequest?: (request: RoleUpgradeRequest) => void;
   onRejectRoleRequest?: (request: RoleUpgradeRequest) => void;
 }) {
-  const allSelected = users.length > 0 && users.every((u) => selectedUsers.has(u.uid));
+  const allSelected = users.length > 0 && users.every((u) => selectedUsers.has(u.id));
   
   const getUserPendingRequests = (userId: string) => {
     return roleRequests.filter(r => r.userId === userId && r.status === "pending");
@@ -1342,7 +1365,7 @@ function UsersTable({
         <tbody>
           {users.map((user) => (
             <tr
-              key={user.uid}
+              key={user.id}
               onClick={() => onUserClick(user)}
               className="border-b last:border-0 hover:bg-muted/50 cursor-pointer transition-colors"
               role="button"
@@ -1353,28 +1376,28 @@ function UsersTable({
                   onUserClick(user);
                 }
               }}
-              data-testid={`row-user-${user.uid}`}
+              data-testid={`row-user-${user.id}`}
             >
               <td className="p-3" onClick={(e) => e.stopPropagation()}>
                 <Checkbox
-                  checked={selectedUsers.has(user.uid)}
-                  onCheckedChange={() => onSelectUser(user.uid)}
-                  data-testid={`checkbox-user-${user.uid}`}
+                  checked={selectedUsers.has(user.id)}
+                  onCheckedChange={() => onSelectUser(user.id)}
+                  data-testid={`checkbox-user-${user.id}`}
                   aria-label={`Select ${user.name}`}
                 />
               </td>
               <td className="p-3">
                 <div>
-                  <div className="font-medium text-sm" data-testid={`text-user-name-${user.uid}`}>
+                  <div className="font-medium text-sm" data-testid={`text-user-name-${user.id}`}>
                     {user.name}
                   </div>
-                  <div className="text-xs text-muted-foreground" data-testid={`text-user-email-${user.uid}`}>
+                  <div className="text-xs text-muted-foreground" data-testid={`text-user-email-${user.id}`}>
                     {user.email}
                   </div>
                 </div>
               </td>
               <td className="p-3">
-                <div data-testid={`badge-user-status-${user.uid}`}>
+                <div data-testid={`badge-user-status-${user.id}`}>
                   {getStatusBadge(user.status)}
                 </div>
               </td>
@@ -1433,13 +1456,13 @@ function UserManagementDialog({
     admin: user.roles?.isAdmin || false,
   });
   
-  const pendingRequests = roleRequests.filter(r => r.userId === user.uid && r.status === "pending");
+  const pendingRequests = roleRequests.filter(r => r.userId === user.id && r.status === "pending");
 
   const updateStatusMutation = useMutation({
     mutationFn: async (status: "approved" | "rejected") => {
       const response = await apiRequest(
         "POST",
-        `/api/admin/users/${user.uid}/status`,
+        `/api/admin/users/${user.id}/status`,
         { status }
       );
       return await response.json();
