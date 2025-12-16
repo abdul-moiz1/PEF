@@ -151,6 +151,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/auth/check-email", async (req, res) => {
+    try {
+      const { email, context } = req.body;
+      
+      if (!email || typeof email !== 'string') {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      const validContexts = ["create", "join"];
+      const validatedContext = validContexts.includes(context) ? context : "create";
+
+      const normalizedEmail = email.trim().toLowerCase();
+      const adminDb = getAdminDb();
+      
+      if (!adminDb) {
+        return res.json({ exists: false });
+      }
+
+      const usersRef = adminDb.collection("users");
+      const usersSnapshot = await usersRef.where("email", "==", normalizedEmail).get();
+
+      if (!usersSnapshot.empty) {
+        return res.json({
+          exists: true,
+          source: "users",
+          message: validatedContext === "join" 
+            ? "You already have an account! Please log in instead."
+            : "An account with this email already exists. Please log in instead.",
+        });
+      }
+
+      const registrationsRef = adminDb.collection("registrations");
+      const registrationsSnapshot = await registrationsRef.where("email", "==", normalizedEmail).get();
+
+      if (!registrationsSnapshot.empty) {
+        const registrationDoc = registrationsSnapshot.docs[0];
+        const registrationData = registrationDoc.data();
+
+        if (validatedContext === "join") {
+          return res.json({
+            exists: true,
+            source: "registrations",
+            message: "You've already submitted this form. Please check your email for updates.",
+          });
+        }
+        
+        return res.json({
+          exists: false,
+          source: "registrations",
+          message: "welcome_back",
+          data: registrationData,
+        });
+      }
+
+      return res.json({ exists: false });
+    } catch (error) {
+      console.error("Email check error:", error);
+      return res.status(500).json({ error: "Failed to verify email" });
+    }
+  });
+
   app.get("/api/auth/me", async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
