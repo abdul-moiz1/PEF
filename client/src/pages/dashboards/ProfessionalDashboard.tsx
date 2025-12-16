@@ -221,56 +221,6 @@ export default function ProfessionalDashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Profile Visibility</CardTitle>
-              <Eye className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold" data-testid="text-profile-completeness">{completeness}%</div>
-              <p className="text-xs text-muted-foreground">
-                {completeness === 100 ? "Fully optimized!" : "Keep improving"}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Available Jobs</CardTitle>
-              <Briefcase className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold" data-testid="text-jobs-count">{jobOpportunities.length}</div>
-              <p className="text-xs text-muted-foreground">From employers</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">My Applications</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold" data-testid="text-applications-count">{applications.length}</div>
-              <p className="text-xs text-muted-foreground">Submitted</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Skills Listed</CardTitle>
-              <Award className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold" data-testid="text-skills-count">{skills.length}</div>
-              <p className="text-xs text-muted-foreground">
-                {skills.length === 0 ? "Add skills" : "Showcasing expertise"}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList data-testid="tabs-list">
             <TabsTrigger value="opportunities" data-testid="tab-opportunities">

@@ -183,60 +183,6 @@ export default function InvestorDashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Business Owners</CardTitle>
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold" data-testid="text-business-owners-count">
-                {businessOwnersLoading ? "..." : businessOwners.length}
-              </div>
-              <p className="text-xs text-muted-foreground">Registered on platform</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Opportunities</CardTitle>
-              <Target className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold" data-testid="text-opportunities-count">
-                {opportunitiesLoading ? "..." : investmentOpportunities.length}
-              </div>
-              <p className="text-xs text-muted-foreground">Investment opportunities</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Investment Range</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold" data-testid="text-investment-range">
-                {investmentRange.split(" - ")[0] || "N/A"}
-              </div>
-              <p className="text-xs text-muted-foreground">{investmentRange}</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Preferred Stage</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold" data-testid="text-preferred-stage">
-                {preferredStage === "Not specified" ? "N/A" : preferredStage}
-              </div>
-              <p className="text-xs text-muted-foreground">Investment stage</p>
-            </CardContent>
-          </Card>
-        </div>
-
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList data-testid="tabs-list">
             <TabsTrigger value="opportunities" data-testid="tab-opportunities">

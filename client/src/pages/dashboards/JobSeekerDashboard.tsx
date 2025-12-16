@@ -200,62 +200,6 @@ export default function JobSeekerDashboard() {
           <p className="text-muted-foreground">Find your next career opportunity</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Applications</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold" data-testid="text-total-applications">
-                {applications.length}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {statusCounts.under_review || 0} under review
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Interviews</CardTitle>
-              <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold" data-testid="text-interviews">
-                {statusCounts.interview || 0}
-              </div>
-              <p className="text-xs text-muted-foreground">Scheduled</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Available Jobs</CardTitle>
-              <Search className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold" data-testid="text-available-jobs">
-                {opportunities.length}
-              </div>
-              <p className="text-xs text-muted-foreground">Open positions</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Offers</CardTitle>
-              <Briefcase className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold" data-testid="text-offers">
-                {statusCounts.offer || 0}
-              </div>
-              <p className="text-xs text-muted-foreground">Pending decision</p>
-            </CardContent>
-          </Card>
-        </div>
-
         <Tabs defaultValue="jobs" className="space-y-6">
           <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
             <TabsTrigger value="jobs" data-testid="tab-jobs">
