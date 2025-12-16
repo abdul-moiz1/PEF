@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -29,11 +29,43 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Plus } from "lucide-react";
+
+const SECTORS = [
+  "Technology",
+  "Healthcare",
+  "Finance",
+  "Real Estate",
+  "Manufacturing",
+  "Retail",
+  "Energy",
+  "Education",
+  "Transportation",
+  "Agriculture",
+  "Hospitality",
+  "Media & Entertainment",
+  "Telecommunications",
+  "Construction",
+  "Other",
+];
+
+interface Country {
+  id: string;
+  code: string;
+  name: string;
+  phoneCode: string;
+  isPrimary: boolean;
+  comingSoon: boolean;
+}
+
+interface City {
+  id: string;
+  name: string;
+}
 
 const opportunitySchema = z.object({
   type: z.enum(["investment", "partnership", "collaboration"]),
@@ -54,6 +86,7 @@ interface PostOpportunityDialogProps {
 
 export default function PostOpportunityDialog({ trigger }: PostOpportunityDialogProps) {
   const [open, setOpen] = useState(false);
+  const [selectedCountryId, setSelectedCountryId] = useState<string>("");
   const { toast } = useToast();
   const { currentUser } = useAuth();
 
@@ -70,6 +103,28 @@ export default function PostOpportunityDialog({ trigger }: PostOpportunityDialog
       contactPreference: "email",
     },
   });
+
+  const { data: countries = [], isLoading: countriesLoading } = useQuery<Country[]>({
+    queryKey: ["/api/locations/countries"],
+  });
+
+  const { data: cities = [], isLoading: citiesLoading } = useQuery<City[]>({
+    queryKey: ["/api/locations/countries", selectedCountryId, "cities"],
+    queryFn: async () => {
+      if (!selectedCountryId) return [];
+      const response = await fetch(`/api/locations/countries/${selectedCountryId}/cities`);
+      if (!response.ok) throw new Error("Failed to fetch cities");
+      return response.json();
+    },
+    enabled: !!selectedCountryId,
+  });
+
+  useEffect(() => {
+    if (!open) {
+      setSelectedCountryId("");
+      form.reset();
+    }
+  }, [open, form]);
 
   const createOpportunityMutation = useMutation({
     mutationFn: async (data: OpportunityFormData) => {
@@ -98,6 +153,13 @@ export default function PostOpportunityDialog({ trigger }: PostOpportunityDialog
 
   const onSubmit = (data: OpportunityFormData) => {
     createOpportunityMutation.mutate(data);
+  };
+
+  const handleCountryChange = (countryName: string) => {
+    form.setValue("country", countryName);
+    form.setValue("city", "");
+    const country = countries.find(c => c.name === countryName);
+    setSelectedCountryId(country?.id || "");
   };
 
   return (
@@ -193,9 +255,20 @@ export default function PostOpportunityDialog({ trigger }: PostOpportunityDialog
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Sector/Industry</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Clean Energy, Technology" {...field} data-testid="input-sector" />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-sector">
+                          <SelectValue placeholder="Select sector" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {SECTORS.map((sector) => (
+                          <SelectItem key={sector} value={sector}>
+                            {sector}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -223,9 +296,24 @@ export default function PostOpportunityDialog({ trigger }: PostOpportunityDialog
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Country</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., United Arab Emirates" {...field} data-testid="input-country" />
-                    </FormControl>
+                    <Select 
+                      onValueChange={handleCountryChange} 
+                      value={field.value}
+                      disabled={countriesLoading}
+                    >
+                      <FormControl>
+                        <SelectTrigger data-testid="select-country">
+                          <SelectValue placeholder={countriesLoading ? "Loading..." : "Select country"} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {countries.map((country) => (
+                          <SelectItem key={country.id} value={country.name}>
+                            {country.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -237,9 +325,30 @@ export default function PostOpportunityDialog({ trigger }: PostOpportunityDialog
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>City</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Dubai" {...field} data-testid="input-city" />
-                    </FormControl>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      value={field.value}
+                      disabled={!selectedCountryId || citiesLoading}
+                    >
+                      <FormControl>
+                        <SelectTrigger data-testid="select-city">
+                          <SelectValue placeholder={
+                            !selectedCountryId 
+                              ? "Select country first" 
+                              : citiesLoading 
+                                ? "Loading..." 
+                                : "Select city"
+                          } />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {cities.map((city) => (
+                          <SelectItem key={city.id} value={city.name}>
+                            {city.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

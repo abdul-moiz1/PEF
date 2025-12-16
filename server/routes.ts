@@ -1079,8 +1079,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const userWithRoles = await storage.getUserWithRoles(uid);
-      if (!userWithRoles || !userWithRoles.roles?.investor) {
-        return res.status(403).json({ error: "Only investors can view business owners" });
+      if (!userWithRoles || (!userWithRoles.roles?.investor && !userWithRoles.roles?.businessOwner)) {
+        return res.status(403).json({ error: "Only investors or business owners can view business owners" });
       }
 
       const businessOwners = await storage.getBusinessOwners();
