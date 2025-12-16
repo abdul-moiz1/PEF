@@ -167,7 +167,7 @@ export default function InvestorDashboard() {
   });
 
   // Fetch sent connection requests to check if already connected
-  const { data: sentRequests = [] } = useQuery<{ receiverId: string; status: string }[]>({
+  const { data: sentRequests = [] } = useQuery<{ toUserId: string; status: string }[]>({
     queryKey: ["/api/connection-requests/sent", currentUser?.uid],
     queryFn: async () => {
       if (!currentUser) throw new Error("Not authenticated");
@@ -181,9 +181,9 @@ export default function InvestorDashboard() {
     enabled: !!currentUser && hasRole("investor"),
   });
 
-  // Connect mutation
+  // Connect mutation - send toUserId and targetType as required by the API
   const connectMutation = useMutation({
-    mutationFn: async (receiverId: string) => {
+    mutationFn: async (data: { toUserId: string; targetType: string }) => {
       if (!currentUser) throw new Error("Not authenticated");
       const token = await currentUser.getIdToken(true);
       const response = await fetch("/api/connection-requests", {
@@ -192,7 +192,7 @@ export default function InvestorDashboard() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ receiverId }),
+        body: JSON.stringify(data),
       });
       if (!response.ok) {
         const errorData = await response.json();
@@ -210,7 +210,7 @@ export default function InvestorDashboard() {
   });
 
   const getConnectionStatus = (userId: string) => {
-    const request = sentRequests.find(r => r.receiverId === userId);
+    const request = sentRequests.find(r => r.toUserId === userId);
     return request?.status || null;
   };
 
@@ -426,7 +426,7 @@ export default function InvestorDashboard() {
                                   ) : (
                                     <Button 
                                       size="sm" 
-                                      onClick={() => connectMutation.mutate(owner.user.id)}
+                                      onClick={() => connectMutation.mutate({ toUserId: owner.user.id, targetType: "businessOwner" })}
                                       disabled={connectMutation.isPending}
                                       data-testid={`button-connect-${idx}`}
                                     >
@@ -523,9 +523,6 @@ export default function InvestorDashboard() {
                   </div>
 
                   <div className="flex flex-wrap gap-2 pt-4 border-t">
-                    <Button onClick={() => setLocation(`/opportunities/${selectedOpportunity.id}`)} data-testid="button-view-full-opportunity">
-                      View Full Details
-                    </Button>
                     <Button variant="outline" data-testid="button-save-opportunity">
                       <BookmarkPlus className="w-4 h-4 mr-2" />
                       Save
@@ -621,7 +618,7 @@ export default function InvestorDashboard() {
                         return (
                           <Button
                             onClick={() => {
-                              connectMutation.mutate(selectedBusinessOwner.user.id);
+                              connectMutation.mutate({ toUserId: selectedBusinessOwner.user.id, targetType: "businessOwner" });
                               setSelectedBusinessOwner(null);
                             }}
                             disabled={connectMutation.isPending}
