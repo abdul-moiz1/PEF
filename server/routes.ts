@@ -6,7 +6,7 @@ import { insertUserProfileSchema, insertUserRolesSchema, insertOpportunitySchema
 import { Resend } from "resend";
 import { verifyIdToken } from "./firebase-admin";
 import { db, Timestamp, FieldValue } from "./firebase-admin";
-import { getAdminDb } from "./firebase-admin";
+import { getAdminDb, getAdminStorage } from "./firebase-admin";
 import { linkedInService } from "./linkedin-service";
 import crypto from "crypto";
 import multer from "multer";
@@ -2768,17 +2768,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       const fileExtension = mimeToExt[req.file.mimetype] || 'jpg';
-      const objectStorage = new ObjectStorageClient();
       const timestamp = Date.now();
       const fileName = `${timestamp}-${crypto.randomBytes(8).toString('hex')}.${fileExtension}`;
-      const filePath = `images/${fileName}`;
+      const filePath = `uploads/${fileName}`;
 
-      const uploadResult = await objectStorage.uploadFromBytes(filePath, req.file.buffer);
-      if (!uploadResult.ok) {
-        throw new Error(uploadResult.error?.message || "Upload failed");
-      }
-
-      const publicUrl = `/api/files/images/${fileName}`;
+      // Upload to Firebase Storage
+      const adminStorage = getAdminStorage();
+      const bucket = adminStorage.bucket();
+      const file = bucket.file(filePath);
+      
+      await file.save(req.file.buffer, {
+        metadata: {
+          contentType: req.file.mimetype,
+        },
+      });
+      
+      // Make the file publicly readable
+      await file.makePublic();
+      
+      // Get the public URL
+      const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
 
       return res.json({ 
         success: true, 

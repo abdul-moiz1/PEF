@@ -21,6 +21,7 @@ import type { GalleryImage, InsertGalleryImage } from "@shared/schema";
 import { insertGalleryImageSchema } from "@shared/schema";
 import { format } from "date-fns";
 import { z } from "zod";
+import { ImageUpload } from "@/components/ImageUpload";
 
 // Form schema with string eventDate that transforms to Date | null
 const galleryImageFormSchema = insertGalleryImageSchema.extend({
@@ -213,6 +214,90 @@ export default function AdminGallery() {
   );
 }
 
+function GalleryImageField({ form }: { form: ReturnType<typeof useForm<GalleryImageFormValues>> }) {
+  const imageUrls = form.watch("imageUrl");
+  
+  const handleImageUpload = (url: string | null) => {
+    if (url) {
+      const currentUrls = imageUrls ? imageUrls.split('\n').filter((u: string) => u.trim()) : [];
+      if (!currentUrls.includes(url)) {
+        currentUrls.push(url);
+        form.setValue("imageUrl", currentUrls.join('\n'));
+      }
+    }
+  };
+  
+  const removeImage = (index: number) => {
+    if (!imageUrls) return;
+    const urls = imageUrls.split('\n').filter((u: string) => u.trim());
+    urls.splice(index, 1);
+    form.setValue("imageUrl", urls.join('\n'));
+  };
+  
+  const urlList = imageUrls ? imageUrls.split('\n').filter((url: string) => url.trim()) : [];
+  
+  return (
+    <FormField
+      control={form.control}
+      name="imageUrl"
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>Images *</FormLabel>
+          <div className="space-y-4">
+            <ImageUpload
+              value={null}
+              onChange={handleImageUpload}
+              label="Upload Image"
+              description="Upload an image to add it to the gallery. You can add multiple images."
+            />
+            
+            {urlList.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Added Images ({urlList.length})</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {urlList.map((url: string, index: number) => (
+                    <div key={`${url}-${index}`} className="relative group">
+                      <img 
+                        src={url.trim()} 
+                        alt={`Gallery image ${index + 1}`}
+                        className="w-full h-24 object-cover rounded-md border"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => removeImage(index)}
+                        data-testid={`button-remove-image-${index}`}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            <div className="space-y-2">
+              <Label className="text-sm text-muted-foreground">Or paste URLs directly (one per line)</Label>
+              <FormControl>
+                <Textarea
+                  value={field.value || ""}
+                  onChange={field.onChange}
+                  placeholder="https://example.com/image1.jpg&#10;https://example.com/image2.jpg"
+                  rows={3}
+                  data-testid="input-image-urls"
+                />
+              </FormControl>
+            </div>
+          </div>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+}
+
 function GalleryImageFormDialog({
   open,
   onClose,
@@ -348,27 +433,7 @@ function GalleryImageFormDialog({
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="imageUrl"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Image URLs *</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      {...field}
-                      placeholder="Paste image URLs here (one per line for multiple images)&#10;https://example.com/image1.jpg&#10;https://example.com/image2.jpg"
-                      rows={5}
-                      data-testid="input-image-urls"
-                    />
-                  </FormControl>
-                  <p className="text-sm text-muted-foreground">
-                    Add one or more image URLs (one per line). Multiple images will be displayed as a slideshow.
-                  </p>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <GalleryImageField form={form} />
 
             <FormField
               control={form.control}

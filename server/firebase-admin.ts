@@ -1,9 +1,11 @@
 import { initializeApp, cert, getApps, App, ServiceAccount } from 'firebase-admin/app';
 import { getFirestore, Firestore, Timestamp, FieldValue } from 'firebase-admin/firestore';
 import { getAuth, DecodedIdToken } from 'firebase-admin/auth';
+import { getStorage, Storage } from 'firebase-admin/storage';
 
 let adminApp: App | null = null;
 let adminDb: Firestore | null = null;
+let adminStorage: Storage | null = null;
 
 export function initializeFirebaseAdmin() {
   if (adminApp) {
@@ -15,6 +17,7 @@ export function initializeFirebaseAdmin() {
   if (apps.length > 0) {
     adminApp = apps[0];
     adminDb = getFirestore(adminApp);
+    adminStorage = getStorage(adminApp);
     return adminApp;
   }
 
@@ -23,6 +26,9 @@ export function initializeFirebaseAdmin() {
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const privateKey = process.env.FIREBASE_PRIVATE_KEY;
   const serviceAccountJson = process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT;
+  
+  // Get storage bucket from env
+  const storageBucket = process.env.VITE_FIREBASE_STORAGE_BUCKET || process.env.FIREBASE_STORAGE_BUCKET;
   
   // Try individual secrets first
   if (projectId && clientEmail && privateKey) {
@@ -37,10 +43,15 @@ export function initializeFirebaseAdmin() {
           privateKey: formattedPrivateKey,
         } as ServiceAccount),
         projectId,
+        storageBucket: storageBucket,
       });
       
       adminDb = getFirestore(adminApp);
+      adminStorage = getStorage(adminApp);
       console.log('✓ Firebase Admin SDK initialized successfully (using individual secrets)');
+      if (storageBucket) {
+        console.log('✓ Firebase Storage configured with bucket:', storageBucket);
+      }
       return adminApp;
     } catch (error) {
       console.error('Failed to initialize Firebase Admin SDK with individual secrets:', error);
@@ -56,10 +67,15 @@ export function initializeFirebaseAdmin() {
       adminApp = initializeApp({
         credential: cert(serviceAccount as ServiceAccount),
         projectId: serviceAccount.project_id,
+        storageBucket: storageBucket,
       });
       
       adminDb = getFirestore(adminApp);
+      adminStorage = getStorage(adminApp);
       console.log('✓ Firebase Admin SDK initialized successfully (using JSON)');
+      if (storageBucket) {
+        console.log('✓ Firebase Storage configured with bucket:', storageBucket);
+      }
       return adminApp;
     } catch (error) {
       console.error('Failed to initialize Firebase Admin SDK with JSON:', error);
@@ -79,6 +95,16 @@ export function getAdminDb(): Firestore {
     throw new Error('Firebase Admin SDK not configured - cannot access Firestore');
   }
   return adminDb;
+}
+
+export function getAdminStorage(): Storage {
+  if (!adminStorage) {
+    initializeFirebaseAdmin();
+  }
+  if (!adminStorage) {
+    throw new Error('Firebase Admin SDK not configured - cannot access Storage');
+  }
+  return adminStorage;
 }
 
 export const db = {
