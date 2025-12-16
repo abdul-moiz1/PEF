@@ -5,12 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Handshake, DollarSign, Target, Users, Edit, MapPin, Calendar, Briefcase, Mail } from "lucide-react";
+import { Handshake, DollarSign, Target, Users, Edit, MapPin, Calendar, Briefcase, Mail, Eye, Building2, TrendingUp, Globe } from "lucide-react";
 import { format } from "date-fns";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useLocation } from "wouter";
 import PostOpportunityDialog from "@/components/PostOpportunityDialog";
+import EditOpportunityDialog from "@/components/EditOpportunityDialog";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -27,6 +28,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -92,10 +94,85 @@ export default function BusinessOwnerDashboard() {
   const [activeTab, setActiveTab] = useState("opportunities");
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [opportunityToEdit, setOpportunityToEdit] = useState<Opportunity | null>(null);
+  const [investorViewOpen, setInvestorViewOpen] = useState(false);
+  const [selectedInvestor, setSelectedInvestor] = useState<InvestorProfile | null>(null);
+  const [businessOwnerViewOpen, setBusinessOwnerViewOpen] = useState(false);
+  const [selectedBusinessOwner, setSelectedBusinessOwner] = useState<BusinessOwnerProfile | null>(null);
+  const [connectDialogOpen, setConnectDialogOpen] = useState(false);
+  const [connectTarget, setConnectTarget] = useState<{ type: "investor" | "businessOwner"; name: string; email: string; userId: string } | null>(null);
+
+  const connectionRequestMutation = useMutation({
+    mutationFn: async (data: { toUserId: string; targetType: string; message?: string }) => {
+      if (!currentUser) throw new Error("Not authenticated");
+      const token = await currentUser.getIdToken(true);
+      const response = await fetch("/api/connection-requests", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to send connection request");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Connection Request Sent",
+        description: `Your connection request has been sent to ${connectTarget?.name}. They will be notified via email.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/connection-requests"] });
+      setConnectDialogOpen(false);
+      setConnectTarget(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to Send Request",
+        description: error.message.includes("already exists") 
+          ? "You have already sent a connection request to this person."
+          : error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleViewOpportunity = (opportunity: Opportunity) => {
     setSelectedOpportunity(opportunity);
     setViewDialogOpen(true);
+  };
+
+  const handleEditOpportunity = (opportunity: Opportunity) => {
+    setOpportunityToEdit(opportunity);
+    setEditDialogOpen(true);
+  };
+
+  const handleViewInvestor = (investor: InvestorProfile) => {
+    setSelectedInvestor(investor);
+    setInvestorViewOpen(true);
+  };
+
+  const handleViewBusinessOwner = (owner: BusinessOwnerProfile) => {
+    setSelectedBusinessOwner(owner);
+    setBusinessOwnerViewOpen(true);
+  };
+
+  const handleConnect = (type: "investor" | "businessOwner", name: string, email: string, userId: string) => {
+    setConnectTarget({ type, name, email, userId });
+    setConnectDialogOpen(true);
+  };
+
+  const handleConnectConfirm = () => {
+    if (connectTarget) {
+      connectionRequestMutation.mutate({
+        toUserId: connectTarget.userId,
+        targetType: connectTarget.type,
+      });
+    }
   };
 
   const isLoading = authLoading || rolesLoading;
@@ -384,6 +461,24 @@ export default function BusinessOwnerDashboard() {
                                 <Button 
                                   size="sm" 
                                   variant="outline"
+                                  onClick={() => handleViewOpportunity(opp)}
+                                  data-testid={`button-preview-${opp.id}`}
+                                >
+                                  <Eye className="w-4 h-4 mr-1" />
+                                  Preview
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => handleEditOpportunity(opp)}
+                                  data-testid={`button-edit-${opp.id}`}
+                                >
+                                  <Edit className="w-4 h-4 mr-1" />
+                                  Edit
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
                                   onClick={() => handleToggleStatus(opp.id, opp.status)}
                                   disabled={toggleStatusMutation.isPending}
                                   data-testid={`button-toggle-${opp.id}`}
@@ -457,10 +552,24 @@ export default function BusinessOwnerDashboard() {
                             </td>
                             <td className="py-3 px-4">
                               <div className="flex flex-wrap gap-2">
-                                <Button size="sm" data-testid={`button-connect-investor-${idx}`}>
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => handleConnect(
+                                    "investor", 
+                                    investor.user.displayName || investor.user.email, 
+                                    investor.user.email,
+                                    investor.user.id
+                                  )}
+                                  data-testid={`button-connect-investor-${idx}`}
+                                >
                                   Connect
                                 </Button>
-                                <Button size="sm" variant="outline" data-testid={`button-view-investor-${idx}`}>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  onClick={() => handleViewInvestor(investor)}
+                                  data-testid={`button-view-investor-${idx}`}
+                                >
                                   View
                                 </Button>
                               </div>
@@ -521,10 +630,24 @@ export default function BusinessOwnerDashboard() {
                             </td>
                             <td className="py-3 px-4">
                               <div className="flex flex-wrap gap-2">
-                                <Button size="sm" data-testid={`button-connect-owner-${idx}`}>
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => handleConnect(
+                                    "businessOwner", 
+                                    owner.user.displayName || owner.user.email, 
+                                    owner.user.email,
+                                    owner.user.id
+                                  )}
+                                  data-testid={`button-connect-owner-${idx}`}
+                                >
                                   Connect
                                 </Button>
-                                <Button size="sm" variant="outline" data-testid={`button-view-owner-${idx}`}>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  onClick={() => handleViewBusinessOwner(owner)}
+                                  data-testid={`button-view-owner-${idx}`}
+                                >
                                   View
                                 </Button>
                               </div>
@@ -733,6 +856,277 @@ export default function BusinessOwnerDashboard() {
           )}
         </DialogContent>
       </Dialog>
+
+      {opportunityToEdit && (
+        <EditOpportunityDialog
+          opportunity={opportunityToEdit}
+          open={editDialogOpen}
+          onOpenChange={(open) => {
+            setEditDialogOpen(open);
+            if (!open) setOpportunityToEdit(null);
+          }}
+        />
+      )}
+
+      <Dialog open={investorViewOpen} onOpenChange={setInvestorViewOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="dialog-view-investor">
+          {selectedInvestor && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-xl" data-testid="text-investor-name">
+                  {selectedInvestor.user.displayName || selectedInvestor.user.email}
+                </DialogTitle>
+                <DialogDescription>Investor Profile</DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4 mt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex items-start gap-2">
+                    <Mail className="w-4 h-4 text-muted-foreground mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium">Email</p>
+                      <p className="text-sm text-muted-foreground" data-testid="text-investor-email">
+                        {selectedInvestor.user.email}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {selectedInvestor.investorData?.investmentRange && (
+                    <div className="flex items-start gap-2">
+                      <DollarSign className="w-4 h-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium">Investment Range</p>
+                        <p className="text-sm text-muted-foreground" data-testid="text-investor-range">
+                          {selectedInvestor.investorData.investmentRange}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {selectedInvestor.investorData?.preferredStage && (
+                    <div className="flex items-start gap-2">
+                      <TrendingUp className="w-4 h-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium">Preferred Stage</p>
+                        <p className="text-sm text-muted-foreground" data-testid="text-investor-stage">
+                          {selectedInvestor.investorData.preferredStage}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {selectedInvestor.investorData?.investmentFocus && selectedInvestor.investorData.investmentFocus.length > 0 && (
+                    <div className="flex items-start gap-2">
+                      <Target className="w-4 h-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium">Investment Focus</p>
+                        <p className="text-sm text-muted-foreground" data-testid="text-investor-focus">
+                          {selectedInvestor.investorData.investmentFocus.join(", ")}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {selectedInvestor.investorData?.industries && selectedInvestor.investorData.industries.length > 0 && (
+                    <div className="flex items-start gap-2">
+                      <Briefcase className="w-4 h-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium">Industries</p>
+                        <p className="text-sm text-muted-foreground" data-testid="text-investor-industries">
+                          {selectedInvestor.investorData.industries.join(", ")}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-start gap-2">
+                    <Calendar className="w-4 h-4 text-muted-foreground mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium">Member Since</p>
+                      <p className="text-sm text-muted-foreground" data-testid="text-investor-joined">
+                        {format(new Date(selectedInvestor.user.createdAt), "MMMM d, yyyy")}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-2 mt-6">
+                <Button 
+                  onClick={() => {
+                    handleConnect(
+                      "investor",
+                      selectedInvestor.user.displayName || selectedInvestor.user.email,
+                      selectedInvestor.user.email,
+                      selectedInvestor.user.id
+                    );
+                    setInvestorViewOpen(false);
+                  }}
+                  data-testid="button-connect-from-dialog"
+                >
+                  Connect
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setInvestorViewOpen(false)}
+                  data-testid="button-close-investor-dialog"
+                >
+                  Close
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={businessOwnerViewOpen} onOpenChange={setBusinessOwnerViewOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="dialog-view-business-owner">
+          {selectedBusinessOwner && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-xl" data-testid="text-owner-name">
+                  {selectedBusinessOwner.user.displayName || selectedBusinessOwner.user.email}
+                </DialogTitle>
+                <DialogDescription>Business Owner Profile</DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4 mt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex items-start gap-2">
+                    <Mail className="w-4 h-4 text-muted-foreground mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium">Email</p>
+                      <p className="text-sm text-muted-foreground" data-testid="text-owner-email">
+                        {selectedBusinessOwner.user.email}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {selectedBusinessOwner.businessOwnerData?.businessName && (
+                    <div className="flex items-start gap-2">
+                      <Building2 className="w-4 h-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium">Business Name</p>
+                        <p className="text-sm text-muted-foreground" data-testid="text-owner-business">
+                          {selectedBusinessOwner.businessOwnerData.businessName}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {selectedBusinessOwner.businessOwnerData?.businessType && (
+                    <div className="flex items-start gap-2">
+                      <Briefcase className="w-4 h-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium">Business Type</p>
+                        <p className="text-sm text-muted-foreground" data-testid="text-owner-type">
+                          {selectedBusinessOwner.businessOwnerData.businessType}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {selectedBusinessOwner.businessOwnerData?.industry && (
+                    <div className="flex items-start gap-2">
+                      <Globe className="w-4 h-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium">Industry</p>
+                        <p className="text-sm text-muted-foreground" data-testid="text-owner-industry">
+                          {selectedBusinessOwner.businessOwnerData.industry}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {selectedBusinessOwner.businessOwnerData?.revenue && (
+                    <div className="flex items-start gap-2">
+                      <DollarSign className="w-4 h-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium">Revenue</p>
+                        <p className="text-sm text-muted-foreground" data-testid="text-owner-revenue">
+                          {selectedBusinessOwner.businessOwnerData.revenue}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {selectedBusinessOwner.businessOwnerData?.employees && (
+                    <div className="flex items-start gap-2">
+                      <Users className="w-4 h-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium">Employees</p>
+                        <p className="text-sm text-muted-foreground" data-testid="text-owner-employees">
+                          {selectedBusinessOwner.businessOwnerData.employees}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-start gap-2">
+                    <Calendar className="w-4 h-4 text-muted-foreground mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium">Member Since</p>
+                      <p className="text-sm text-muted-foreground" data-testid="text-owner-joined">
+                        {format(new Date(selectedBusinessOwner.user.createdAt), "MMMM d, yyyy")}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-2 mt-6">
+                <Button 
+                  onClick={() => {
+                    handleConnect(
+                      "businessOwner",
+                      selectedBusinessOwner.user.displayName || selectedBusinessOwner.user.email,
+                      selectedBusinessOwner.user.email,
+                      selectedBusinessOwner.user.id
+                    );
+                    setBusinessOwnerViewOpen(false);
+                  }}
+                  data-testid="button-connect-owner-from-dialog"
+                >
+                  Connect
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setBusinessOwnerViewOpen(false)}
+                  data-testid="button-close-owner-dialog"
+                >
+                  Close
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={connectDialogOpen} onOpenChange={setConnectDialogOpen}>
+        <AlertDialogContent data-testid="dialog-connect-confirm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Send Connection Request</AlertDialogTitle>
+            <AlertDialogDescription>
+              {connectTarget && (
+                <>
+                  You are about to send a connection request to <strong>{connectTarget.name}</strong>. 
+                  They will receive a notification with your contact information so you can start collaborating.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-connect" disabled={connectionRequestMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConnectConfirm}
+              disabled={connectionRequestMutation.isPending}
+              data-testid="button-confirm-connect"
+            >
+              {connectionRequestMutation.isPending ? "Sending..." : "Send Request"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

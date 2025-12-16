@@ -8,7 +8,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -33,7 +32,6 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { Plus } from "lucide-react";
 
 const SECTORS = [
   "Technology",
@@ -67,6 +65,23 @@ interface City {
   name: string;
 }
 
+interface Opportunity {
+  id: string;
+  userId: string;
+  type: string;
+  title: string;
+  description: string;
+  sector?: string | null;
+  country?: string | null;
+  city?: string | null;
+  budgetOrSalary?: string | null;
+  contactPreference?: string | null;
+  status: string;
+  approvalStatus: string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
 const opportunitySchema = z.object({
   type: z.enum(["investment", "partnership", "collaboration"]),
   title: z.string().min(10, "Title must be at least 10 characters"),
@@ -80,37 +95,34 @@ const opportunitySchema = z.object({
 
 type OpportunityFormData = z.infer<typeof opportunitySchema>;
 
-interface PostOpportunityDialogProps {
-  trigger?: React.ReactNode;
+interface EditOpportunityDialogProps {
+  opportunity: Opportunity;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export default function PostOpportunityDialog({ trigger }: PostOpportunityDialogProps) {
-  const [open, setOpen] = useState(false);
+export default function EditOpportunityDialog({ 
+  opportunity, 
+  open, 
+  onOpenChange 
+}: EditOpportunityDialogProps) {
   const [selectedCountryId, setSelectedCountryId] = useState<string>("");
   const { toast } = useToast();
   const { currentUser } = useAuth();
 
-  const userEmail = currentUser?.email || "";
-
   const form = useForm<OpportunityFormData>({
     resolver: zodResolver(opportunitySchema),
     defaultValues: {
-      type: "investment",
-      title: "",
-      description: "",
-      sector: "",
-      country: "",
-      city: "",
-      budgetOrSalary: "",
-      contactPreference: userEmail,
+      type: (opportunity.type as "investment" | "partnership" | "collaboration") || "investment",
+      title: opportunity.title || "",
+      description: opportunity.description || "",
+      sector: opportunity.sector || "",
+      country: opportunity.country || "",
+      city: opportunity.city || "",
+      budgetOrSalary: opportunity.budgetOrSalary || "",
+      contactPreference: opportunity.contactPreference || "",
     },
   });
-
-  useEffect(() => {
-    if (userEmail && !form.getValues("contactPreference")) {
-      form.setValue("contactPreference", userEmail);
-    }
-  }, [userEmail, form]);
 
   const { data: countries = [], isLoading: countriesLoading } = useQuery<Country[]>({
     queryKey: ["/api/locations/countries"],
@@ -128,39 +140,53 @@ export default function PostOpportunityDialog({ trigger }: PostOpportunityDialog
   });
 
   useEffect(() => {
-    if (!open) {
-      setSelectedCountryId("");
-      form.reset();
+    if (open && opportunity) {
+      form.reset({
+        type: (opportunity.type as "investment" | "partnership" | "collaboration") || "investment",
+        title: opportunity.title || "",
+        description: opportunity.description || "",
+        sector: opportunity.sector || "",
+        country: opportunity.country || "",
+        city: opportunity.city || "",
+        budgetOrSalary: opportunity.budgetOrSalary || "",
+        contactPreference: opportunity.contactPreference || "",
+      });
+      
+      if (opportunity.country && countries.length > 0) {
+        const country = countries.find(c => c.name === opportunity.country);
+        if (country) {
+          setSelectedCountryId(country.id);
+        }
+      }
     }
-  }, [open, form]);
+  }, [open, opportunity, countries, form]);
 
-  const createOpportunityMutation = useMutation({
+  const updateOpportunityMutation = useMutation({
     mutationFn: async (data: OpportunityFormData) => {
       if (!currentUser) throw new Error("Not authenticated");
       
-      const response = await apiRequest("POST", "/api/opportunities", data);
+      const response = await apiRequest("PATCH", `/api/opportunities/${opportunity.id}`, data);
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/opportunities"] });
       toast({
         title: "Success!",
-        description: "Your opportunity has been posted successfully.",
+        description: "Your opportunity has been updated successfully.",
       });
-      setOpen(false);
-      form.reset();
+      onOpenChange(false);
     },
     onError: (error: Error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to post opportunity",
+        description: error.message || "Failed to update opportunity",
         variant: "destructive",
       });
     },
   });
 
   const onSubmit = (data: OpportunityFormData) => {
-    createOpportunityMutation.mutate(data);
+    updateOpportunityMutation.mutate(data);
   };
 
   const handleCountryChange = (countryName: string) => {
@@ -171,20 +197,12 @@ export default function PostOpportunityDialog({ trigger }: PostOpportunityDialog
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger || (
-          <Button data-testid="button-post-opportunity">
-            <Plus className="w-4 h-4 mr-2" />
-            Post Opportunity
-          </Button>
-        )}
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Post Business Opportunity</DialogTitle>
+          <DialogTitle>Edit Opportunity</DialogTitle>
           <DialogDescription>
-            Share investment, partnership, or collaboration opportunities with the PEF community
+            Update your business opportunity details
           </DialogDescription>
         </DialogHeader>
 
@@ -196,9 +214,9 @@ export default function PostOpportunityDialog({ trigger }: PostOpportunityDialog
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Opportunity Type</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
-                      <SelectTrigger data-testid="select-opportunity-type">
+                      <SelectTrigger data-testid="edit-select-opportunity-type">
                         <SelectValue placeholder="Select type" />
                       </SelectTrigger>
                     </FormControl>
@@ -208,9 +226,6 @@ export default function PostOpportunityDialog({ trigger }: PostOpportunityDialog
                       <SelectItem value="collaboration">Collaboration Project</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormDescription>
-                    Choose the type of opportunity you're offering
-                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -226,7 +241,7 @@ export default function PostOpportunityDialog({ trigger }: PostOpportunityDialog
                     <Input 
                       placeholder="e.g., Seeking $2M Series A for Clean Energy Expansion" 
                       {...field} 
-                      data-testid="input-title"
+                      data-testid="edit-input-title"
                     />
                   </FormControl>
                   <FormMessage />
@@ -242,10 +257,10 @@ export default function PostOpportunityDialog({ trigger }: PostOpportunityDialog
                   <FormLabel>Description</FormLabel>
                   <FormControl>
                     <Textarea 
-                      placeholder="Provide detailed information about this opportunity, including goals, requirements, and what you're looking for..."
+                      placeholder="Provide detailed information about this opportunity..."
                       className="min-h-32"
                       {...field}
-                      data-testid="textarea-description"
+                      data-testid="edit-textarea-description"
                     />
                   </FormControl>
                   <FormDescription>
@@ -265,7 +280,7 @@ export default function PostOpportunityDialog({ trigger }: PostOpportunityDialog
                     <FormLabel>Sector/Industry</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger data-testid="select-sector">
+                        <SelectTrigger data-testid="edit-select-sector">
                           <SelectValue placeholder="Select sector" />
                         </SelectTrigger>
                       </FormControl>
@@ -289,7 +304,7 @@ export default function PostOpportunityDialog({ trigger }: PostOpportunityDialog
                   <FormItem>
                     <FormLabel>Budget/Investment Amount</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., $1M - $5M" {...field} data-testid="input-budget" />
+                      <Input placeholder="e.g., $1M - $5M" {...field} data-testid="edit-input-budget" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -310,7 +325,7 @@ export default function PostOpportunityDialog({ trigger }: PostOpportunityDialog
                       disabled={countriesLoading}
                     >
                       <FormControl>
-                        <SelectTrigger data-testid="select-country">
+                        <SelectTrigger data-testid="edit-select-country">
                           <SelectValue placeholder={countriesLoading ? "Loading..." : "Select country"} />
                         </SelectTrigger>
                       </FormControl>
@@ -339,7 +354,7 @@ export default function PostOpportunityDialog({ trigger }: PostOpportunityDialog
                       disabled={!selectedCountryId || citiesLoading}
                     >
                       <FormControl>
-                        <SelectTrigger data-testid="select-city">
+                        <SelectTrigger data-testid="edit-select-city">
                           <SelectValue placeholder={
                             !selectedCountryId 
                               ? "Select country first" 
@@ -370,10 +385,10 @@ export default function PostOpportunityDialog({ trigger }: PostOpportunityDialog
                 <FormItem>
                   <FormLabel>Contact</FormLabel>
                   <FormControl>
-                    <Input placeholder="Your contact email or additional methods" {...field} data-testid="input-contact" />
+                    <Input placeholder="Your contact email or method" {...field} data-testid="edit-input-contact" />
                   </FormControl>
                   <FormDescription>
-                    Your email is pre-filled. Add additional contact methods if needed.
+                    Your email and any additional contact methods
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -384,18 +399,18 @@ export default function PostOpportunityDialog({ trigger }: PostOpportunityDialog
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setOpen(false)}
-                disabled={createOpportunityMutation.isPending}
-                data-testid="button-cancel"
+                onClick={() => onOpenChange(false)}
+                disabled={updateOpportunityMutation.isPending}
+                data-testid="edit-button-cancel"
               >
                 Cancel
               </Button>
               <Button 
                 type="submit" 
-                disabled={createOpportunityMutation.isPending}
-                data-testid="button-submit-opportunity"
+                disabled={updateOpportunityMutation.isPending}
+                data-testid="edit-button-submit"
               >
-                {createOpportunityMutation.isPending ? "Posting..." : "Post Opportunity"}
+                {updateOpportunityMutation.isPending ? "Updating..." : "Update Opportunity"}
               </Button>
             </div>
           </form>

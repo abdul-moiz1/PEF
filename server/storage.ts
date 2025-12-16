@@ -45,6 +45,8 @@ import {
   type InsertRoleUpgradeRequest,
   type ChapterAdmin,
   type InsertChapterAdmin,
+  type ConnectionRequest,
+  type InsertConnectionRequest,
 } from "@shared/schema";
 import { toFirestoreRoles } from "@shared/roleUtils";
 
@@ -198,6 +200,11 @@ export interface IStorage {
   getChapterAdminByUserId(userId: string): Promise<ChapterAdmin | undefined>;
   updateChapterAdmin(id: string, data: Partial<InsertChapterAdmin>): Promise<ChapterAdmin | undefined>;
   deleteChapterAdmin(id: string): Promise<void>;
+  
+  createConnectionRequest(request: InsertConnectionRequest): Promise<ConnectionRequest>;
+  getConnectionRequestsByFromUser(fromUserId: string): Promise<ConnectionRequest[]>;
+  getConnectionRequestsByToUser(toUserId: string): Promise<ConnectionRequest[]>;
+  checkExistingConnectionRequest(fromUserId: string, toUserId: string): Promise<ConnectionRequest | undefined>;
 }
 
 export class FirestoreStorage implements IStorage {
@@ -1961,6 +1968,57 @@ export class FirestoreStorage implements IStorage {
       });
     }
     await getAdminDb().collection("chapterAdmins").doc(id).delete();
+  }
+
+  async createConnectionRequest(request: InsertConnectionRequest): Promise<ConnectionRequest> {
+    const id = this.generateId();
+    const now = new Date();
+    const docRef = getAdminDb().collection("connectionRequests").doc(id);
+    
+    const data = {
+      ...request,
+      status: request.status || "pending",
+      createdAt: now,
+      updatedAt: now,
+    };
+    
+    await docRef.set(data);
+    return normalizeDocData<ConnectionRequest>({ id, ...data });
+  }
+
+  async getConnectionRequestsByFromUser(fromUserId: string): Promise<ConnectionRequest[]> {
+    const querySnapshot = await getAdminDb().collection("connectionRequests")
+      .where("fromUserId", "==", fromUserId)
+      .orderBy("createdAt", "desc")
+      .get();
+    
+    return querySnapshot.docs.map(doc => 
+      normalizeDocData<ConnectionRequest>({ id: doc.id, ...doc.data() })
+    );
+  }
+
+  async getConnectionRequestsByToUser(toUserId: string): Promise<ConnectionRequest[]> {
+    const querySnapshot = await getAdminDb().collection("connectionRequests")
+      .where("toUserId", "==", toUserId)
+      .orderBy("createdAt", "desc")
+      .get();
+    
+    return querySnapshot.docs.map(doc => 
+      normalizeDocData<ConnectionRequest>({ id: doc.id, ...doc.data() })
+    );
+  }
+
+  async checkExistingConnectionRequest(fromUserId: string, toUserId: string): Promise<ConnectionRequest | undefined> {
+    const querySnapshot = await getAdminDb().collection("connectionRequests")
+      .where("fromUserId", "==", fromUserId)
+      .where("toUserId", "==", toUserId)
+      .get();
+    
+    if (!querySnapshot.empty) {
+      const docSnap = querySnapshot.docs[0];
+      return normalizeDocData<ConnectionRequest>({ id: docSnap.id, ...docSnap.data() });
+    }
+    return undefined;
   }
 }
 

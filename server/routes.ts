@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
-import { insertUserProfileSchema, insertUserRolesSchema, insertOpportunitySchema, insertApplicationSchema, jobDetailsSchema, insertVideoSchema, insertLeaderSchema, insertGalleryImageSchema, insertMembershipTierSchema, insertMembershipApplicationSchema, type InsertOpportunity } from "@shared/schema";
+import { insertUserProfileSchema, insertUserRolesSchema, insertOpportunitySchema, insertApplicationSchema, jobDetailsSchema, insertVideoSchema, insertLeaderSchema, insertGalleryImageSchema, insertMembershipTierSchema, insertMembershipApplicationSchema, insertConnectionRequestSchema, type InsertOpportunity } from "@shared/schema";
 import { Resend } from "resend";
 import { verifyIdToken } from "./firebase-admin";
 import { db, Timestamp, FieldValue } from "./firebase-admin";
@@ -923,6 +923,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       return res.status(500).json({ error: "Failed to create application" });
+    }
+  });
+
+  app.post("/api/connection-requests", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      const uid = await verifyAuthToken(token);
+
+      const { toUserId, targetType, message } = req.body;
+
+      if (!toUserId || !targetType) {
+        return res.status(400).json({ error: "Missing required fields: toUserId and targetType" });
+      }
+
+      const existingRequest = await storage.checkExistingConnectionRequest(uid, toUserId);
+      if (existingRequest) {
+        return res.status(409).json({ 
+          error: "Connection request already exists",
+          existingStatus: existingRequest.status 
+        });
+      }
+
+      const validationResult = insertConnectionRequestSchema.safeParse({
+        fromUserId: uid,
+        toUserId,
+        targetType,
+        message: message || null,
+        status: "pending",
+      });
+
+      if (!validationResult.success) {
+        return res.status(400).json({
+          error: "Invalid request data",
+          details: validationResult.error.issues
+        });
+      }
+
+      const connectionRequest = await storage.createConnectionRequest(validationResult.data);
+      return res.status(201).json(connectionRequest);
+    } catch (error) {
+      console.error("Connection request creation error:", error);
+      return res.status(500).json({ error: "Failed to create connection request" });
+    }
+  });
+
+  app.get("/api/connection-requests/sent", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      const uid = await verifyAuthToken(token);
+
+      const requests = await storage.getConnectionRequestsByFromUser(uid);
+      return res.json(requests);
+    } catch (error) {
+      console.error("Get sent connection requests error:", error);
+      return res.status(500).json({ error: "Failed to get connection requests" });
+    }
+  });
+
+  app.get("/api/connection-requests/received", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const token = authHeader.substring(7);
+      const uid = await verifyAuthToken(token);
+
+      const requests = await storage.getConnectionRequestsByToUser(uid);
+      return res.json(requests);
+    } catch (error) {
+      console.error("Get received connection requests error:", error);
+      return res.status(500).json({ error: "Failed to get connection requests" });
     }
   });
 

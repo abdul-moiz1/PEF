@@ -316,6 +316,19 @@ export const chapterAdmins = pgTable("chapter_admins", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const connectionStatusEnum = pgEnum("connection_status", ["pending", "accepted", "rejected"]);
+
+export const connectionRequests = pgTable("connection_requests", {
+  id: varchar("id", { length: 128 }).primaryKey().default(sql`gen_random_uuid()`),
+  fromUserId: varchar("from_user_id", { length: 128 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  toUserId: varchar("to_user_id", { length: 128 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  targetType: varchar("target_type", { length: 50 }).notNull(),
+  message: text("message"),
+  status: connectionStatusEnum("status").default("pending").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({ createdAt: true, lastLogin: true });
 export const selectUserSchema = createSelectSchema(users);
 
@@ -375,6 +388,9 @@ export const selectRoleUpgradeRequestSchema = createSelectSchema(roleUpgradeRequ
 
 export const insertChapterAdminSchema = createInsertSchema(chapterAdmins).omit({ id: true, createdAt: true, updatedAt: true });
 export const selectChapterAdminSchema = createSelectSchema(chapterAdmins);
+
+export const insertConnectionRequestSchema = createInsertSchema(connectionRequests).omit({ id: true, createdAt: true, updatedAt: true });
+export const selectConnectionRequestSchema = createSelectSchema(connectionRequests);
 
 export const jobDetailsSchema = z.object({
   employmentType: z.enum(["full-time", "part-time", "remote", "contract"]).optional(),
@@ -449,6 +465,9 @@ export type InsertRoleUpgradeRequest = z.infer<typeof insertRoleUpgradeRequestSc
 
 export type ChapterAdmin = typeof chapterAdmins.$inferSelect;
 export type InsertChapterAdmin = z.infer<typeof insertChapterAdminSchema>;
+
+export type ConnectionRequest = typeof connectionRequests.$inferSelect;
+export type InsertConnectionRequest = z.infer<typeof insertConnectionRequestSchema>;
 
 export const firestoreCitySchema = z.object({
   id: z.string(),
