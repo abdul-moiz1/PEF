@@ -1,117 +1,35 @@
 # Professional Executive Forum (PEF) Platform
 
 ## Overview
-The Professional Executive Forum (PEF) is a global digital platform designed to collect structured information from professionals, job seekers, employers, business owners, and investors. The platform's current phase focuses on data collection and community building through member registration, profile management, and opportunity posting. Its future phase will implement intelligent matching to connect talent, capital, and business opportunities. PEF launches in Saudi Arabia with international access, emphasizing verified, high-quality data through an admin approval process to foster a trusted professional ecosystem.
+The Professional Executive Forum (PEF) is a global digital platform for collecting structured information from professionals, job seekers, employers, business owners, and investors. Its primary purpose is data collection and community building through member registration, profile management, and opportunity posting. The long-term vision includes intelligent matching to connect talent, capital, and business opportunities. Launching in Saudi Arabia with international access, PEF emphasizes verified, high-quality data through an admin approval process to foster a trusted professional ecosystem.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
-## Recent Changes (Dec 16, 2025)
-- **Employer Job Posting Enhancements** - Improved the job posting workflow with several new features:
-  - Country dropdown selection using the centralized countries API (`/api/locations/countries`)
-  - Auto-filled application email from employer's authenticated account (read-only display)
-  - Preview step allowing employers to review job details before submission
-  - Edit functionality for existing job postings accessible from the employer dashboard
-  - Form state properly resets when dialog opens/closes to prevent stale data
-  - Component location: `client/src/components/PostJobDialog.tsx`
-
-## Previous Changes (Dec 8, 2025)
-- **Rejected User Access Block** - Rejected/suspended users can no longer access the dashboard; they see a beautiful suspension message on login with options to contact support or sign out
-  - Added `useMemberStatus` hook check in Login.tsx to block rejected users
-  - Shows "Account Suspended" message with clear explanation and action buttons
-  - Prevents redirect to dashboard until member status is verified
-- **Page Scroll Reset on Navigation** - Added ScrollToTop component in App.tsx that resets scroll position to top when navigating between pages
-  - Fixes issue where scroll position was retained when moving between pages
-  - Works with all navigation including navbar clicks
-- **Dashboard Onboarding Cards** - Added reusable OnboardingCard component to collect role-specific data inline on dashboards after login
-  - Integrated into all 5 dashboard types: Job Seeker, Professional, Employer, Business Owner, and Investor
-  - Role-specific form fields: education, skills, experience (Job Seeker/Professional), company info (Employer), business details (Business Owner), investment preferences (Investor)
-  - Progress tracking with visual progress bar and completion status
-  - Collapsible UI that auto-hides when profile is 100% complete
-  - Data stored in Firestore under respective `*Data` fields (jobSeekerData, professionalData, etc.)
-  - Component location: `client/src/components/OnboardingCard.tsx`
-- **Role Upgrade Request with Document Upload** - Users can no longer directly edit roles; must submit upgrade requests with proof document uploads for admin approval
-- **Read-Only Role Display** - EditProfile roles tab now shows current roles as read-only status cards with "Active" or "Pending" badges
-- **DocumentUpload Component** - New reusable component (`client/src/components/DocumentUpload.tsx`) for uploading proof documents (images, PDFs, Word docs up to 10MB)
-- **Profile Save Without Roles** - handleSave function no longer persists role changes; only profile data and role-specific details are saved
-- **Registration Form Field Selection** - Added Professional Field and Specialization dropdowns to registration form using admin-managed fields from `/api/fields`
-- **Admin-Managed Fields Configuration** - New `/admin/fields` page for managing Main Fields (Electrical, Mechanical, Civil, etc.) and dependent Sub-Fields with sort order
-- **Role Upgrade Request System** - New `/admin/role-upgrade-requests` page for reviewing and approving/rejecting role upgrade requests with proof validation
-- **Chapter Admin Role** - Added Chapter Admin role schema for regional management capabilities
-- **Database Schema Updates** - Added fieldsConfig, roleUpgradeRequests, and chapterAdmins tables to shared/schema.ts
-- **Navigation Links** - Added Fields and Role Requests to Admin Dashboard quick access cards
-
-## Previous Changes (Dec 5, 2025)
-- **Admin Dashboard Restructured** - Moved Media management from top-level tab to Content Management section
-- **Dedicated AdminMedia Page** - New `/admin/media` page for video library management with full CRUD operations
-- **YouTube Channel Integration** - Official PEF YouTube channel link updated throughout (Footer, Media page): `https://youtube.com/@professionalexecutiveforum?si=bnOpAY1uvIx24KmX`
-- **Code Cleanup** - Removed unused video-related state and handlers from AdminDashboard for cleaner codebase
-
-## Previous Changes (Dec 2, 2025)
-- **Admin Dashboard Stats Updated** - Replaced Videos stat card with Applications count showing total job applications
-- **Role Counting Fixed** - Admin stats now correctly count users across all three role data patterns (legacy nested, `is*` prefix nested, and top-level booleans)
-- **User Roles Chart Improved** - Legend shows role names only; counts appear on hover tooltip
-- **Admin Dashboard Filter UI Fixed** - Updated filter controls with proper bordered styling matching design reference (Search, All Roles, All Countries dropdowns)
-- **CSV Download by Country Fixed** - Country filtering now uses country names consistently between frontend and backend, enabling proper country-wise user exports
-- **Global Reach Country Management with Firestore** - Complete Firestore integration for country management with isPrimary and comingSoon fields
-- **Selected Countries Section** - New admin panel section showing all enabled countries in a visual grid with flags
-- **Primary Market & Coming Soon Flags** - Toggle buttons persist to Firestore and immediately reflect on home page
-- **Admin Location Tab Enhanced** - Star icon (Primary), Clock icon (Coming Soon), and quick remove (X) buttons
-- **Dynamic Global Reach Display** - Home page section fetches countries from API and displays dynamically with proper sorting
-- **Flag Rendering** - Uses country-flag-icons library with graceful fallback for unmapped country codes
-
-## Previous Changes (Dec 1, 2025)
-- **Centralized Country-City Management System** - Fully implemented with admin CRUD operations at `/admin/locations`
-- **Country-City Data in PostgreSQL** - 198 countries with phone codes seeded and synced with Drizzle ORM
-- **Public API Endpoints** - `/api/locations/countries` and `/api/locations/countries/:countryId/cities` for dropdowns
-- **All Forms Integrated** - Register, Signup, EditProfile, ProfileEdit all use centralized country/city/phone code dropdowns
-- **Fixed Signup Form** - Added missing `useQuery` calls for countries and cities data
-- **Phone Field Improvements** - All forms now auto-populate phone code from selected country
-
 ## System Architecture
 
 ### Frontend
-The frontend uses React with TypeScript and Vite. It leverages `shadcn/ui` (built on Radix UI and Tailwind CSS) for its component library, `Wouter` for client-side routing, and `TanStack Query` for server state management. The design system incorporates a navy blue, light blue, and orange/gold color palette, Inter/Open Sans and Montserrat typography, and is responsive with a mobile-first approach. Multi-language support (English, Arabic, Urdu) is planned.
+The frontend uses React with TypeScript and Vite, leveraging `shadcn/ui` (built on Radix UI and Tailwind CSS) for components, `Wouter` for routing, and `TanStack Query` for server state management. It features a navy blue, light blue, and orange/gold color palette, Inter/Open Sans and Montserrat typography, and a responsive, mobile-first design. Multi-language support (English, Arabic, Urdu) is planned.
 
 ### Backend
-The backend is built with Express.js on Node.js with TypeScript, featuring a RESTful API. It uses an abstracted storage interface, currently implemented with Firestore for data persistence. Infrastructure for session management with `connect-pg-simple` (for PostgreSQL) is in place. Development uses Vite middleware for HMR, while production uses esbuild.
+The backend is built with Express.js on Node.js with TypeScript, providing a RESTful API. It uses an abstracted storage interface currently implemented with Firestore for data persistence. Session management infrastructure with `connect-pg-simple` for PostgreSQL is in place.
 
 ### Data
-Drizzle ORM is configured for Neon Serverless PostgreSQL, providing type-safe queries and migrations. The current schema includes a `users` table and is designed for sharing between client and server. Drizzle-Zod provides runtime validation. Future expansion will include multi-role profiles, role-specific data, opportunity listings, a member directory, and admin approval workflows.
+Neon Serverless PostgreSQL is used with Drizzle ORM for type-safe queries and migrations. The schema includes a `users` table and is designed for shared client-server use. Drizzle-Zod provides runtime validation. The system supports multi-role profiles and role-specific data, with future expansion for opportunity listings, member directories, and admin approval workflows.
 
 ### Centralized Location Management
-The platform includes a centralized country-city management system where admins can:
-- Enable/disable countries and cities for display in dropdowns across the site
-- Edit display names to correct spellings or localize names
-- Add new cities to countries
-- Seed the initial country list from `server/data/countries.json`
-
-**Admin Endpoints:**
-- `GET /api/admin/countries` - List all countries (admin only)
-- `PATCH /api/admin/countries/:id` - Update country (enabled, displayName)
-- `GET /api/admin/countries/:countryId/cities` - List cities for a country
-- `POST /api/admin/countries/:countryId/cities` - Add a new city
-- `PATCH /api/admin/cities/:id` - Update city (enabled, displayName)
-- `DELETE /api/admin/cities/:id` - Delete a city
-- `POST /api/admin/seed-countries` - Seed countries from JSON file
-
-**Public Endpoints (for dropdowns):**
-- `GET /api/locations/countries` - Get enabled countries
-- `GET /api/locations/countries/:countryId/cities` - Get enabled cities
-
-**Admin UI:** `/admin/locations` - Two-column interface with countries list and cities list, search filtering, inline editing, and enable/disable toggles.
+A comprehensive country-city management system allows admins to enable/disable countries and cities, edit display names, add new cities, and seed initial country data. Public API endpoints (`/api/locations/countries`, `/api/locations/countries/:countryId/cities`) provide data for dropdowns. The admin UI is at `/admin/locations`.
 
 ### Authentication & Authorization
-Firebase Authentication handles user registration, login, and password resets. Firestore is the primary data store for all application data, including user profiles, opportunities, and applications, with server-side access via the Firebase Admin SDK. Users can complete registration and import LinkedIn profile data via OAuth 2.0. An admin panel allows filtering and managing user approval statuses. Security measures include user-specific cache keys for TanStack Query, authenticated queries, and mutation cache invalidation. **Critical security concern**: Firebase Admin SDK token verification is currently disabled in deployment when the service account is not configured, which is a severe vulnerability that must be addressed before production. Image uploads are authenticated and validated for MIME type, size, and path security.
+Firebase Authentication handles user registration, login, and password resets. Firestore serves as the primary data store, with server-side access via the Firebase Admin SDK. Users can register and import LinkedIn data via OAuth 2.0. An admin panel manages user approval statuses. Image uploads are authenticated and validated. **Critical Security Note**: Firebase Admin SDK token verification is currently disabled in deployment without service account configuration, posing a severe vulnerability that must be addressed before production.
 
 ## External Dependencies
 
 ### UI Component Libraries
 - **Radix UI**: Accessible, unstyled UI primitives.
 - **shadcn/ui**: Styled components built on Radix UI with Tailwind CSS.
-- **Lucide React**: Icon library.
-- **React Icons**: Additional icon sets (e.g., social media).
-- **Embla Carousel**: Carousel/slider functionality.
+- **Lucide React, React Icons**: Icon libraries.
+- **Embla Carousel**: Carousel functionality.
 
 ### Database & ORM
 - **Neon Serverless PostgreSQL**: Cloud-native database.
@@ -133,23 +51,11 @@ Firebase Authentication handles user registration, login, and password resets. F
 - **class-variance-authority**: Type-safe variant API.
 - **clsx & tailwind-merge**: Utilities for class composition.
 
-### Development Tools
-- **TypeScript**: For type safety.
-- **Vite**: Fast development server and build tool.
-- **esbuild**: Fast JavaScript bundler.
-- **tsx**: TypeScript execution environment.
-
 ### Third-Party Integrations
+- **Resend Email Service**: Transactional email service with an abstraction layer (`server/services/email.service.ts`).
+  - Current provider: Resend (sender: onboarding@resend.dev, admin notifications to: abdulmoiz.cloud25@gmail.com).
 - **Replit Plugins**: Development-specific tools.
-- **Resend Email Service**: Transactional email service with abstraction layer for easy provider switching.
-  - Current provider: Resend
-  - Sender email: onboarding@resend.dev (requires domain verification for production)
-  - Admin notifications sent to: abdulmoiz.cloud25@gmail.com
-  - Email service abstraction layer located at: `server/services/email.service.ts`
-  - To switch to SendGrid: Follow instructions in email.service.ts comments
-
-### Asset Management
-- **Attached Assets**: Generated images stored locally with Vite alias.
+- **YouTube**: Official PEF channel integrated.
 
 ### Browser APIs & Utilities
 - **date-fns**: Date utility library.
@@ -159,45 +65,3 @@ Firebase Authentication handles user registration, login, and password resets. F
 ### Session & Security
 - **connect-pg-simple**: PostgreSQL session store.
 - **Environment Variables**: `DATABASE_URL`, `NODE_ENV`, `RESEND_API_KEY`.
-
-## Email Service Architecture
-
-The platform uses an abstraction layer for email services, making it easy to switch providers without changing application code.
-
-### Current Setup
-- **Provider**: Resend
-- **Service File**: `server/services/email.service.ts`
-- **Sender Email**: onboarding@resend.dev (temporary, requires domain verification)
-- **Admin Email**: abdulmoiz.cloud25@gmail.com
-
-### Email Notifications
-1. **Contact Form Submissions**
-   - Admin notification: Sent to admin with full contact details and reply-to address
-   - User confirmation: Sent to user confirming receipt and expected response time
-
-2. **Opportunity Submissions**
-   - Admin notification: Sent to admin with opportunity details and approval link
-   - User confirmation: Sent to submitter confirming receipt and review process
-
-### Switching Email Providers
-
-To switch from Resend to SendGrid (or another provider):
-
-1. Install the new provider's package:
-   ```bash
-   npm install @sendgrid/mail
-   ```
-
-2. Update `server/services/email.service.ts`:
-   - Follow the detailed comments at the top of the file
-   - Replace Resend implementation with SendGrid code (example provided)
-   - Update the email sending logic in the `sendEmail()` method
-
-3. Update environment variable:
-   - Change `RESEND_API_KEY` to `SENDGRID_API_KEY`
-   - Update the secret in Replit Secrets
-
-4. Update sender email:
-   - Change `fromEmail` in EmailService class to your verified domain
-
-No other files need to be modified - all email sending is abstracted through the EmailService class.
