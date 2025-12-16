@@ -5,13 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TrendingUp, Target, DollarSign, Briefcase, Building2, Eye, BookmarkPlus, Users, Edit, Search } from "lucide-react";
+import { TrendingUp, Target, DollarSign, Briefcase, Building2, Eye, BookmarkPlus, Users, Edit, Search, X, MapPin, Calendar, Mail, Phone, Globe, UserCheck } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 
 interface BusinessOwnerProfile {
   user: {
@@ -58,8 +61,10 @@ export default function InvestorDashboard() {
   const [activeTab, setActiveTab] = useState("opportunities");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
+  const [selectedBusinessOwner, setSelectedBusinessOwner] = useState<BusinessOwnerProfile | null>(null);
+  const { toast } = useToast();
 
-  const investorData = userData?.investorData || {};
   const isLoading = authLoading || rolesLoading;
 
   if (isLoading) {
@@ -94,11 +99,6 @@ export default function InvestorDashboard() {
       </div>
     );
   }
-
-  const investmentRange = investorData.investmentRange || "Not specified";
-  const preferredStage = investorData.preferredStage || "Not specified";
-  const investmentFocus = investorData.investmentFocus || [];
-  const industries = investorData.industries || [];
 
   // Fetch investment opportunities
   const { data: opportunities = [], isLoading: opportunitiesLoading } = useQuery<Opportunity[]>({
@@ -166,6 +166,54 @@ export default function InvestorDashboard() {
            (owner.businessOwnerData?.industry?.toLowerCase().includes(query));
   });
 
+  // Fetch sent connection requests to check if already connected
+  const { data: sentRequests = [] } = useQuery<{ receiverId: string; status: string }[]>({
+    queryKey: ["/api/connection-requests/sent", currentUser?.uid],
+    queryFn: async () => {
+      if (!currentUser) throw new Error("Not authenticated");
+      const token = await currentUser.getIdToken(true);
+      const response = await fetch("/api/connection-requests/sent", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error("Failed to fetch connection requests");
+      return response.json();
+    },
+    enabled: !!currentUser && hasRole("investor"),
+  });
+
+  // Connect mutation
+  const connectMutation = useMutation({
+    mutationFn: async (receiverId: string) => {
+      if (!currentUser) throw new Error("Not authenticated");
+      const token = await currentUser.getIdToken(true);
+      const response = await fetch("/api/connection-requests", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ receiverId }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to send connection request");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Connection request sent", description: "The business owner will be notified" });
+      queryClient.invalidateQueries({ queryKey: ["/api/connection-requests/sent"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to connect", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const getConnectionStatus = (userId: string) => {
+    const request = sentRequests.find(r => r.receiverId === userId);
+    return request?.status || null;
+  };
+
   return (
     <div className="min-h-screen">
       <Header />
@@ -192,10 +240,6 @@ export default function InvestorDashboard() {
             <TabsTrigger value="business-owners" data-testid="tab-business-owners">
               <Building2 className="w-4 h-4 mr-2" />
               Business Owners
-            </TabsTrigger>
-            <TabsTrigger value="profile" data-testid="tab-profile">
-              <Users className="w-4 h-4 mr-2" />
-              Profile
             </TabsTrigger>
           </TabsList>
 
@@ -284,7 +328,7 @@ export default function InvestorDashboard() {
                               <div className="flex flex-wrap gap-2">
                                 <Button 
                                   size="sm" 
-                                  onClick={() => setLocation(`/opportunities/${opp.id}`)}
+                                  onClick={() => setSelectedOpportunity(opp)}
                                   data-testid={`button-view-opportunity-${opp.id}`}
                                 >
                                   View
@@ -349,35 +393,59 @@ export default function InvestorDashboard() {
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredBusinessOwners.map((owner, idx) => (
-                          <tr key={owner.user.id} className="border-b hover-elevate" data-testid={`row-business-owner-${idx}`}>
-                            <td className="py-3 px-4 font-medium">
-                              {owner.user.displayName || owner.user.email}
-                            </td>
-                            <td className="py-3 px-4">
-                              {owner.businessOwnerData?.businessName || "N/A"}
-                            </td>
-                            <td className="py-3 px-4">
-                              {owner.businessOwnerData?.industry || "N/A"}
-                            </td>
-                            <td className="py-3 px-4">
-                              {owner.businessOwnerData?.businessType || "N/A"}
-                            </td>
-                            <td className="py-3 px-4">
-                              {owner.businessOwnerData?.revenue || "N/A"}
-                            </td>
-                            <td className="py-3 px-4">
-                              <div className="flex flex-wrap gap-2">
-                                <Button size="sm" data-testid={`button-connect-${idx}`}>
-                                  Connect
-                                </Button>
-                                <Button size="sm" variant="outline" data-testid={`button-view-${idx}`}>
-                                  View
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
+                        {filteredBusinessOwners.map((owner, idx) => {
+                          const connectionStatus = getConnectionStatus(owner.user.id);
+                          return (
+                            <tr key={owner.user.id} className="border-b hover-elevate" data-testid={`row-business-owner-${idx}`}>
+                              <td className="py-3 px-4 font-medium">
+                                {owner.user.displayName || owner.user.email}
+                              </td>
+                              <td className="py-3 px-4">
+                                {owner.businessOwnerData?.businessName || "N/A"}
+                              </td>
+                              <td className="py-3 px-4">
+                                {owner.businessOwnerData?.industry || "N/A"}
+                              </td>
+                              <td className="py-3 px-4">
+                                {owner.businessOwnerData?.businessType || "N/A"}
+                              </td>
+                              <td className="py-3 px-4">
+                                {owner.businessOwnerData?.revenue || "N/A"}
+                              </td>
+                              <td className="py-3 px-4">
+                                <div className="flex flex-wrap gap-2">
+                                  {connectionStatus === "pending" ? (
+                                    <Badge variant="secondary" data-testid={`badge-pending-${idx}`}>
+                                      Pending
+                                    </Badge>
+                                  ) : connectionStatus === "accepted" ? (
+                                    <Badge variant="default" data-testid={`badge-connected-${idx}`}>
+                                      <UserCheck className="w-3 h-3 mr-1" />
+                                      Connected
+                                    </Badge>
+                                  ) : (
+                                    <Button 
+                                      size="sm" 
+                                      onClick={() => connectMutation.mutate(owner.user.id)}
+                                      disabled={connectMutation.isPending}
+                                      data-testid={`button-connect-${idx}`}
+                                    >
+                                      Connect
+                                    </Button>
+                                  )}
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    onClick={() => setSelectedBusinessOwner(owner)}
+                                    data-testid={`button-view-${idx}`}
+                                  >
+                                    View
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -386,103 +454,191 @@ export default function InvestorDashboard() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="profile" className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Investment Profile</CardTitle>
-                    <CardDescription>Your investment preferences and focus areas</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        </Tabs>
+
+        {/* Investment Opportunity Preview Dialog */}
+        <Dialog open={!!selectedOpportunity} onOpenChange={(open) => !open && setSelectedOpportunity(null)}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="dialog-opportunity-detail">
+            {selectedOpportunity && (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="text-xl">{selectedOpportunity.title}</DialogTitle>
+                  <DialogDescription>
+                    <Badge variant="secondary" className="mt-2">{selectedOpportunity.type}</Badge>
+                    {selectedOpportunity.status === "open" && (
+                      <Badge variant="default" className="ml-2">Open</Badge>
+                    )}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 mt-4">
+                  {selectedOpportunity.description && (
+                    <div>
+                      <h4 className="font-medium mb-1">Description</h4>
+                      <p className="text-sm text-muted-foreground">{selectedOpportunity.description}</p>
+                    </div>
+                  )}
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center gap-2">
+                      <Briefcase className="w-4 h-4 text-muted-foreground" />
                       <div>
-                        <p className="text-sm font-medium mb-1">Investment Range</p>
-                        <p className="text-sm text-muted-foreground">{investmentRange}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium mb-1">Preferred Stage</p>
-                        <p className="text-sm text-muted-foreground">{preferredStage}</p>
+                        <p className="text-xs text-muted-foreground">Sector</p>
+                        <p className="text-sm font-medium">{selectedOpportunity.sector || "N/A"}</p>
                       </div>
                     </div>
-                    
-                    {investmentFocus.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-muted-foreground" />
                       <div>
-                        <p className="text-sm font-medium mb-2">Investment Focus</p>
-                        <div className="flex flex-wrap gap-2">
-                          {investmentFocus.map((focus: string, idx: number) => (
-                            <Badge key={idx} variant="secondary" data-testid={`badge-focus-${idx}`}>{focus}</Badge>
-                          ))}
+                        <p className="text-xs text-muted-foreground">Location</p>
+                        <p className="text-sm font-medium">
+                          {[selectedOpportunity.city, selectedOpportunity.country].filter(Boolean).join(", ") || "N/A"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Investment Amount</p>
+                        <p className="text-sm font-medium">
+                          {selectedOpportunity.metadata?.investmentAmount || selectedOpportunity.budgetOrSalary || "N/A"}
+                        </p>
+                      </div>
+                    </div>
+                    {selectedOpportunity.metadata?.equity && (
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Equity Offered</p>
+                          <p className="text-sm font-medium">{selectedOpportunity.metadata.equity}%</p>
                         </div>
                       </div>
                     )}
-                    
-                    {industries.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-muted-foreground" />
                       <div>
-                        <p className="text-sm font-medium mb-2">Preferred Industries</p>
-                        <div className="flex flex-wrap gap-2">
-                          {industries.map((industry: string, idx: number) => (
-                            <Badge key={idx} variant="secondary" data-testid={`badge-industry-${idx}`}>{industry}</Badge>
-                          ))}
-                        </div>
+                        <p className="text-xs text-muted-foreground">Posted</p>
+                        <p className="text-sm font-medium">{format(new Date(selectedOpportunity.createdAt), "MMM d, yyyy")}</p>
                       </div>
-                    )}
+                    </div>
+                  </div>
 
-                    <Button onClick={() => setLocation("/edit-profile")} data-testid="button-edit-investor-profile">
-                      <Edit className="w-4 h-4 mr-2" />
-                      Edit Profile
+                  <div className="flex flex-wrap gap-2 pt-4 border-t">
+                    <Button onClick={() => setLocation(`/opportunities/${selectedOpportunity.id}`)} data-testid="button-view-full-opportunity">
+                      View Full Details
                     </Button>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <div className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Quick Actions</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <Button className="w-full" variant="outline" onClick={() => setActiveTab("opportunities")} data-testid="button-search-opportunities">
-                      <Target className="w-4 h-4 mr-2" />
-                      Search Opportunities
-                    </Button>
-                    <Button className="w-full" variant="outline" onClick={() => setActiveTab("business-owners")} data-testid="button-browse-businesses">
-                      <Building2 className="w-4 h-4 mr-2" />
-                      Browse Businesses
-                    </Button>
-                    <Button className="w-full" variant="outline" data-testid="button-saved-deals">
+                    <Button variant="outline" data-testid="button-save-opportunity">
                       <BookmarkPlus className="w-4 h-4 mr-2" />
-                      Saved Deals
+                      Save
                     </Button>
-                    <Button className="w-full" variant="outline" data-testid="button-analytics">
-                      <TrendingUp className="w-4 h-4 mr-2" />
-                      Analytics
-                    </Button>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Recent Activity</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {[
-                      { action: "New deal matched", time: "1 hour ago" },
-                      { action: "Saved opportunity", time: "3 hours ago" },
-                      { action: "Portfolio update available", time: "1 day ago" },
-                      { action: "New sector report", time: "2 days ago" },
-                    ].map((activity, idx) => (
-                      <div key={idx} className="text-sm" data-testid={`activity-${idx}`}>
-                        <p className="font-medium">{activity.action}</p>
-                        <p className="text-xs text-muted-foreground">{activity.time}</p>
+        {/* Business Owner Detail Dialog */}
+        <Dialog open={!!selectedBusinessOwner} onOpenChange={(open) => !open && setSelectedBusinessOwner(null)}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="dialog-business-owner-detail">
+            {selectedBusinessOwner && (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="text-xl">
+                    {selectedBusinessOwner.businessOwnerData?.businessName || selectedBusinessOwner.user.displayName || "Business Owner"}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {selectedBusinessOwner.businessOwnerData?.industry && (
+                      <Badge variant="secondary" className="mt-2">{selectedBusinessOwner.businessOwnerData.industry}</Badge>
+                    )}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 mt-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Contact Name</p>
+                        <p className="text-sm font-medium">{selectedBusinessOwner.user.displayName || "N/A"}</p>
                       </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Email</p>
+                        <p className="text-sm font-medium">{selectedBusinessOwner.user.email}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Building2 className="w-4 h-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Business Type</p>
+                        <p className="text-sm font-medium">{selectedBusinessOwner.businessOwnerData?.businessType || "N/A"}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Briefcase className="w-4 h-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Industry</p>
+                        <p className="text-sm font-medium">{selectedBusinessOwner.businessOwnerData?.industry || "N/A"}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Revenue</p>
+                        <p className="text-sm font-medium">{selectedBusinessOwner.businessOwnerData?.revenue || "N/A"}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Employees</p>
+                        <p className="text-sm font-medium">{selectedBusinessOwner.businessOwnerData?.employees || "N/A"}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Member Since</p>
+                        <p className="text-sm font-medium">{format(new Date(selectedBusinessOwner.user.createdAt), "MMM d, yyyy")}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 pt-4 border-t">
+                    {(() => {
+                      const status = getConnectionStatus(selectedBusinessOwner.user.id);
+                      if (status === "pending") {
+                        return <Badge variant="secondary">Connection Pending</Badge>;
+                      } else if (status === "accepted") {
+                        return (
+                          <Badge variant="default">
+                            <UserCheck className="w-3 h-3 mr-1" />
+                            Connected
+                          </Badge>
+                        );
+                      } else {
+                        return (
+                          <Button
+                            onClick={() => {
+                              connectMutation.mutate(selectedBusinessOwner.user.id);
+                              setSelectedBusinessOwner(null);
+                            }}
+                            disabled={connectMutation.isPending}
+                            data-testid="button-connect-from-dialog"
+                          >
+                            <UserCheck className="w-4 h-4 mr-2" />
+                            Connect
+                          </Button>
+                        );
+                      }
+                    })()}
+                  </div>
+                </div>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
       </main>
       <Footer />
     </div>
