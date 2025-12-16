@@ -734,13 +734,13 @@ export class FirestoreStorage implements IStorage {
       console.log(`👤 Checking user ${userData.email}:`, {
         roles: userData.roles,
         approvalStatus: userData.approvalStatus,
-        hasProfessionalRole: userData.roles?.professional,
-        hasJobSeekerRole: userData.roles?.jobSeeker,
+        hasProfessionalRole: userData.roles?.isProfessional,
+        hasJobSeekerRole: userData.roles?.isJobSeeker,
       });
       
       const hasRole = role === "professional" 
-        ? userData.roles?.professional 
-        : userData.roles?.jobSeeker;
+        ? (userData.roles?.isProfessional ?? userData.roles?.professional)
+        : (userData.roles?.isJobSeeker ?? userData.roles?.jobSeeker);
       
       if (!hasRole) {
         console.log(`  ❌ User ${userData.email} does not have ${role} role`);
