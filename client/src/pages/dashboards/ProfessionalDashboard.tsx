@@ -4,7 +4,9 @@ import { useUserRoles } from "@/hooks/useUserRoles";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Briefcase, Search, Mail, MapPin, Calendar, ChevronDown, ChevronUp, Edit } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import { Briefcase, Search, Mail, MapPin, Calendar, ChevronDown, ChevronUp, Edit, Building, DollarSign, CheckCircle } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useLocation } from "wouter";
@@ -12,6 +14,8 @@ import { useQuery } from "@tanstack/react-query";
 import type { Opportunity } from "@shared/schema";
 import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
+import { getUserData } from "@/lib/firestoreUtils";
+import type { FirestoreUser } from "@shared/firestoreTypes";
 
 export default function ProfessionalDashboard() {
   const { currentUser, userData, loading: authLoading } = useAuth();
@@ -19,6 +23,9 @@ export default function ProfessionalDashboard() {
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedJob, setExpandedJob] = useState<string | null>(null);
+  const [selectedJob, setSelectedJob] = useState<Opportunity | null>(null);
+  const [employerData, setEmployerData] = useState<FirestoreUser | null>(null);
+  const [loadingEmployer, setLoadingEmployer] = useState(false);
 
   const professionalData = userData?.professionalData || {};
   const isLoading = authLoading || rolesLoading;
@@ -86,25 +93,44 @@ export default function ProfessionalDashboard() {
            (opp.description?.toLowerCase().includes(query));
   });
 
-  const getJobEmail = (opp: Opportunity): string | null => {
-    // Check top-level email fields first
-    const oppAny = opp as Record<string, unknown>;
-    if (typeof oppAny.email === 'string' && oppAny.email) return oppAny.email;
-    if (typeof oppAny.contactEmail === 'string' && oppAny.contactEmail) return oppAny.contactEmail;
-    
-    // Check details object for various email field names
-    if (opp.details && typeof opp.details === 'object') {
-      const details = opp.details as Record<string, unknown>;
-      if (typeof details.contactEmail === 'string' && details.contactEmail) return details.contactEmail;
-      if (typeof details.email === 'string' && details.email) return details.email;
-      if (typeof details.contact === 'string' && details.contact?.includes('@')) return details.contact;
-    }
-    
-    return null;
-  };
-
   const toggleJobDetails = (jobId: string) => {
     setExpandedJob(expandedJob === jobId ? null : jobId);
+  };
+
+  const handleViewFullDetails = async (opp: Opportunity) => {
+    setSelectedJob(opp);
+    setLoadingEmployer(true);
+    try {
+      if (opp.userId) {
+        const employer = await getUserData(opp.userId);
+        setEmployerData(employer);
+      } else {
+        setEmployerData(null);
+      }
+    } catch (error) {
+      console.error("Error loading employer data:", error);
+      setEmployerData(null);
+    } finally {
+      setLoadingEmployer(false);
+    }
+  };
+
+  const handleCloseDialog = () => {
+    setSelectedJob(null);
+    setEmployerData(null);
+  };
+
+  const getJobDetails = (opp: Opportunity) => {
+    const details = opp.details as Record<string, unknown> || {};
+    return {
+      requirements: Array.isArray(details.requirements) ? details.requirements as string[] : [],
+      skills: Array.isArray(details.skills) ? details.skills as string[] : [],
+      benefits: Array.isArray(details.benefits) ? details.benefits as string[] : [],
+      employmentType: typeof details.employmentType === 'string' ? details.employmentType : null,
+      salaryMin: typeof details.salaryMin === 'number' ? details.salaryMin : null,
+      salaryMax: typeof details.salaryMax === 'number' ? details.salaryMax : null,
+      salaryCurrency: typeof details.salaryCurrency === 'string' ? details.salaryCurrency : 'USD',
+    };
   };
 
   return (
@@ -157,7 +183,6 @@ export default function ProfessionalDashboard() {
             ) : (
               <div className="space-y-4">
                 {filteredOpportunities.map((opp) => {
-                  const email = getJobEmail(opp);
                   const isExpanded = expandedJob === opp.id;
                   const location = [opp.city, opp.country].filter(Boolean).join(", ");
                   
@@ -194,7 +219,7 @@ export default function ProfessionalDashboard() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Badge variant="secondary">{opp.type}</Badge>
+                            <Badge variant="default">{opp.type}</Badge>
                             {isExpanded ? (
                               <ChevronUp className="w-5 h-5 text-muted-foreground" />
                             ) : (
@@ -215,27 +240,18 @@ export default function ProfessionalDashboard() {
                           
                           <div className="flex flex-wrap items-center gap-4">
                             <div className="flex items-center gap-2 bg-background p-3 rounded-md border">
-                              <Mail className="w-4 h-4 text-primary" />
+                              <Mail className="w-4 h-4 text-muted-foreground" />
                               <div>
                                 <p className="text-xs text-muted-foreground">Contact Email</p>
-                                {email ? (
-                                  <a 
-                                    href={`mailto:${email}`} 
-                                    className="text-sm font-medium text-primary hover:underline"
-                                    data-testid={`link-email-${opp.id}`}
-                                  >
-                                    {email}
-                                  </a>
-                                ) : (
-                                  <span className="text-sm text-muted-foreground" data-testid={`text-no-email-${opp.id}`}>
-                                    View full details to contact
-                                  </span>
-                                )}
+                                <span className="text-sm">View full details to contact</span>
                               </div>
                             </div>
                             
                             <Button 
-                              onClick={() => setLocation(`/opportunities/${opp.id}`)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleViewFullDetails(opp);
+                              }}
                               data-testid={`button-view-details-${opp.id}`}
                             >
                               View Full Details
@@ -252,6 +268,148 @@ export default function ProfessionalDashboard() {
         </Card>
       </main>
       <Footer />
+
+      <Dialog open={!!selectedJob} onOpenChange={handleCloseDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          {selectedJob && (
+            <>
+              <DialogHeader>
+                <div className="flex flex-wrap items-center gap-2">
+                  <DialogTitle className="text-xl">{selectedJob.title}</DialogTitle>
+                  <Badge variant="default">{selectedJob.type}</Badge>
+                </div>
+              </DialogHeader>
+
+              <div className="space-y-6 mt-4">
+                {(() => {
+                  const location = [selectedJob.city, selectedJob.country].filter(Boolean).join(", ");
+                  const details = getJobDetails(selectedJob);
+                  
+                  return (
+                    <>
+                      <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                        {selectedJob.sector && (
+                          <div className="flex items-center gap-1">
+                            <Briefcase className="w-4 h-4" />
+                            <span>{selectedJob.sector}</span>
+                          </div>
+                        )}
+                        {details.employmentType && (
+                          <div className="flex items-center gap-1">
+                            <Building className="w-4 h-4" />
+                            <span className="capitalize">{details.employmentType.replace("-", " ")}</span>
+                          </div>
+                        )}
+                        {location && (
+                          <div className="flex items-center gap-1">
+                            <MapPin className="w-4 h-4" />
+                            <span>{location}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1">
+                          <Calendar className="w-4 h-4" />
+                          <span>Posted {format(new Date(selectedJob.createdAt), "MMM d, yyyy")}</span>
+                        </div>
+                      </div>
+
+                      {(details.salaryMin || details.salaryMax) && (
+                        <div className="flex items-center gap-2">
+                          <DollarSign className="w-4 h-4 text-muted-foreground" />
+                          <span className="font-medium">
+                            {details.salaryCurrency} {details.salaryMin?.toLocaleString()}
+                            {details.salaryMax && ` - ${details.salaryMax.toLocaleString()}`}
+                          </span>
+                        </div>
+                      )}
+
+                      <Separator />
+
+                      {selectedJob.description && (
+                        <div>
+                          <h4 className="font-semibold mb-2">Description</h4>
+                          <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedJob.description}</p>
+                        </div>
+                      )}
+
+                      {details.requirements.length > 0 && (
+                        <div>
+                          <h4 className="font-semibold mb-2">Requirements</h4>
+                          <ul className="space-y-2">
+                            {details.requirements.map((req, index) => (
+                              <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
+                                <CheckCircle className="w-4 h-4 mt-0.5 text-green-500 flex-shrink-0" />
+                                <span>{req}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {details.skills.length > 0 && (
+                        <div>
+                          <h4 className="font-semibold mb-2">Skills</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {details.skills.map((skill, index) => (
+                              <Badge key={index} variant="secondary">
+                                {skill}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {details.benefits.length > 0 && (
+                        <div>
+                          <h4 className="font-semibold mb-2">Benefits</h4>
+                          <ul className="space-y-2">
+                            {details.benefits.map((benefit, index) => (
+                              <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
+                                <CheckCircle className="w-4 h-4 mt-0.5 text-primary flex-shrink-0" />
+                                <span>{benefit}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      <Separator />
+
+                      <div>
+                        <h4 className="font-semibold mb-3">Contact Information</h4>
+                        {loadingEmployer ? (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                            <span>Loading contact details...</span>
+                          </div>
+                        ) : employerData ? (
+                          <div className="bg-muted/50 rounded-md p-4 space-y-2">
+                            <div className="flex items-center gap-2">
+                              <Building className="w-4 h-4 text-muted-foreground" />
+                              <span className="font-medium">{employerData.employerData?.companyName || employerData.fullName}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Mail className="w-4 h-4 text-muted-foreground" />
+                              <a 
+                                href={`mailto:${employerData.email}`} 
+                                className="text-primary hover:underline"
+                                data-testid="link-employer-email"
+                              >
+                                {employerData.email}
+                              </a>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">Contact information not available</p>
+                        )}
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
