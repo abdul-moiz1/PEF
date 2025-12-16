@@ -44,6 +44,7 @@ import BusinessView from "@/pages/business/BusinessView";
 import BrowseJobs from "@/pages/browse/BrowseJobs";
 import BrowseOpportunities from "@/pages/browse/BrowseOpportunities";
 import NotFound from "@/pages/not-found";
+import GoogleOnboarding from "@/pages/GoogleOnboarding";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 function Router() {
@@ -62,6 +63,7 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/role-selection" component={RoleSelection} />
+      <Route path="/google-onboarding" component={GoogleOnboarding} />
       <Route path="/edit-profile" component={EditProfile} />
       <Route path="/profile/complete" component={ProfileComplete} />
       <Route path="/profile/edit" component={ProfileEdit} />

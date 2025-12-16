@@ -47,7 +47,8 @@ export default function Login() {
       if (isAdmin) {
         setLocation("/dashboard");
       } else if (userData.needsRoleSelection) {
-        setLocation("/role-selection");
+        // For users who need to complete their profile (including Google sign-in users)
+        setLocation("/google-onboarding");
       } else {
         setLocation("/dashboard");
       }
@@ -85,9 +86,9 @@ export default function Login() {
     setGoogleLoading(true);
     try {
       const result = await signInWithGoogle();
-      // If this is a new user (first time signing in with Google), redirect to role selection immediately
+      // If this is a new user (first time signing in with Google), redirect to complete profile onboarding
       if (result.isNewUser) {
-        setLocation("/role-selection");
+        setLocation("/google-onboarding");
         return;
       }
       // For existing users, redirect will be handled by useEffect based on userData
