@@ -6,7 +6,16 @@ The Professional Executive Forum (PEF) is a global digital platform designed to 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
-## Recent Changes (Dec 8, 2025)
+## Recent Changes (Dec 16, 2025)
+- **Employer Job Posting Enhancements** - Improved the job posting workflow with several new features:
+  - Country dropdown selection using the centralized countries API (`/api/locations/countries`)
+  - Auto-filled application email from employer's authenticated account (read-only display)
+  - Preview step allowing employers to review job details before submission
+  - Edit functionality for existing job postings accessible from the employer dashboard
+  - Form state properly resets when dialog opens/closes to prevent stale data
+  - Component location: `client/src/components/PostJobDialog.tsx`
+
+## Previous Changes (Dec 8, 2025)
 - **Rejected User Access Block** - Rejected/suspended users can no longer access the dashboard; they see a beautiful suspension message on login with options to contact support or sign out
   - Added `useMemberStatus` hook check in Login.tsx to block rejected users
   - Shows "Account Suspended" message with clear explanation and action buttons
