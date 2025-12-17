@@ -18,21 +18,26 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { GalleryImage, InsertGalleryImage } from "@shared/schema";
-import { insertGalleryImageSchema } from "@shared/schema";
 import { format } from "date-fns";
 import { z } from "zod";
 import { ImageUpload } from "@/components/ImageUpload";
 
-// Form schema with string eventDate that transforms to Date | null
-const galleryImageFormSchema = insertGalleryImageSchema.extend({
+// Form schema - manually defined to avoid drizzle-zod extend compatibility issues
+const galleryImageFormSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().nullable().optional(),
+  imageUrl: z.string().min(1, "Image URL is required"),
+  category: z.string().nullable().optional(),
   eventDate: z
     .union([z.string(), z.null()])
+    .optional()
     .transform((val) => {
       if (!val || val === "") return null;
       const date = new Date(val);
       if (Number.isNaN(date.getTime())) return null;
       return date;
     }),
+  visible: z.boolean().default(true),
 });
 
 type GalleryImageFormValues = z.input<typeof galleryImageFormSchema>;
