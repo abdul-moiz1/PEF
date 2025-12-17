@@ -12,10 +12,10 @@ Preferred communication style: Simple, everyday language.
 The frontend uses React with TypeScript and Vite, leveraging `shadcn/ui` (built on Radix UI and Tailwind CSS) for components, `Wouter` for routing, and `TanStack Query` for server state management. It features a navy blue, light blue, and orange/gold color palette, Inter/Open Sans and Montserrat typography, and a responsive, mobile-first design. Multi-language support (English, Arabic, Urdu) is planned.
 
 ### Backend
-The backend is built with Express.js on Node.js with TypeScript, providing a RESTful API. It uses an abstracted storage interface currently implemented with Firestore for data persistence. Session management infrastructure with `connect-pg-simple` for PostgreSQL is in place.
+The backend is built with Express.js on Node.js with TypeScript, providing a RESTful API. It uses an abstracted storage interface implemented with Firebase/Firestore for data persistence.
 
 ### Data
-Neon Serverless PostgreSQL is used with Drizzle ORM for type-safe queries and migrations. The schema includes a `users` table and is designed for shared client-server use. Drizzle-Zod provides runtime validation. The system supports multi-role profiles and role-specific data, with future expansion for opportunity listings, member directories, and admin approval workflows.
+Firebase Firestore is the primary database for all data storage. Drizzle ORM and Drizzle-Zod are used for TypeScript type definitions and Zod schema validation (not for actual database queries). The schema in `shared/schema.ts` defines types for users, profiles, opportunities, and more. The system supports multi-role profiles and role-specific data.
 
 ### Centralized Location Management
 A comprehensive country-city management system allows admins to enable/disable countries and cities, edit display names, add new cities, and seed initial country data. Public API endpoints (`/api/locations/countries`, `/api/locations/countries/:countryId/cities`) provide data for dropdowns. The admin UI is at `/admin/locations`.
@@ -31,11 +31,9 @@ Firebase Authentication handles user registration, login, and password resets. F
 - **Lucide React, React Icons**: Icon libraries.
 - **Embla Carousel**: Carousel functionality.
 
-### Database & ORM
-- **Neon Serverless PostgreSQL**: Cloud-native database.
-- **Drizzle ORM**: Type-safe ORM.
-- **Drizzle Kit**: Schema migration tool.
-- **Drizzle Zod**: Integration for Zod validation.
+### Database
+- **Firebase Firestore**: NoSQL cloud database (primary data store).
+- **Drizzle ORM / Drizzle Zod**: Used for TypeScript type definitions and Zod schema validation only (not for database queries).
 
 ### State Management & Data Fetching
 - **TanStack Query**: Server state management with caching.
@@ -63,5 +61,5 @@ Firebase Authentication handles user registration, login, and password resets. F
 - **wouter**: Minimal routing library.
 
 ### Session & Security
-- **connect-pg-simple**: PostgreSQL session store.
-- **Environment Variables**: `DATABASE_URL`, `NODE_ENV`, `RESEND_API_KEY`.
+- **Firebase Authentication**: User authentication and session management.
+- **Environment Variables**: `NODE_ENV`, `RESEND_API_KEY`, Firebase configuration variables.
