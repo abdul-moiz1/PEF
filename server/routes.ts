@@ -15,6 +15,11 @@ import { EmailService } from "./services/email.service";
 
 const AUTO_APPROVE_JOBS = true;
 
+const hasFirebaseAdminConfig = Boolean(
+  process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT || 
+  (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY)
+);
+
 const oauthStateStore = new Map<string, { timestamp: number; returnUrl?: string }>();
 
 setInterval(() => {
@@ -42,10 +47,7 @@ async function getResendClient() {
 }
 
 async function verifyAuthToken(token: string): Promise<string> {
-  const hasFirebaseConfig = process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT || 
-    (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY);
-  
-  if (hasFirebaseConfig) {
+  if (hasFirebaseAdminConfig) {
     const decodedToken = await verifyIdToken(token);
     if (!decodedToken) {
       throw new Error("Invalid or expired token");
@@ -106,7 +108,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let email: string;
       let displayName: string;
 
-      if (!process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT) {
+      if (!hasFirebaseAdminConfig) {
         console.warn("WARNING: Firebase Admin SDK not configured. Token verification is DISABLED. This is INSECURE for production!");
         try {
           const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
@@ -235,7 +237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let uid: string;
 
-      if (!process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT) {
+      if (!hasFirebaseAdminConfig) {
         const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
         uid = decodedToken.user_id;
       } else {
@@ -375,7 +377,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = authHeader.substring(7);
       let uid: string;
 
-      if (!process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT) {
+      if (!hasFirebaseAdminConfig) {
         const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
         uid = decodedToken.user_id;
       } else {
@@ -457,7 +459,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const token = authHeader.substring(7);
         let uid: string;
 
-        if (!process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT) {
+        if (!hasFirebaseAdminConfig) {
           const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
           uid = decodedToken.user_id;
         } else {
@@ -500,7 +502,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = authHeader.substring(7);
       let uid: string;
 
-      if (!process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT) {
+      if (!hasFirebaseAdminConfig) {
         const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
         uid = decodedToken.user_id;
       } else {
@@ -560,7 +562,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = authHeader.substring(7);
       let uid: string;
 
-      if (!process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT) {
+      if (!hasFirebaseAdminConfig) {
         const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
         uid = decodedToken.user_id;
       } else {
@@ -868,7 +870,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = authHeader.substring(7);
       let uid: string;
 
-      if (!process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT) {
+      if (!hasFirebaseAdminConfig) {
         const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
         uid = decodedToken.user_id;
       } else {
@@ -1031,7 +1033,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = authHeader.substring(7);
       let uid: string;
 
-      if (!process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT) {
+      if (!hasFirebaseAdminConfig) {
         const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
         uid = decodedToken.user_id;
       } else {
@@ -1065,7 +1067,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = authHeader.substring(7);
       let uid: string;
 
-      if (!process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT) {
+      if (!hasFirebaseAdminConfig) {
         try {
           const tokenParts = token.split('.');
           if (tokenParts.length !== 3) {
@@ -1118,7 +1120,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = authHeader.substring(7);
       let uid: string;
 
-      if (!process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT) {
+      if (!hasFirebaseAdminConfig) {
         const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
         uid = decodedToken.user_id;
       } else {
@@ -1157,7 +1159,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = authHeader.substring(7);
       let uid: string;
 
-      if (!process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT) {
+      if (!hasFirebaseAdminConfig) {
         const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
         uid = decodedToken.user_id;
       } else {
@@ -1196,7 +1198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = authHeader.substring(7);
       let uid: string;
 
-      if (!process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT) {
+      if (!hasFirebaseAdminConfig) {
         const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
         uid = decodedToken.user_id;
       } else {
@@ -1246,7 +1248,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = authHeader.substring(7);
       let uid: string;
 
-      if (!process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT) {
+      if (!hasFirebaseAdminConfig) {
         const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
         uid = decodedToken.user_id;
       } else {
@@ -1516,7 +1518,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = authHeader.substring(7);
       let uid: string;
 
-      if (!process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT) {
+      if (!hasFirebaseAdminConfig) {
         const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
         uid = decodedToken.user_id;
       } else {
@@ -1555,7 +1557,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = authHeader.substring(7);
       let uid: string;
 
-      if (!process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT) {
+      if (!hasFirebaseAdminConfig) {
         const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
         uid = decodedToken.user_id;
       } else {
@@ -1971,7 +1973,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = authHeader.substring(7);
       let uid: string;
 
-      if (!process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT) {
+      if (!hasFirebaseAdminConfig) {
         try {
           const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
           uid = decodedToken.user_id;
@@ -2022,7 +2024,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = authHeader.substring(7);
       let uid: string;
 
-      if (!process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT) {
+      if (!hasFirebaseAdminConfig) {
         try {
           const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
           uid = decodedToken.user_id;
@@ -2077,7 +2079,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = authHeader.substring(7);
       let uid: string;
 
-      if (!process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT) {
+      if (!hasFirebaseAdminConfig) {
         try {
           const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
           uid = decodedToken.user_id;
@@ -2144,7 +2146,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = authHeader.substring(7);
       let uid: string;
 
-      if (!process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT) {
+      if (!hasFirebaseAdminConfig) {
         try {
           const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
           uid = decodedToken.user_id;
@@ -2195,7 +2197,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = authHeader.substring(7);
       let uid: string;
 
-      if (!process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT) {
+      if (!hasFirebaseAdminConfig) {
         try {
           const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
           uid = decodedToken.user_id;
@@ -2250,7 +2252,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = authHeader.substring(7);
       let uid: string;
 
-      if (!process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT) {
+      if (!hasFirebaseAdminConfig) {
         try {
           const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
           uid = decodedToken.user_id;
@@ -2317,7 +2319,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = authHeader.substring(7);
       let uid: string;
 
-      if (!process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT) {
+      if (!hasFirebaseAdminConfig) {
         try {
           const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
           uid = decodedToken.user_id;
@@ -2368,7 +2370,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = authHeader.substring(7);
       let uid: string;
 
-      if (!process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT) {
+      if (!hasFirebaseAdminConfig) {
         try {
           const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
           uid = decodedToken.user_id;
@@ -2423,7 +2425,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = authHeader.substring(7);
       let uid: string;
 
-      if (!process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT) {
+      if (!hasFirebaseAdminConfig) {
         try {
           const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
           uid = decodedToken.user_id;
@@ -2467,7 +2469,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = authHeader.substring(7);
       let uid: string;
 
-      if (!process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT) {
+      if (!hasFirebaseAdminConfig) {
         try {
           const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
           uid = decodedToken.user_id;
@@ -2510,7 +2512,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = authHeader.substring(7);
       let uid: string;
 
-      if (!process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT) {
+      if (!hasFirebaseAdminConfig) {
         try {
           const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
           uid = decodedToken.user_id;
@@ -2574,7 +2576,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = authHeader.substring(7);
       let uid: string;
 
-      if (!process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT) {
+      if (!hasFirebaseAdminConfig) {
         try {
           const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
           uid = decodedToken.user_id;
@@ -2648,7 +2650,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = authHeader.substring(7);
       let uid: string;
 
-      if (!process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT) {
+      if (!hasFirebaseAdminConfig) {
         try {
           const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
           uid = decodedToken.user_id;
@@ -2747,7 +2749,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = authHeader.substring(7);
       let uid: string;
 
-      if (!process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT) {
+      if (!hasFirebaseAdminConfig) {
         console.warn("WARNING: Firebase Admin SDK not configured. Upload endpoint using INSECURE client-side JWT decoding.");
         try {
           const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
