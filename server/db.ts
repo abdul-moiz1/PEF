@@ -2,12 +2,16 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import * as schema from "@shared/schema";
 
-if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL environment variable is not set");
+// PostgreSQL is optional - this app primarily uses Firebase/Firestore
+let db: ReturnType<typeof drizzle> | null = null;
+
+if (process.env.DATABASE_URL) {
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+  });
+  db = drizzle(pool, { schema });
+} else {
+  console.log("DATABASE_URL not set - PostgreSQL features disabled, using Firebase/Firestore");
 }
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
-export const db = drizzle(pool, { schema });
+export { db };

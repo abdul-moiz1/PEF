@@ -1,7 +1,4 @@
 import { getAdminDb, Timestamp, FieldValue } from "./firebase-admin";
-import { db as pgDb } from "./db";
-import { leaders, galleryImages, membershipTiers, membershipApplications } from "@shared/schema";
-import { eq, desc, and, asc, count } from "drizzle-orm";
 import { 
   type User,
   type UserProfile,
@@ -1215,31 +1212,74 @@ export class FirestoreStorage implements IStorage {
   }
 
   async createMembershipTier(tier: InsertMembershipTier): Promise<MembershipTier> {
-    const [newTier] = await pgDb.insert(membershipTiers).values(tier).returning();
+    const tierId = this.generateId();
+    const newTier: MembershipTier = {
+      id: tierId,
+      name: tier.name,
+      description: tier.description || null,
+      price: tier.price ?? null,
+      currency: tier.currency || "USD",
+      features: tier.features || [],
+      highlighted: tier.highlighted || false,
+      order: tier.order || 0,
+      visible: tier.visible !== false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    await getAdminDb().collection("membershipTiers").doc(tierId).set(newTier);
     return newTier;
   }
 
   async getAllMembershipTiers(): Promise<MembershipTier[]> {
-    const result = await pgDb.select().from(membershipTiers).where(eq(membershipTiers.visible, true)).orderBy(membershipTiers.order);
-    return result;
+    const tiersRef = getAdminDb().collection("membershipTiers");
+    const querySnapshot = await tiersRef.where("visible", "==", true).orderBy("order", "asc").get();
+    return querySnapshot.docs.map(doc => normalizeDocData<MembershipTier>({ id: doc.id, ...doc.data() }));
   }
 
   async getMembershipTierById(id: string): Promise<MembershipTier | undefined> {
-    const [tier] = await pgDb.select().from(membershipTiers).where(eq(membershipTiers.id, id));
-    return tier;
+    const docRef = getAdminDb().collection("membershipTiers").doc(id);
+    const docSnap = await docRef.get();
+    if (docSnap.exists) {
+      return normalizeDocData<MembershipTier>({ id: docSnap.id, ...docSnap.data() });
+    }
+    return undefined;
   }
 
   async updateMembershipTier(id: string, data: Partial<InsertMembershipTier>): Promise<MembershipTier | undefined> {
-    const [updated] = await pgDb.update(membershipTiers).set({ ...data, updatedAt: new Date() }).where(eq(membershipTiers.id, id)).returning();
-    return updated;
+    const docRef = getAdminDb().collection("membershipTiers").doc(id);
+    await docRef.update({ ...data, updatedAt: new Date() });
+    const updatedDoc = await docRef.get();
+    if (updatedDoc.exists) {
+      return normalizeDocData<MembershipTier>({ id: updatedDoc.id, ...updatedDoc.data() });
+    }
+    return undefined;
   }
 
   async deleteMembershipTier(id: string): Promise<void> {
-    await pgDb.delete(membershipTiers).where(eq(membershipTiers.id, id));
+    await getAdminDb().collection("membershipTiers").doc(id).delete();
   }
 
   async createMembershipApplication(application: InsertMembershipApplication): Promise<MembershipApplication> {
-    const [newApplication] = await pgDb.insert(membershipApplications).values(application).returning();
+    const appId = this.generateId();
+    const newApplication: MembershipApplication = {
+      id: appId,
+      fullName: application.fullName,
+      email: application.email,
+      phone: application.phone || null,
+      country: application.country,
+      city: application.city || null,
+      languages: application.languages || null,
+      headline: application.headline || null,
+      bio: application.bio || null,
+      linkedinUrl: application.linkedinUrl || null,
+      websiteUrl: application.websiteUrl || null,
+      portfolioUrl: application.portfolioUrl || null,
+      roles: application.roles || null,
+      status: application.status || "pending",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    await getAdminDb().collection("registrations").doc(appId).set(newApplication);
     return newApplication;
   }
 
