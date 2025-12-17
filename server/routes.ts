@@ -59,7 +59,19 @@ async function verifyAuthToken(token: string): Promise<string> {
 }
 
 const completeRegistrationSchema = z.object({
-  profile: insertUserProfileSchema.omit({ userId: true }),
+  profile: z.object({
+    fullName: z.string(),
+    countryCode: z.string().optional(),
+    phone: z.string().optional(),
+    country: z.string(),
+    city: z.string().optional(),
+    languages: z.array(z.string()).optional(),
+    headline: z.string().optional(),
+    bio: z.string().optional(),
+    linkedinUrl: z.string().optional(),
+    websiteUrl: z.string().optional(),
+    portfolioUrl: z.string().optional(),
+  }),
   roles: z.object({
     professional: z.boolean().optional(),
     jobSeeker: z.boolean().optional(),
