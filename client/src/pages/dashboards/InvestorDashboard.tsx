@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TrendingUp, Target, DollarSign, Briefcase, Building2, Eye, BookmarkPlus, Users, Edit, Search, X, MapPin, Calendar, Mail, Phone, Globe, UserCheck } from "lucide-react";
+import { TrendingUp, Target, DollarSign, Briefcase, Building2, Eye, Users, Edit, Search, X, MapPin, Calendar, Mail, Phone, Globe, UserCheck } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useLocation } from "wouter";
@@ -43,6 +43,7 @@ interface Opportunity {
   country?: string;
   city?: string;
   budgetOrSalary?: string;
+  contactPreference?: string;
   status: string;
   approvalStatus: string;
   metadata?: {
@@ -333,9 +334,6 @@ export default function InvestorDashboard() {
                                 >
                                   View
                                 </Button>
-                                <Button size="sm" variant="outline" data-testid={`button-save-${opp.id}`}>
-                                  <BookmarkPlus className="w-4 h-4" />
-                                </Button>
                               </div>
                             </td>
                           </tr>
@@ -517,15 +515,23 @@ export default function InvestorDashboard() {
                       <Calendar className="w-4 h-4 text-muted-foreground" />
                       <div>
                         <p className="text-xs text-muted-foreground">Posted</p>
-                        <p className="text-sm font-medium">{format(new Date(selectedOpportunity.createdAt), "MMM d, yyyy")}</p>
+                        <p className="text-sm font-medium">{format(new Date(selectedOpportunity.createdAt), "MMMM d, yyyy")}</p>
                       </div>
                     </div>
+                    {selectedOpportunity.contactPreference && (
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Contact Preference</p>
+                          <p className="text-sm font-medium">{selectedOpportunity.contactPreference}</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="flex flex-wrap gap-2 pt-4 border-t">
-                    <Button variant="outline" data-testid="button-save-opportunity">
-                      <BookmarkPlus className="w-4 h-4 mr-2" />
-                      Save
+                  <div className="flex justify-end gap-2 pt-4 border-t">
+                    <Button variant="outline" onClick={() => setSelectedOpportunity(null)} data-testid="button-close-opportunity">
+                      Close
                     </Button>
                   </div>
                 </div>

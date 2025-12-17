@@ -19,7 +19,6 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { DocumentUpload } from "@/components/DocumentUpload";
 import type { Country, City, RoleUpgradeRequest } from "@shared/schema";
 
 const roles = [
@@ -734,12 +733,6 @@ function EditProfileContent() {
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
-                <DocumentUpload
-                  value={proofUrl}
-                  onChange={(url) => setProofUrl(url || "")}
-                  label="Upload Proof Document"
-                  description="Upload supporting documents (business registration, certifications, portfolio, etc.)"
-                />
                 <div>
                   <Label htmlFor="proofDescription">Description</Label>
                   <Textarea
