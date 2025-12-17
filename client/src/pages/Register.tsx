@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
@@ -13,8 +13,6 @@ import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
 import { Briefcase, Search, Building2, Handshake, TrendingUp, ArrowRight, ArrowLeft, CheckCircle, Circle } from "lucide-react";
-import { SiLinkedin } from "react-icons/si";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { checkEmailForJoinNow } from "@/lib/emailValidation";
 import { transformRolesToPrefixed } from "@shared/roleUtils";
 import type { FieldsConfig } from "@shared/schema";
@@ -95,8 +93,6 @@ export default function Register() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [linkedInLoading, setLinkedInLoading] = useState(false);
-  const [linkedInProfile, setLinkedInProfile] = useState<any>(null);
 
   const [basicInfo, setBasicInfo] = useState({
     fullName: "",
@@ -144,60 +140,6 @@ export default function Register() {
     investor: false,
   });
 
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const linkedinSession = urlParams.get('linkedin_session');
-    const linkedinError = urlParams.get('linkedin_error');
-
-    if (linkedinSession) {
-      const fetchLinkedInProfile = async () => {
-        try {
-          const response = await fetch(`/api/auth/linkedin/profile?session=${linkedinSession}`);
-          if (!response.ok) {
-            throw new Error('Failed to fetch LinkedIn profile');
-          }
-          
-          const profile = await response.json();
-          setLinkedInProfile(profile);
-          
-          setBasicInfo((prev) => ({
-            ...prev,
-            fullName: `${profile.firstName} ${profile.lastName}`.trim() || prev.fullName,
-            email: profile.email || prev.email,
-            headline: profile.headline || prev.headline,
-            city: profile.location?.city || prev.city,
-          }));
-
-          toast({
-            title: "LinkedIn Profile Imported!",
-            description: "Your LinkedIn profile data has been loaded. Please review and complete the form.",
-          });
-        } catch (error) {
-          console.error('Error fetching LinkedIn profile:', error);
-          toast({
-            title: "Error",
-            description: "Failed to import LinkedIn data",
-            variant: "destructive",
-          });
-        } finally {
-          window.history.replaceState({}, '', window.location.pathname);
-        }
-      };
-
-      fetchLinkedInProfile();
-    }
-
-    if (linkedinError) {
-      toast({
-        title: "LinkedIn Authorization Failed",
-        description: linkedinError === 'user_cancelled_authorize' 
-          ? "You cancelled the LinkedIn authorization." 
-          : "Failed to connect to LinkedIn. Please try again.",
-        variant: "destructive",
-      });
-      window.history.replaceState({}, '', window.location.pathname);
-    }
-  }, []);
 
   const handleRoleToggle = (roleId: keyof typeof selectedRoles) => {
     setSelectedRoles((prev) => ({ ...prev, [roleId]: !prev[roleId] }));
@@ -209,28 +151,6 @@ export default function Register() {
       setBasicInfo((prev) => ({ ...prev, country: value, phoneCode }));
     } else {
       setBasicInfo((prev) => ({ ...prev, [field]: value }));
-    }
-  };
-
-  const handleLinkedInAuth = async () => {
-    setLinkedInLoading(true);
-    try {
-      const response = await fetch('/api/auth/linkedin');
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to initiate LinkedIn authorization');
-      }
-      
-      window.location.href = data.authUrl;
-    } catch (error: any) {
-      console.error('LinkedIn auth error:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to connect to LinkedIn. Please try again.",
-        variant: "destructive",
-      });
-      setLinkedInLoading(false);
     }
   };
 
@@ -585,34 +505,7 @@ export default function Register() {
                     </div>
 
                     <div className="space-y-4">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <h3 className="text-lg font-semibold">Professional Links (Optional)</h3>
-                        {linkedInProfile ? (
-                          <div className="flex items-center gap-2">
-                            {linkedInProfile.profilePicture && (
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage src={linkedInProfile.profilePicture} alt="LinkedIn Profile" />
-                                <AvatarFallback>{linkedInProfile.firstName?.[0]}{linkedInProfile.lastName?.[0]}</AvatarFallback>
-                              </Avatar>
-                            )}
-                            <span className="text-sm text-muted-foreground">
-                              Imported from LinkedIn
-                            </span>
-                          </div>
-                        ) : (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={handleLinkedInAuth}
-                            disabled={linkedInLoading}
-                            data-testid="button-linkedin-import"
-                          >
-                            <SiLinkedin className="mr-2 h-4 w-4" />
-                            {linkedInLoading ? "Connecting..." : "Import from LinkedIn"}
-                          </Button>
-                        )}
-                      </div>
+                      <h3 className="text-lg font-semibold">Professional Links (Optional)</h3>
                       
                       <div className="space-y-2">
                         <Label htmlFor="linkedinUrl">LinkedIn URL</Label>
