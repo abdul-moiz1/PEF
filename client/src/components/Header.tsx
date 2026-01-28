@@ -124,7 +124,7 @@ export default function Header() {
                 </Link>
                 <Link href="/register">
                   <Button className="bg-accent hover:bg-accent text-accent-foreground font-semibold" data-testid="button-join-now">
-                    Join Us
+                    Join Now
                   </Button>
                 </Link>
               </>
@@ -210,7 +210,7 @@ export default function Header() {
                     onClick={() => setIsMobileMenuOpen(false)}
                     data-testid="button-mobile-join"
                   >
-                    Join Us
+                    Join Now
                   </Button>
                 </Link>
               </>
