@@ -10,7 +10,6 @@ import { getAdminDb, getAdminStorage } from "./firebase-admin";
 import { linkedInService } from "./linkedin-service";
 import crypto from "crypto";
 import multer from "multer";
-import { Client as ObjectStorageClient } from "@replit/object-storage";
 import { EmailService } from "./services/email.service";
 
 const AUTO_APPROVE_JOBS = true;
@@ -2701,25 +2700,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/files/images/*", async (req, res) => {
     try {
       const filePath = (req.params as any)[0] as string;
-      
+
       if (filePath.includes('..') || filePath.startsWith('/')) {
         return res.status(400).json({ error: "Invalid file path" });
-      }
-      
-      const fullPath = `images/${filePath}`;
-      const objectStorage = new ObjectStorageClient();
-      
-      const result = await objectStorage.downloadAsBytes(fullPath);
-      if (!result.ok) {
-        return res.status(404).json({ error: "File not found" });
       }
 
       const ext = filePath.split('.').pop()?.toLowerCase();
       const allowedTypes = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-      
+
       if (!ext || !allowedTypes.includes(ext)) {
         return res.status(400).json({ error: "Unsupported file type" });
       }
+
+      // Try Firebase Storage
+      const fullPath = `images/${filePath}`;
+      const adminStorage = getAdminStorage();
+      const bucket = adminStorage.bucket();
+      const file = bucket.file(fullPath);
+
+      const [exists] = await file.exists();
+      if (!exists) {
+        return res.status(404).json({ error: "File not found" });
+      }
+
+      const [fileBuffer] = await file.download();
 
       const contentTypes: Record<string, string> = {
         'jpg': 'image/jpeg',
@@ -2732,7 +2736,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Content-Type', contentTypes[ext]);
       res.setHeader('Cache-Control', 'public, max-age=31536000');
       res.setHeader('X-Content-Type-Options', 'nosniff');
-      res.end(result.value);
+      res.end(fileBuffer);
     } catch (error) {
       console.error("Error serving file:", error);
       return res.status(500).json({ error: "Failed to serve file" });

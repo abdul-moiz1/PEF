@@ -26,8 +26,9 @@ export class LinkedInService {
   constructor() {
     this.clientId = process.env.LINKEDIN_CLIENT_ID || '';
     this.clientSecret = process.env.LINKEDIN_CLIENT_SECRET || '';
-    const domain = process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
-    this.redirectUri = `https://${domain}/api/auth/linkedin/callback`;
+    const domain = process.env.REPLIT_DEV_DOMAIN || process.env.APP_DOMAIN || 'localhost:5000';
+    const protocol = domain.includes('localhost') ? 'http' : 'https';
+    this.redirectUri = `${protocol}://${domain}/api/auth/linkedin/callback`;
   }
 
   getAuthorizationUrl(state: string): string {
